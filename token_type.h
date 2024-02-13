@@ -1,3 +1,9 @@
+//===- token_type.h - cawk token types ------------------------------------===//
+//
+//  This file defines the different token types.
+//
+//===----------------------------------------------------------------------===//
+
 #pragma once
 
 namespace cawk {
