@@ -1,5 +1,6 @@
 #pragma once
 
+namespace cawk {
 enum struct token_type {
   // Tokens.
   unknown,
@@ -23,6 +24,7 @@ enum struct token_type {
   ampequal,
   star,
   starequal,
+  plus,
   plusplus,
   plusequal,
   minus,
@@ -57,7 +59,7 @@ enum struct token_type {
   equalequal,
   comma,
   hash,
-  hashash,
+  hashhash,
   hashat,
 
   // Keywords.
@@ -93,3 +95,4 @@ enum struct token_type {
   kw_volatile,
   kw_while
 };
+}
