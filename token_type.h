@@ -6,6 +6,8 @@
 
 #pragma once
 
+#include <iostream>
+
 namespace cawk {
 enum struct token_type {
   // Tokens.
@@ -76,29 +78,30 @@ enum struct token_type {
   kw_const,
   kw_continue,
   kw_default,
-  kw_do,
-  kw_double,
   kw_else,
   kw_enum,
   kw_extern,
-  kw_float,
+  kw_f32,
+  kw_f64,
   kw_for,
+  kw_fn,
   kw_goto,
+  kw_i8,
+  kw_i16,
+  kw_i32,
+  kw_i64,
   kw_if,
-  kw_int,
-  kw_long,
-  kw_register,
   kw_return,
-  kw_short,
-  kw_signed,
   kw_static,
+  kw_string,
   kw_struct,
   kw_switch,
   kw_typedef,
+  kw_u8,
+  kw_u16,
+  kw_u32,
+  kw_u64,
   kw_union,
-  kw_unsigned,
   kw_void,
-  kw_volatile,
-  kw_while
 };
-}
+} // namespace cawk
