@@ -311,17 +311,7 @@ class lexer final {
           return lex_identifier();
       }
     case 'd':
-      switch (peek()) {
-      default:
-        return lex_identifier();
-      case 'e':
-        next();
-        return lex_keyword("fault", token_type::kw_default);
-      case 'o':
-        next();
-        return match('u') ? lex_keyword("ble", token_type::kw_double)
-                          : lex_keyword("", token_type::kw_do);
-      }
+      return lex_keyword("efault", token_type::kw_default);
     case 'e':
       switch (peek()) {
       default:
@@ -336,13 +326,14 @@ class lexer final {
     case 'f':
       switch (peek()) {
       default:
-        return lex_identifier();
-      case 'l':
-        next();
-        return lex_keyword("oat", token_type::kw_float);
+        return match('3') ? lex_keyword("2", token_type::kw_f32)
+                          : lex_keyword("64", token_type::kw_f64);
       case 'o':
         next();
         return lex_keyword("r", token_type::kw_for);
+      case 'n':
+        next();
+        return lex_keyword("", token_type::kw_fn);
       }
     case 'g':
       return lex_keyword("oto", token_type::kw_goto);
@@ -350,34 +341,34 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_identifier();
+      case '8':
+        next();
+        return lex_keyword("", token_type::kw_i8);
+      case '1':
+        next();
+        return lex_keyword("6", token_type::kw_i16);
+      case '3':
+        next();
+        return lex_keyword("2", token_type::kw_i32);
+      case '6':
+        next();
+        return lex_keyword("4", token_type::kw_i64);
       case 'f':
         next();
         return lex_keyword("", token_type::kw_if);
-      case 'n':
-        next();
-        return lex_keyword("t", token_type::kw_int);
       }
-    case 'l':
-      return lex_keyword("ong", token_type::kw_long);
     case 'r':
       switch (peek()) {
       default:
         return lex_identifier();
       case 'e':
         next();
-        return match('g') ? lex_keyword("ister", token_type::kw_register)
-                          : lex_keyword("turn", token_type::kw_return);
+        return lex_keyword("turn", token_type::kw_return);
       }
     case 's':
       switch (peek()) {
       default:
         return lex_identifier();
-      case 'h':
-        next();
-        return lex_keyword("ort", token_type::kw_short);
-      case 'i':
-        next();
-        return lex_keyword("gned", token_type::kw_signed);
       case 't':
         next();
         return match('a') ? lex_keyword("tic", token_type::kw_static)
@@ -392,10 +383,21 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_identifier();
+      case '8':
+        next();
+        return lex_keyword("", token_type::kw_u8);
+      case '1':
+        next();
+        return lex_keyword("6", token_type::kw_u16);
+      case '3':
+        next();
+        return lex_keyword("2", token_type::kw_u32);
+      case '6':
+        next();
+        return lex_keyword("4", token_type::kw_u64);
       case 'n':
         next();
-        return match('i') ? lex_keyword("on", token_type::kw_union)
-                          : lex_keyword("signed", token_type::kw_unsigned);
+        return lex_keyword("on", token_type::kw_union);
       }
     case 'v':
       switch (peek()) {
@@ -403,11 +405,8 @@ class lexer final {
         return lex_identifier();
       case 'o':
         next();
-        return match('i') ? lex_keyword("d", token_type::kw_void)
-                          : lex_keyword("latile", token_type::kw_volatile);
+        return lex_keyword("id", token_type::kw_void);
       }
-    case 'w':
-      return lex_keyword("hile", token_type::kw_while);
     }
   }
 
