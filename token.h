@@ -17,11 +17,11 @@ namespace cawk {
 /// parts: the raw source substring (lexeme), the type, and it's location in the
 /// source file.
 struct token final {
-  /// @brief Token's lexeme.
-  std::string lexeme_{};
-
   /// @brief Token's type.
   token_type type_{};
+
+  /// @brief Token's lexeme.
+  std::string lexeme_{};
 
   /// @brief Token's line. (mostly for debugging purposes)
   uint16_t line_{};

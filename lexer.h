@@ -137,7 +137,7 @@ class lexer final {
   token lex_keyword(std::string_view expected, token_type type) noexcept {
     for (auto &&x : expected)
       if (next() != x)
-        return identifier();
+        return lex_identifier();
     return std::isalnum(peek()) ? lex_identifier() : make_token(type);
   }
 
@@ -240,7 +240,7 @@ class lexer final {
         return make_token(token_type::greater);
       case '=':
         next();
-        return make_token(token_type::greater_equal);
+        return make_token(token_type::greaterequal);
       case '>':
         next();
         return make_token(match('=') ? token_type::greatergreaterequal
@@ -321,93 +321,93 @@ class lexer final {
         next();
         return match('u') ? lex_keyword("ble", token_type::kw_double)
                           : lex_keyword("", token_type::kw_do);
-      case 'e':
-        switch (peek()) {
-        default:
-          return lex_identifier();
-        case 'l':
-          next();
-          return lex_keyword("se", token_type::kw_else);
-        case 'x':
-          next();
-          return lex_keyword("tern", token_type::kw_extern);
-        }
-      case 'f':
-        switch (peek()) {
-        default:
-          return lex_identifier();
-        case 'l':
-          next();
-          return lex_keyword("oat", token_type::kw_float);
-        case 'o':
-          next();
-          return lex_keyword("r", token_type::kw_for);
-        }
-      case 'g':
-        return lex_keyword("oto", token_type::kw_goto);
-      case 'i':
-        switch (peek()) {
-        default:
-          return lex_identifier();
-        case 'f':
-          next();
-          return lex_keyword("", token_type::kw_if);
-        case 'n':
-          next();
-          return lex_keyword("t", token_type::kw_int);
-        }
-      case 'l':
-        return lex_keyword("ong", token_type::kw_long);
-      case 'r':
-        switch (peek()) {
-        default:
-          return lex_identifier();
-        case 'e':
-          next();
-          return match('g') ? lex_keyword("ister", token_type::kw_register)
-                            : lex_keyword("turn", token_type::kw_return);
-        }
-      case 's':
-        switch (peek()) {
-        default:
-          return lex_identifier();
-        case 'h':
-          next();
-          return lex_keyword("ort", token_type::kw_short);
-        case 'i':
-          next();
-          return lex_keyword("gned", token_type::kw_signed);
-        case 't':
-          next();
-          return match('a') ? lex_keyword("tic", token_type::kw_static)
-                            : lex_keyword("ruct", token_type::struct);
-        case 'w':
-          next();
-          return lex_keyword("itch", token_type::kw_switch);
-        }
-      case 't':
-        return lex_keyword("ypedef", token_type::kw_typedef);
-      case 'u':
-        switch (peek()) {
-        default:
-          return lex_identifier();
-        case 'n':
-          next();
-          return match('i') ? lex_keyword("on", token_type::kw_union)
-                            : lex_keyword("signed", token_type::kw_unsigned);
-        }
-      case 'v':
-        switch (peek()) {
-        default:
-          return lex_identifier();
-        case 'o':
-          next();
-          return match('i') ? lex_keyword('d', token_type::kw_void)
-                            : lex_keyword("latile", token_type::kw_volatile);
-        }
-      case 'w':
-        return lex_keyword("hile", token_type::kw_while);
       }
+    case 'e':
+      switch (peek()) {
+      default:
+        return lex_identifier();
+      case 'l':
+        next();
+        return lex_keyword("se", token_type::kw_else);
+      case 'x':
+        next();
+        return lex_keyword("tern", token_type::kw_extern);
+      }
+    case 'f':
+      switch (peek()) {
+      default:
+        return lex_identifier();
+      case 'l':
+        next();
+        return lex_keyword("oat", token_type::kw_float);
+      case 'o':
+        next();
+        return lex_keyword("r", token_type::kw_for);
+      }
+    case 'g':
+      return lex_keyword("oto", token_type::kw_goto);
+    case 'i':
+      switch (peek()) {
+      default:
+        return lex_identifier();
+      case 'f':
+        next();
+        return lex_keyword("", token_type::kw_if);
+      case 'n':
+        next();
+        return lex_keyword("t", token_type::kw_int);
+      }
+    case 'l':
+      return lex_keyword("ong", token_type::kw_long);
+    case 'r':
+      switch (peek()) {
+      default:
+        return lex_identifier();
+      case 'e':
+        next();
+        return match('g') ? lex_keyword("ister", token_type::kw_register)
+                          : lex_keyword("turn", token_type::kw_return);
+      }
+    case 's':
+      switch (peek()) {
+      default:
+        return lex_identifier();
+      case 'h':
+        next();
+        return lex_keyword("ort", token_type::kw_short);
+      case 'i':
+        next();
+        return lex_keyword("gned", token_type::kw_signed);
+      case 't':
+        next();
+        return match('a') ? lex_keyword("tic", token_type::kw_static)
+                          : lex_keyword("ruct", token_type::kw_struct);
+      case 'w':
+        next();
+        return lex_keyword("itch", token_type::kw_switch);
+      }
+    case 't':
+      return lex_keyword("ypedef", token_type::kw_typedef);
+    case 'u':
+      switch (peek()) {
+      default:
+        return lex_identifier();
+      case 'n':
+        next();
+        return match('i') ? lex_keyword("on", token_type::kw_union)
+                          : lex_keyword("signed", token_type::kw_unsigned);
+      }
+    case 'v':
+      switch (peek()) {
+      default:
+        return lex_identifier();
+      case 'o':
+        next();
+        return match('i') ? lex_keyword("d", token_type::kw_void)
+                          : lex_keyword("latile", token_type::kw_volatile);
+      }
+    case 'w':
+      return lex_keyword("hile", token_type::kw_while);
     }
   }
 
@@ -417,7 +417,8 @@ public:
     if (!file.good())
       exit(EXIT_FAILURE);
 
-    source_ = {std::istream_iterator{file}, std::istream_iterator<char>{}};
+    source_ = {std::istream_iterator<char>{file},
+               std::istream_iterator<char>{}};
   }
 };
 } // namespace cawk
