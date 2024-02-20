@@ -22,9 +22,6 @@ class lexer final {
   /// The contents of the source file.
   std::string source_{};
 
-  /// Constructed stream of tokens.
-  std::vector<token> tokens_{};
-
   /// Start of the lexeme.
   std::string::size_type prev_{};
 
@@ -39,7 +36,7 @@ class lexer final {
   bool end() const noexcept { return next_ == std::size(source_); }
 
   char peek(std::string::size_type i = 0) const noexcept {
-    return next_ + i < std::size(source_) ? source_[i] : '\0';
+    return next_ + i < std::size(source_) ? source_[next_ + i] : '\0';
   }
 
   /// @brief prev - Get starting character of lexeme.
@@ -93,7 +90,7 @@ class lexer final {
   /// integers and real numbers.
   /// @return A token with the lexeme as the string literal of the numeric.
   token lex_numeric_constant() noexcept {
-    for (next(); std::isdigit(peek()); next())
+    for (; std::isdigit(peek()); next())
       ;
 
     if (peek() == '.' && std::isdigit(peek(1)))
@@ -416,8 +413,20 @@ public:
     if (!file.good())
       exit(EXIT_FAILURE);
 
-    source_ = {std::istream_iterator<char>{file},
-               std::istream_iterator<char>{}};
+    source_ = {std::istreambuf_iterator{file},
+               std::istreambuf_iterator<char>{}};
+  }
+
+  std::vector<token> operator()() {
+    std::vector<token> tokens{};
+
+    for (;;) {
+      tokens.push_back(lex_token());
+      if (tokens.back().type_ == token_type::eof)
+        break;
+    }
+
+    return tokens;
   }
 };
 } // namespace cawk

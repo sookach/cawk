@@ -20,6 +20,9 @@ struct binary_expr final : public expr {
   token op_{};
   std::unique_ptr<expr> lhs_{}, rhs_{};
 
+  binary_expr(token op, std::unique_ptr<expr> lhs, std::unique_ptr<expr> rhs)
+      : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
+
   virtual void operator()(std::ostream &os) const override final {
     lhs_->operator()(os);
     os << op_.lexeme_;
@@ -31,19 +34,23 @@ struct unary_expr final : public expr {
   token op_{};
   std::unique_ptr<expr> rhs_{};
 
+  unary_expr(token op, std::unique_ptr<expr> rhs)
+      : op_{op}, rhs_{std::move(rhs)} {}
+
   virtual void operator()(std::ostream &os) const override final {
     os << op_.lexeme_;
     rhs_->operator()(os);
   }
-
-  unary_expr(token op, std::unique_ptr<expr> &&rhs)
-      : op_{op}, rhs_{std::move(rhs)} {}
 };
 
 struct atom_expr final : public expr {
   token atom_{};
 
   atom_expr(token atom) : atom_{atom} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << atom_.lexeme_;
+  }
 };
 
 struct stmt {
@@ -62,10 +69,10 @@ struct var_decl final : public stmt {
     os << type_.lexeme_;
     os << ' ';
     os << iden_.lexeme_;
-    os << '{';
+    os << '=';
     if (init_ != nullptr)
       init_->operator()(os);
-    os << "};";
+    os << ';';
   }
 };
 
