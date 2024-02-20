@@ -165,6 +165,10 @@ class lexer final {
       return make_token(token_type::l_paren);
     case ')':
       return make_token(token_type::r_paren);
+    case '{':
+      return make_token(token_type::l_brace);
+    case '}':
+      return make_token(token_type::r_brace);
     case '.':
       return make_token(peek() == '.' && peek(1) == '.'
                             ? (next(), next(), token_type::ellipsis)
