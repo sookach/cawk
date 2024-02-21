@@ -124,6 +124,11 @@ struct for_stmt final : public stmt {
   std::unique_ptr<expr> incr_{};
   std::unique_ptr<stmt> body_{};
 
+  for_stmt(std::unique_ptr<stmt> init, std::unique_ptr<expr> cond,
+           std::unique_ptr<expr> incr, std::unique_ptr<stmt> body)
+      : init_{std::move(init)}, cond_{std::move(cond)}, incr_{std::move(incr)},
+        body_{std::move(body)} {}
+
   virtual void operator()(std::ostream &os) const override final {
     os << "for(";
     if (init_ == nullptr)
@@ -135,6 +140,29 @@ struct for_stmt final : public stmt {
     os << ';';
     if (incr_ != nullptr)
       incr_->operator()(os);
+    os << ')';
+    if (body_ != nullptr)
+      body_->operator()(os);
+    else
+      os << ';';
+  }
+};
+
+struct range_stmt final : public stmt {
+  std::unique_ptr<stmt> init_{};
+  std::unique_ptr<expr> range_{};
+  std::unique_ptr<stmt> body_{};
+
+  range_stmt(std::unique_ptr<stmt> init, std::unique_ptr<expr> range,
+             std::unique_ptr<stmt> body)
+      : init_{std::move(init)}, range_{std::move(range)},
+        body_{std::move(body)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << "for(";
+    init_->operator()(os);
+    os << ':';
+    range_->operator()(os);
     os << ')';
     if (body_ != nullptr)
       body_->operator()(os);

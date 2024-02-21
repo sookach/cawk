@@ -88,6 +88,9 @@ class parser final {
     default:
       std::cerr << "undefined nud" << std::endl;
       exit(EXIT_FAILURE);
+    case token_type::semi:
+      /// TODO: is this the right way to handle empty expressions?
+      return nullptr;
     case token_type::identifier:
     case token_type::numeric_constant:
     case token_type::string_literal:
@@ -118,39 +121,78 @@ class parser final {
     return std::move(lhs);
   }
 
-  std::unique_ptr<stmt> parse_var_decl() noexcept {
+  std::unique_ptr<stmt> parse_var_decl(bool expect_semi = true) noexcept {
     const auto type{next()};
     const auto iden{next()};
     auto init{match(token_type::equal) ? parse_expr() : nullptr};
-    expect(token_type::semi);
+
+    if (expect_semi)
+      expect(token_type::semi);
 
     return std::make_unique<var_decl>(type, iden, std::move(init));
   }
 
+  std::unique_ptr<stmt> parse_expr_stmt() noexcept {
+    auto e{parse_expr()};
+    expect(token_type::semi);
+    return std::make_unique<expr_stmt>(std::move(e));
+  }
+
+  std::unique_ptr<stmt> parse_block_stmt() noexcept {
+    auto block{std::make_unique<block_stmt>()};
+    expect(token_type::l_brace);
+    for (; peek().type_ != token_type::eof &&
+           peek().type_ != token_type::r_brace;)
+      block->body_.push_back(parse_decl());
+    expect(token_type::r_brace);
+    return std::move(block);
+  }
+
+  std::unique_ptr<stmt> parse_if_stmt() noexcept {
+    expect(token_type::kw_if);
+    expect(token_type::l_paren);
+    auto cond{parse_expr()};
+    expect(token_type::r_paren);
+    auto then_branch{parse_stmt()};
+    auto else_branch{match(token_type::kw_else) ? parse_stmt() : nullptr};
+    return std::make_unique<if_stmt>(std::move(cond), std::move(then_branch),
+                                     std::move(else_branch));
+  }
+
+  std::unique_ptr<stmt> parse_for_stmt() noexcept {
+    expect(token_type::kw_for);
+    expect(token_type::l_paren);
+    auto init{peek().type_ == token_type::semi          ? nullptr
+              : peek(1).type_ == token_type::identifier ? parse_var_decl(false)
+                                                        : parse_stmt()};
+    if (next().type_ == token_type::colon) {
+      auto range{parse_expr()};
+      expect(token_type::r_paren);
+      auto body{parse_stmt()};
+      return std::make_unique<range_stmt>(std::move(init), std::move(range),
+                                          std::move(body));
+    }
+
+    auto cond{peek().type_ == token_type::semi ? nullptr : parse_expr()};
+    expect(token_type::semi);
+    auto incr{peek().type_ == token_type::r_paren ? nullptr : parse_expr()};
+    expect(token_type::r_paren);
+    auto body{parse_stmt()};
+
+    return std::make_unique<for_stmt>(std::move(init), std::move(cond),
+                                      std::move(incr), std::move(body));
+  }
+
   std::unique_ptr<stmt> parse_stmt() noexcept {
     switch (peek().type_) {
-    default: {
-      auto e{parse_expr()};
-      expect(token_type::semi);
-      return std::make_unique<expr_stmt>(std::move(e));
-    }
-    case token_type::l_brace: {
-      auto block{std::make_unique<block_stmt>()};
-      for (next(); peek().type_ != token_type::eof &&
-                   peek().type_ != token_type::r_brace;)
-        block->body_.push_back(parse_decl());
-      expect(token_type::r_brace);
-      return std::move(block);
-    }
+    default:
+      return parse_expr_stmt();
+    case token_type::l_brace:
+      return parse_block_stmt();
     case token_type::kw_if:
-      expect(token_type::kw_if);
-      expect(token_type::l_paren);
-      auto cond{parse_expr()};
-      expect(token_type::r_paren);
-      auto then_branch{parse_stmt()};
-      auto else_branch{match(token_type::kw_else) ? parse_stmt() : nullptr};
-      return std::make_unique<if_stmt>(std::move(cond), std::move(then_branch),
-                                       std::move(else_branch));
+      return parse_if_stmt();
+    case token_type::kw_for:
+      return parse_for_stmt();
     }
   }
 
