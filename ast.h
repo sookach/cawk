@@ -76,8 +76,21 @@ struct var_decl final : public stmt {
   }
 };
 
+struct block_stmt final : public stmt {
+  std::vector<std::unique_ptr<stmt>> body_{};
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << '{';
+    for (auto &&x : body_)
+      x->operator()(os);
+    os << '}';
+  }
+};
+
 struct expr_stmt final : public stmt {
   std::unique_ptr<expr> e_{};
+
+  expr_stmt(std::unique_ptr<expr> e) : e_{std::move(e)} {}
 
   virtual void operator()(std::ostream &os) const override final {
     e_->operator()(os);
@@ -87,8 +100,12 @@ struct expr_stmt final : public stmt {
 
 struct if_stmt final : public stmt {
   std::unique_ptr<expr> cond_{};
-  std::unique_ptr<expr> then_{};
-  std::unique_ptr<expr> else_{};
+  std::unique_ptr<stmt> then_{};
+  std::unique_ptr<stmt> else_{};
+
+  if_stmt(std::unique_ptr<expr> c, std::unique_ptr<stmt> t,
+          std::unique_ptr<stmt> e)
+      : cond_{std::move(c)}, then_{std::move(t)}, else_{std::move(e)} {}
 
   virtual void operator()(std::ostream &os) const override final {
     os << "if(";

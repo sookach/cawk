@@ -127,10 +127,37 @@ class parser final {
     return std::make_unique<var_decl>(type, iden, std::move(init));
   }
 
+  std::unique_ptr<stmt> parse_stmt() noexcept {
+    switch (peek().type_) {
+    default: {
+      auto e{parse_expr()};
+      expect(token_type::semi);
+      return std::make_unique<expr_stmt>(std::move(e));
+    }
+    case token_type::l_brace: {
+      auto block{std::make_unique<block_stmt>()};
+      for (next(); peek().type_ != token_type::eof &&
+                   peek().type_ != token_type::r_brace;)
+        block->body_.push_back(parse_decl());
+      expect(token_type::r_brace);
+      return std::move(block);
+    }
+    case token_type::kw_if:
+      expect(token_type::kw_if);
+      expect(token_type::l_paren);
+      auto cond{parse_expr()};
+      expect(token_type::r_paren);
+      auto then_branch{parse_stmt()};
+      auto else_branch{match(token_type::kw_else) ? parse_stmt() : nullptr};
+      return std::make_unique<if_stmt>(std::move(cond), std::move(then_branch),
+                                       std::move(else_branch));
+    }
+  }
+
   std::unique_ptr<stmt> parse_decl() noexcept {
     switch (peek().type_) {
     default:
-    //
+      return parse_stmt();
     case token_type::kw_char:
     case token_type::kw_i8:
     case token_type::kw_i16:
