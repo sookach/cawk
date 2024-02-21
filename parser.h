@@ -103,7 +103,12 @@ class parser final {
     }
     case token_type::minus: {
       auto op{next()};
-      return std::make_unique<unary_expr>(op, parse_expr());
+      return std::make_unique<unary_expr>(op, parse_expr(12));
+    }
+    case token_type::plusplus:
+    case token_type::minusminus: {
+      auto op{next()};
+      return std::make_unique<unary_expr>(op, parse_expr(12));
     }
     }
   }
