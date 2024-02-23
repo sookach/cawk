@@ -326,9 +326,9 @@ class lexer final {
       }
     case 'f':
       switch (peek()) {
-      default:
-        return match('3') ? lex_keyword("2", token_type::kw_f32)
-                          : lex_keyword("64", token_type::kw_f64);
+      // default:
+      //   return match('3') ? lex_keyword("2", token_type::kw_f32)
+      //                     : lex_keyword("64", token_type::kw_f64);
       case 'o':
         next();
         return lex_keyword("r", token_type::kw_for);
@@ -342,18 +342,18 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_identifier();
-      case '8':
-        next();
-        return lex_keyword("", token_type::kw_i8);
-      case '1':
-        next();
-        return lex_keyword("6", token_type::kw_i16);
-      case '3':
-        next();
-        return lex_keyword("2", token_type::kw_i32);
-      case '6':
-        next();
-        return lex_keyword("4", token_type::kw_i64);
+      // case '8':
+      //   next();
+      //   return lex_keyword("", token_type::kw_i8);
+      // case '1':
+      //   next();
+      //   return lex_keyword("6", token_type::kw_i16);
+      // case '3':
+      //   next();
+      //   return lex_keyword("2", token_type::kw_i32);
+      // case '6':
+      //   next();
+      //   return lex_keyword("4", token_type::kw_i64);
       case 'f':
         next();
         return lex_keyword("", token_type::kw_if);
@@ -384,21 +384,21 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_identifier();
-      case '8':
-        next();
-        return lex_keyword("", token_type::kw_u8);
-      case '1':
-        next();
-        return lex_keyword("6", token_type::kw_u16);
-      case '3':
-        next();
-        return lex_keyword("2", token_type::kw_u32);
-      case '6':
-        next();
-        return lex_keyword("4", token_type::kw_u64);
+      // case '8':
+      //   next();
+      //   return lex_keyword("", token_type::kw_u8);
+      // case '1':
+      //   next();
+      //   return lex_keyword("6", token_type::kw_u16);
+      // case '3':
+      //   next();
+      //   return lex_keyword("2", token_type::kw_u32);
+      // case '6':
+      //   next();
+      //   return lex_keyword("4", token_type::kw_u64);
       case 'n':
         next();
-        return lex_keyword("on", token_type::kw_union);
+        return lex_keyword("ion", token_type::kw_union);
       }
     case 'v':
       switch (peek()) {
