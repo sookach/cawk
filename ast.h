@@ -10,6 +10,7 @@
 
 #include <iostream>
 #include <memory>
+#include <ranges>
 
 namespace cawk {
 struct expr {
@@ -62,17 +63,54 @@ struct var_decl final : public stmt {
   token iden_{};
   std::unique_ptr<expr> init_{};
 
-  var_decl(token type, token iden, std::unique_ptr<expr> &&init)
-      : type_{type}, iden_{iden}, init_{std::move(init)} {}
+  var_decl(token type, token iden, std::unique_ptr<expr> init)
+      : type_{type}, iden_{iden}, init_{std::move(init)} {
+    type_.lexeme_ = "cawk_val";
+  }
+
+  var_decl(token iden, std::unique_ptr<expr> init)
+      : iden_{iden}, init_{std::move(init)} {
+    type_.lexeme_ = "cawk_val";
+  }
 
   virtual void operator()(std::ostream &os) const override final {
-    os << type_.lexeme_;
-    os << ' ';
+    os << type_.lexeme_ << ' ';
     os << iden_.lexeme_;
     os << '=';
-    if (init_ != nullptr)
-      init_->operator()(os);
+    init_->operator()(os);
     os << ';';
+  }
+};
+
+struct fn_decl final : public stmt {
+  std::string iden_{};
+  std::unique_ptr<stmt> body_{};
+  std::vector<std::string> params_{};
+  bool ret_{};
+
+  fn_decl(std::string iden, std::unique_ptr<stmt> body,
+          std::vector<std::string> params = {}, bool ret = false)
+      : iden_{iden}, body_{std::move(body)}, params_{params}, ret_{ret} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    static bool proto_{true};
+    os << (ret_ ? "cawk_val " : "void ");
+    os << iden_;
+
+    if (std::empty(params_))
+      os << "()";
+    else {
+      for (os << '('; auto &&x : params_)
+        os << "cawk_val " << x << ',';
+      os << "\b)";
+    }
+
+    if (proto_)
+      os << ';';
+    else
+      body_->operator()(os);
+
+    proto_ = false;
   }
 };
 
@@ -113,8 +151,10 @@ struct if_stmt final : public stmt {
     os << ')';
     then_->operator()(os);
 
-    if (else_ != nullptr)
+    if (else_ != nullptr) {
+      std::cout << "else";
       else_->operator()(os);
+    }
   }
 };
 

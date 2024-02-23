@@ -137,6 +137,24 @@ class parser final {
     return std::make_unique<var_decl>(type, iden, std::move(init));
   }
 
+  std::unique_ptr<stmt> parse_fn_decl() noexcept {
+    expect(token_type::kw_fn);
+    const auto iden{next().lexeme_};
+    expect(token_type::l_paren);
+    std::vector<std::string> params{};
+
+    for (; peek().type_ != token_type::eof && !match(token_type::r_paren);)
+      params.push_back(next().lexeme_);
+
+    if (peek().type_ == token_type::eof)
+      exit(EXIT_FAILURE);
+
+    bool ret{match(token_type::arrow)};
+    auto body{parse_block_stmt()};
+
+    return std::make_unique<fn_decl>(iden, std::move(body), params, ret);
+  }
+
   std::unique_ptr<stmt> parse_expr_stmt() noexcept {
     auto e{parse_expr()};
     expect(token_type::semi);
@@ -205,18 +223,10 @@ class parser final {
     switch (peek().type_) {
     default:
       return parse_stmt();
-    case token_type::kw_char:
-    case token_type::kw_i8:
-    case token_type::kw_i16:
-    case token_type::kw_i32:
-    case token_type::kw_i64:
-    case token_type::kw_u8:
-    case token_type::kw_u16:
-    case token_type::kw_u32:
-    case token_type::kw_u64:
-    case token_type::kw_f32:
-    case token_type::kw_f64:
+    case token_type::kw_auto:
       return parse_var_decl();
+    case token_type::kw_fn:
+      return parse_fn_decl();
     }
   }
 
