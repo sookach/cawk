@@ -174,7 +174,24 @@ class parser final {
     return std::make_unique<fn_decl>(iden, std::move(body), params, ret);
   }
 
-  std::unique_ptr<stmt> parse_pattern_action() noexcept {}
+  std::unique_ptr<stmt> parse_pattern_action() noexcept {
+    std::unique_ptr<expr> pattern{};
+    switch (peek().type_) {
+    default:
+      pattern = parse_expr();
+    case token_type::l_brace:
+      pattern = std::make_unique<atom_expr>(token{.lexeme_ = "1"});
+    case token_type::kw_begin:
+    case token_type::kw_end:
+      pattern = std::make_unique<atom_expr>(next());
+    }
+
+    auto action{peek().type_ == token_type::l_brace
+                    ? parse_block_stmt()
+                    : std::make_unique<print_record_stmt>()};
+
+    return std::make_unique<if_stmt>(std::move(pattern), std::move(action));
+  }
 
   std::unique_ptr<stmt> parse_expr_stmt() noexcept {
     auto e{parse_expr()};
@@ -187,7 +204,7 @@ class parser final {
     expect(token_type::l_brace);
     for (; peek().type_ != token_type::eof &&
            peek().type_ != token_type::r_brace;)
-      block->body_.push_back(parse_decl());
+      block->body_.push_back(parse_inner_decl());
     expect(token_type::r_brace);
     return std::move(block);
   }
@@ -249,10 +266,19 @@ class parser final {
     }
   }
 
-  std::unique_ptr<stmt> parse_decl() noexcept {
+  std::unique_ptr<stmt> parse_inner_decl() noexcept {
     switch (peek().type_) {
     default:
       return parse_stmt();
+    case token_type::kw_auto:
+      return parse_var_decl();
+    }
+  }
+
+  std::unique_ptr<stmt> parse_outer_decl() noexcept {
+    switch (peek().type_) {
+    default:
+      return parse_pattern_action();
     case token_type::kw_auto:
       return parse_var_decl();
     case token_type::kw_fn:
@@ -266,7 +292,7 @@ public:
   std::vector<std::unique_ptr<stmt>> operator()() {
     std::vector<std::unique_ptr<stmt>> ast{};
     for (; !match(token_type::eof);)
-      ast.push_back(parse_decl());
+      ast.push_back(parse_outer_decl());
     return ast;
   }
 };

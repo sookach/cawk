@@ -288,6 +288,8 @@ class lexer final {
       return lex_keyword("uto", token_type::kw_auto);
     case 'b':
       return lex_keyword("reak", token_type::kw_break);
+    case 'B':
+      return lex_keyword("EGIN", token_type::kw_begin);
     case 'c':
       switch (peek()) {
       default:
@@ -326,6 +328,8 @@ class lexer final {
         next();
         return lex_keyword("tern", token_type::kw_extern);
       }
+    case 'E':
+      return lex_keyword("ND", token_type::kw_end);
     case 'f':
       switch (peek()) {
       default:

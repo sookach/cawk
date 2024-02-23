@@ -72,6 +72,7 @@ enum struct token_type {
 
   // Keywords.
   kw_auto,
+  kw_begin,
   kw_break,
   kw_case,
   kw_char,
@@ -79,6 +80,7 @@ enum struct token_type {
   kw_continue,
   kw_default,
   kw_else,
+  kw_end,
   kw_enum,
   kw_extern,
   kw_f32,

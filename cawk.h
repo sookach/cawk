@@ -1,8 +1,10 @@
 #include <algorithm>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <optional>
 #include <ranges>
+#include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
@@ -111,13 +113,8 @@ int64_t operator-(const cawk_val &x, const std::integral auto &y) noexcept {
   exit(EXIT_FAILURE);
 }
 
-cawk_val fib(cawk_val n) {
-  if (n == 0 || n == 1)
-    return 1;
-  return fib(n - 1) + fib(n - 2);
-}
-
 std::vector<std::string> cawk_fields{};
 std::string cawk_record{};
 
 uint64_t NR{}, NF{};
+bool BEGIN{true}, END{};

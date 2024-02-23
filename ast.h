@@ -108,6 +108,18 @@ struct stmt {
   virtual void operator()(std::ostream &) const {};
 };
 
+// struct pattern_action final : public stmt {
+//   std::unique_ptr<expr> pattern_{};
+//   std::unique_ptr<stmt> action_{};
+
+//   pattern_action(std::unique_ptr<expr> pattern, std::unique_ptr<stmt> action)
+//       : pattern_{std::move(pattern)}, action_{std::move(action)} {}
+
+//   virtual void operator()(std::ostream &os) const override final {
+
+//   }
+// };
+
 struct var_decl final : public stmt {
   token type_{};
   token iden_{};
@@ -126,8 +138,10 @@ struct var_decl final : public stmt {
   virtual void operator()(std::ostream &os) const override final {
     os << type_.lexeme_ << ' ';
     os << iden_.lexeme_;
-    os << '=';
-    init_->operator()(os);
+    if (init_ != nullptr) {
+      os << '=';
+      init_->operator()(os);
+    }
     os << ';';
   }
 };
@@ -151,7 +165,7 @@ struct fn_decl final : public stmt {
       os << "()";
     else {
       for (os << '('; auto &&x : params_)
-        os << "cawk_val " << x << ',';
+        os << "cawk_val " << (proto_ ? "" : x) << ',';
       os.seekp(os.tellp() - std::streampos{1});
       os << ")";
     }
@@ -193,7 +207,7 @@ struct if_stmt final : public stmt {
   std::unique_ptr<stmt> else_{};
 
   if_stmt(std::unique_ptr<expr> c, std::unique_ptr<stmt> t,
-          std::unique_ptr<stmt> e)
+          std::unique_ptr<stmt> e = nullptr)
       : cond_{std::move(c)}, then_{std::move(t)}, else_{std::move(e)} {}
 
   virtual void operator()(std::ostream &os) const override final {
@@ -277,6 +291,12 @@ struct range_stmt final : public stmt {
       body_->operator()(os);
     else
       os << ';';
+  }
+};
+
+struct print_record_stmt final : public stmt {
+  virtual void operator()(std::ostream &os) const override final {
+    os << "std::cout << cawk_record << std::endl;";
   }
 };
 
