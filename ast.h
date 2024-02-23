@@ -88,7 +88,8 @@ struct call_expr final : public expr {
         x->operator()(os);
         os << ',';
       }
-      os << "\b)";
+      os.seekp(os.tellp() - std::streampos{1});
+      os << ")";
     }
   }
 };
@@ -151,7 +152,8 @@ struct fn_decl final : public stmt {
     else {
       for (os << '('; auto &&x : params_)
         os << "cawk_val " << x << ',';
-      os << "\b)";
+      os.seekp(os.tellp() - std::streampos{1});
+      os << ")";
     }
 
     if (proto_)

@@ -174,6 +174,8 @@ class parser final {
     return std::make_unique<fn_decl>(iden, std::move(body), params, ret);
   }
 
+  std::unique_ptr<stmt> parse_pattern_action() noexcept {}
+
   std::unique_ptr<stmt> parse_expr_stmt() noexcept {
     auto e{parse_expr()};
     expect(token_type::semi);
