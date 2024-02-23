@@ -31,16 +31,65 @@ struct binary_expr final : public expr {
   }
 };
 
-struct unary_expr final : public expr {
+struct grouping_expr final : public expr {
+  std::unique_ptr<expr> e_{};
+
+  grouping_expr(std::unique_ptr<expr> e) : e_{std::move(e)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << '(';
+    e_->operator()(os);
+    os << ')';
+  }
+};
+
+struct prefix_expr final : public expr {
   token op_{};
   std::unique_ptr<expr> rhs_{};
 
-  unary_expr(token op, std::unique_ptr<expr> rhs)
+  prefix_expr(token op, std::unique_ptr<expr> rhs)
       : op_{op}, rhs_{std::move(rhs)} {}
 
   virtual void operator()(std::ostream &os) const override final {
     os << op_.lexeme_;
     rhs_->operator()(os);
+  }
+};
+
+struct postfix_expr final : public expr {
+  token op_{};
+  std::unique_ptr<expr> lhs_{};
+  std::vector<std::unique_ptr<expr>> args_{};
+
+  postfix_expr(token op, std::unique_ptr<expr> lhs,
+               std::vector<std::unique_ptr<expr>> args = {})
+      : op_{op}, lhs_{std::move(lhs)}, args_{std::move(args)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    lhs_->operator()(os);
+  }
+};
+
+struct call_expr final : public expr {
+  std::unique_ptr<expr> callee_{};
+  std::vector<std::unique_ptr<expr>> args_{};
+
+  call_expr(std::unique_ptr<expr> callee,
+            std::vector<std::unique_ptr<expr>> args = {})
+      : callee_{std::move(callee)}, args_{std::move(args)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    callee_->operator()(os);
+
+    if (std::empty(args_))
+      os << "()";
+    else {
+      for (os << '('; auto &&x : args_) {
+        x->operator()(os);
+        os << ',';
+      }
+      os << "\b)";
+    }
   }
 };
 
@@ -185,6 +234,24 @@ struct for_stmt final : public stmt {
       body_->operator()(os);
     else
       os << ';';
+  }
+};
+
+struct return_stmt final : public stmt {
+  std::unique_ptr<expr> value_{};
+
+  return_stmt(std::unique_ptr<expr> value = nullptr)
+      : value_{std::move(value)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << "return";
+
+    if (value_ != nullptr) {
+      os << ' ';
+      value_->operator()(os);
+    }
+
+    os << ';';
   }
 };
 

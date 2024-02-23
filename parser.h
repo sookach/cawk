@@ -99,22 +99,41 @@ class parser final {
       next();
       auto e{parse_expr()};
       match(token_type::r_paren);
-      return std::move(e);
+      return std::make_unique<grouping_expr>(std::move(e));
     }
     case token_type::minus: {
       auto op{next()};
-      return std::make_unique<unary_expr>(op, parse_expr(12));
+      return std::make_unique<prefix_expr>(op, parse_expr(12));
     }
     case token_type::plusplus:
     case token_type::minusminus: {
       auto op{next()};
-      return std::make_unique<unary_expr>(op, parse_expr(12));
+      return std::make_unique<prefix_expr>(op, parse_expr(12));
     }
     }
   }
 
   std::unique_ptr<expr> parse_expr(int rbp = 0) {
     auto lhs{nud()};
+
+    // handle function calls
+    if (match(token_type::l_paren)) {
+      std::vector<std::unique_ptr<expr>> args{};
+      for (; peek().type_ != token_type::eof &&
+             peek().type_ != token_type::r_paren;)
+        args.push_back(parse_expr());
+      expect(token_type::r_paren);
+      lhs = std::make_unique<call_expr>(std::move(lhs), std::move(args));
+    }
+
+    switch (peek().type_) {
+    default:
+      break;
+    case token_type::plusplus:
+    case token_type::minusminus:
+      auto op{next()};
+      lhs = std::make_unique<postfix_expr>(op, std::move(lhs));
+    }
 
     for (; lbp(peek().type_) > rbp;) {
       auto op{peek()};
@@ -206,6 +225,13 @@ class parser final {
                                       std::move(incr), std::move(body));
   }
 
+  std::unique_ptr<stmt> parse_return_stmt() noexcept {
+    expect(token_type::kw_return);
+    auto value{parse_expr()};
+    expect(token_type::semi);
+    return std::make_unique<return_stmt>(std::move(value));
+  }
+
   std::unique_ptr<stmt> parse_stmt() noexcept {
     switch (peek().type_) {
     default:
@@ -216,6 +242,8 @@ class parser final {
       return parse_if_stmt();
     case token_type::kw_for:
       return parse_for_stmt();
+    case token_type::kw_return:
+      return parse_return_stmt();
     }
   }
 

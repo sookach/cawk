@@ -255,8 +255,10 @@ class lexer final {
       default:
         return make_token(token_type::pipe);
       case '|':
+        next();
         return make_token(token_type::pipepipe);
       case '=':
+        next();
         return make_token(token_type::pipeequal);
       }
     case '?':
@@ -326,6 +328,8 @@ class lexer final {
       }
     case 'f':
       switch (peek()) {
+      default:
+        return lex_identifier();
       // default:
       //   return match('3') ? lex_keyword("2", token_type::kw_f32)
       //                     : lex_keyword("64", token_type::kw_f64);
