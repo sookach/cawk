@@ -244,6 +244,18 @@ class parser final {
                                       std::move(incr), std::move(body));
   }
 
+  std::unique_ptr<stmt> parse_print_stmt() noexcept {
+    expect(token_type::kw_print);
+    std::vector<std::unique_ptr<expr>> args{};
+
+    for (; peek().type_ != token_type::eof && peek().type_ != token_type::semi;)
+      args.push_back(parse_expr());
+
+    expect(token_type::semi);
+
+    return std::make_unique<print_stmt>(std::move(args));
+  }
+
   std::unique_ptr<stmt> parse_return_stmt() noexcept {
     expect(token_type::kw_return);
     auto value{parse_expr()};
@@ -261,6 +273,8 @@ class parser final {
       return parse_if_stmt();
     case token_type::kw_for:
       return parse_for_stmt();
+    case token_type::kw_print:
+      return parse_print_stmt();
     case token_type::kw_return:
       return parse_return_stmt();
     }

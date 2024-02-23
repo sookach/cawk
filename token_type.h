@@ -93,6 +93,7 @@ enum struct token_type {
   kw_i32,
   kw_i64,
   kw_if,
+  kw_print,
   kw_return,
   kw_static,
   kw_string,

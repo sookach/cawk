@@ -100,7 +100,11 @@ struct atom_expr final : public expr {
   atom_expr(token atom) : atom_{atom} {}
 
   virtual void operator()(std::ostream &os) const override final {
+    if (atom_.type_ == token_type::string_literal)
+      os << '"';
     os << atom_.lexeme_;
+    if (atom_.type_ == token_type::string_literal)
+      os << '"';
   }
 };
 
@@ -125,14 +129,9 @@ struct var_decl final : public stmt {
   token iden_{};
   std::unique_ptr<expr> init_{};
 
-  var_decl(token type, token iden, std::unique_ptr<expr> init)
+  var_decl(token type, token iden, std::unique_ptr<expr> init = nullptr)
       : type_{type}, iden_{iden}, init_{std::move(init)} {
-    type_.lexeme_ = "cawk_val";
-  }
-
-  var_decl(token iden, std::unique_ptr<expr> init)
-      : iden_{iden}, init_{std::move(init)} {
-    type_.lexeme_ = "cawk_val";
+    type_.lexeme_ = "val_t__";
   }
 
   virtual void operator()(std::ostream &os) const override final {
@@ -158,14 +157,14 @@ struct fn_decl final : public stmt {
 
   virtual void operator()(std::ostream &os) const override final {
     static bool proto_{true};
-    os << (ret_ ? "cawk_val " : "void ");
+    os << (ret_ ? "val_t__ " : "void ");
     os << iden_;
 
     if (std::empty(params_))
       os << "()";
     else {
       for (os << '('; auto &&x : params_)
-        os << "cawk_val " << (proto_ ? "" : x) << ',';
+        os << "val_t__ " << (proto_ ? "" : x) << ',';
       os.seekp(os.tellp() - std::streampos{1});
       os << ")";
     }
@@ -253,6 +252,22 @@ struct for_stmt final : public stmt {
   }
 };
 
+struct print_stmt final : public stmt {
+  std::vector<std::unique_ptr<expr>> args_{};
+
+  print_stmt(std::vector<std::unique_ptr<expr>> args)
+      : args_{std::move(args)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << "std::cout";
+    for (auto &&x : args_) {
+      os << "<<";
+      x->operator()(os);
+    }
+    os << "<< std::endl;";
+  }
+};
+
 struct return_stmt final : public stmt {
   std::unique_ptr<expr> value_{};
 
@@ -296,7 +311,7 @@ struct range_stmt final : public stmt {
 
 struct print_record_stmt final : public stmt {
   virtual void operator()(std::ostream &os) const override final {
-    os << "std::cout << cawk_record << std::endl;";
+    os << "std::cout << record__ << std::endl;";
   }
 };
 

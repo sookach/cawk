@@ -111,7 +111,7 @@ class lexer final {
       return make_token(token_type::unknown);
 
     ++prev_;
-    const auto tok{make_token(token_type::identifier)};
+    const auto tok{make_token(token_type::string_literal)};
     next();
 
     return tok;
@@ -366,6 +366,8 @@ class lexer final {
         next();
         return lex_keyword("", token_type::kw_if);
       }
+    case 'p':
+      return lex_keyword("rint", token_type::kw_print);
     case 'r':
       switch (peek()) {
       default:
