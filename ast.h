@@ -78,6 +78,21 @@ struct postfix_expr final : public expr {
   }
 };
 
+struct index_expr final : public expr {
+  std::unique_ptr<expr> lhs_{};
+  std::unique_ptr<expr> rhs_{};
+
+  index_expr(std::unique_ptr<expr> lhs, std::unique_ptr<expr> rhs)
+      : lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    lhs_->operator()(os);
+    os << '[';
+    rhs_->operator()(os);
+    os << ']';
+  }
+};
+
 struct call_expr final : public expr {
   std::unique_ptr<expr> callee_{};
   std::vector<std::unique_ptr<expr>> args_{};
@@ -138,9 +153,7 @@ struct var_decl final : public stmt {
   std::unique_ptr<expr> init_{};
 
   var_decl(token type, token iden, std::unique_ptr<expr> init = nullptr)
-      : type_{type}, iden_{iden}, init_{std::move(init)} {
-    type_.lexeme_ = "val_t__";
-  }
+      : type_{type}, iden_{iden}, init_{std::move(init)} {}
 
   virtual void operator()(std::ostream &os) const override final {
     os << type_.lexeme_ << ' ';
@@ -158,21 +171,21 @@ struct fn_decl final : public stmt {
   std::unique_ptr<stmt> body_{};
   std::vector<std::string> params_{};
   bool ret_{};
+  mutable bool proto_{true};
 
   fn_decl(std::string iden, std::unique_ptr<stmt> body,
           std::vector<std::string> params = {}, bool ret = false)
       : iden_{iden}, body_{std::move(body)}, params_{params}, ret_{ret} {}
 
   virtual void operator()(std::ostream &os) const override final {
-    static bool proto_{true};
-    os << (ret_ ? "val_t__ " : "void ");
+    os << (ret_ ? "auto " : "void ");
     os << iden_;
 
     if (std::empty(params_))
       os << "()";
     else {
       for (os << '('; auto &&x : params_)
-        os << "val_t__ " << (proto_ ? "" : x) << ',';
+        os << "auto " << (proto_ ? "" : x) << ',';
       os.seekp(os.tellp() - std::streampos{1});
       os << ")";
     }

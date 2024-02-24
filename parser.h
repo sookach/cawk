@@ -118,23 +118,30 @@ class parser final {
   std::unique_ptr<expr> parse_expr(int rbp = 0) {
     auto lhs{nud()};
 
-    // handle function calls
-    if (match(token_type::l_paren)) {
+    switch (peek().type_) {
+    default:
+      break;
+    case token_type::plusplus:
+    case token_type::minusminus: {
+      auto op{next()};
+      lhs = std::make_unique<postfix_expr>(op, std::move(lhs));
+      break;
+    }
+    case token_type::l_paren: {
+      next();
       std::vector<std::unique_ptr<expr>> args{};
       for (; peek().type_ != token_type::eof &&
              peek().type_ != token_type::r_paren;)
         args.push_back(parse_expr());
       expect(token_type::r_paren);
       lhs = std::make_unique<call_expr>(std::move(lhs), std::move(args));
-    }
-
-    switch (peek().type_) {
-    default:
       break;
-    case token_type::plusplus:
-    case token_type::minusminus:
-      auto op{next()};
-      lhs = std::make_unique<postfix_expr>(op, std::move(lhs));
+    }
+    case token_type::l_square: {
+      next();
+      lhs = std::make_unique<index_expr>(std::move(lhs), parse_expr());
+      expect(token_type::r_square);
+    }
     }
 
     for (; lbp(peek().type_) > rbp;) {
@@ -289,6 +296,18 @@ class parser final {
     default:
       return parse_stmt();
     case token_type::kw_auto:
+    case token_type::kw_i8:
+    case token_type::kw_i16:
+    case token_type::kw_i32:
+    case token_type::kw_i64:
+    case token_type::kw_i128:
+    case token_type::kw_u8:
+    case token_type::kw_u16:
+    case token_type::kw_u32:
+    case token_type::kw_u64:
+    case token_type::kw_u128:
+    case token_type::kw_f32:
+    case token_type::kw_f64:
       return parse_var_decl();
     }
   }

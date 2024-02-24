@@ -31,6 +31,18 @@ class lexer final {
   /// Current line the lexer is handling.
   uint16_t line_{1};
 
+  inline static struct {
+    inline constexpr bool operator()(char x) const {
+      return std::isalpha(x) || x == '_';
+    }
+  } isalpha{};
+
+  inline static struct {
+    inline constexpr bool operator()(char x) const {
+      return isalpha(x) || std::isdigit(x);
+    }
+  } isalnum{};
+
   /// @brief end - Check if entire source was lexed.
   /// @return true if end of input, false otherwise.
   bool end() const noexcept { return next_ == std::size(source_); }
@@ -120,7 +132,7 @@ class lexer final {
   /// @brief lex_identifier - Lexes an identifier.
   /// @return The lexed identifier.
   token lex_identifier() noexcept {
-    for (; std::isalnum(peek()); next())
+    for (; isalnum(peek()); next())
       ;
     return make_token(token_type::identifier);
   }
@@ -135,7 +147,7 @@ class lexer final {
     for (auto &&x : expected)
       if (next() != x)
         return lex_identifier();
-    return std::isalnum(peek()) ? lex_identifier() : make_token(type);
+    return isalnum(peek()) ? lex_identifier() : make_token(type);
   }
 
   /// @brief lex_token - Lexes the next token from the input.
@@ -148,7 +160,7 @@ class lexer final {
 
     switch (prev_ = next_; next()) {
     default:
-      return std::isalpha(prev())   ? lex_identifier()
+      return isalpha(prev())        ? lex_identifier()
              : std::isdigit(prev()) ? lex_numeric_constant()
                                     : make_token(token_type::unknown);
     case '\'':
@@ -333,7 +345,7 @@ class lexer final {
     case 'f':
       switch (peek()) {
       default:
-        return lex_keyword("128", token_type::kw_f128);
+        return lex_identifier();
       case '3':
         next();
         return lex_keyword("2", token_type::kw_f32);

@@ -85,7 +85,6 @@ enum struct token_type {
   kw_extern,
   kw_f32,
   kw_f64,
-  kw_f128,
   kw_for,
   kw_fn,
   kw_goto,
