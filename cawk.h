@@ -41,6 +41,81 @@ template <typename T__>
   return std::regex_match(std::regex{y__.data()}, to_string(x__));
 }
 
+inline static constexpr struct {
+  template <typename T1__, typename T2__>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    return static_cast<T1__>(x__);
+  }
+
+  template <typename T1__, typename T2__>
+    requires(std::is_same_v<T1__, i8> || std::is_same_v<T1__, i16> ||
+             std::is_same_v<T1__, i32>) &&
+            std::is_same_v<std::remove_cvref_t<T2__>, string>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      return std::stoi(x__);
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  template <typename T1__, typename T2__>
+    requires std::is_same_v<T1__, i64> &&
+             std::is_same_v<std::remove_cvref_t<T2__>, string>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      return std::stoll(x__);
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  template <typename T1__, typename T2__>
+    requires(std::is_same_v<T1__, u8> || std::is_same_v<T1__, u16> ||
+             std::is_same_v<T1__, u32>) &&
+            std::is_same_v<std::remove_cvref_t<T2__>, string>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      return std::stoul(x__);
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  template <typename T1__, typename T2__>
+    requires std::is_same_v<T1__, u64> &&
+             std::is_same_v<std::remove_cvref_t<T2__>, string>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      return std::stoull(x__);
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  template <typename T1__, typename T2__>
+    requires std::is_same_v<T1__, f32> &&
+             std::is_same_v<std::remove_cvref_t<T2__>, string>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      return std::stof(x__);
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  template <typename T1__, typename T2__>
+    requires std::is_same_v<T1__, f64> &&
+             std::is_same_v<std::remove_cvref_t<T2__>, string>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      return std::stod(x__);
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+} cast__{};
+
 std::vector<std::string> fields__{};
 std::string record__{};
 

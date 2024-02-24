@@ -115,6 +115,40 @@ class parser final {
     case token_type::dollar:
       next();
       return std::make_unique<field_expr>(parse_expr(12));
+    case token_type::less:
+      next();
+      switch (peek().type_) {
+      default:
+        std::cerr << "invalid cast target " << peek().lexeme_ << std::endl;
+      case token_type::kw_i8:
+        [[fallthrough]];
+      case token_type::kw_i16:
+        [[fallthrough]];
+      case token_type::kw_i32:
+        [[fallthrough]];
+      case token_type::kw_i64:
+        [[fallthrough]];
+      case token_type::kw_i128:
+        [[fallthrough]];
+      case token_type::kw_u8:
+        [[fallthrough]];
+      case token_type::kw_u16:
+        [[fallthrough]];
+      case token_type::kw_u32:
+        [[fallthrough]];
+      case token_type::kw_u64:
+        [[fallthrough]];
+      case token_type::kw_u128:
+        [[fallthrough]];
+      case token_type::kw_f32:
+        [[fallthrough]];
+      case token_type::kw_f64:
+        [[fallthrough]];
+      case token_type::kw_string:
+        auto type{next()};
+        expect(token_type::greater);
+        return std::make_unique<cast_expr>(type, parse_expr());
+      }
     }
   }
 

@@ -129,6 +129,22 @@ struct field_expr final : public expr {
   }
 };
 
+struct cast_expr final : public expr {
+  token type_{};
+  std::unique_ptr<expr> e_{};
+
+  cast_expr(token type, std::unique_ptr<expr> e)
+      : type_{type}, e_{std::move(e)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << "cast__.operator()<";
+    os << type_.lexeme_;
+    os << ">(";
+    e_->operator()(os);
+    os << ')';
+  }
+};
+
 struct atom_expr final : public expr {
   token atom_{};
 
