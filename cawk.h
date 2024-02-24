@@ -9,9 +9,12 @@
 #include <variant>
 #include <vector>
 
-using vector_t__ = std::vector<std::variant<int64_t, double, std::string>>;
-
+using primitive_t__ = std::variant<int64_t, double, std::string>;
+using vector_t__ = std::vector<primitive_t__>;
 using val_t__ = std::variant<int64_t, double, std::string, vector_t__>;
+
+template <typename T__>
+concept numeric__ = std::is_integral_v<T__> || std::is_floating_point_v<T__>;
 
 inline static struct {
   template <typename T__>
@@ -45,24 +48,26 @@ inline static struct {
 } is_vector{};
 
 inline static struct {
-  template <typename T__>
-    requires std::is_same_v<T__, int64_t>
-  [[nodiscard]] constexpr bool
-  operator()(const std::string &s__) const noexcept {
+  template <numeric__ T__>
+  [[nodiscard]] constexpr bool operator()(const val_t__ &x__) const noexcept {
     try {
-      std::stoll(s);
+      if constexpr (std::is_same_v<T__, int64_t>)
+        std::stoll(std::get<std::string>(x__));
+      else if constexpr (std::is_same_v<T__, double>)
+        std::stod(std::get<std::string>(x__));
       return true;
     } catch (...) {
       return false;
     }
   }
 
-  template <typename T__>
-    requires std::is_same_v<T__, double>
-  [[nodiscard]] constexpr bool
-  operator()(const std::string &s__) const noexcept {
+  template <numeric__ T__>
+  [[nodiscard]] constexpr bool operator()(val_t__ &&x__) const noexcept {
     try {
-      std::stod(s);
+      if constexpr (std::is_same_v<T__, int64_t>)
+        std::stoll(std::get<std::string>(std::move(x__)));
+      else if constexpr (std::is_same_v<T__, double>)
+        std::stod(std::get<std::string>(std::move(x__)));
       return true;
     } catch (...) {
       return false;
@@ -73,31 +78,31 @@ inline static struct {
 
 inline static struct {
   template <typename T__>
-  [[nodiscard]] constexpr bool operator()(const auto &x) const noexcept {
-    if constexpr (std::is_same_v<T__, int64_t>)
-      return is_int(x) || is_double(x) ||
-             is_string(x) && is_string_conv<int>(x);
-
-    if constexpr (std::is_same_v<T__, double>)
-      return is_int(x) || is_double(x) ||
-             is_string(x) && is_string_conv<double>(x);
+  [[nodiscard]] constexpr bool operator()(const val_t__ &x__) const noexcept {
+    if constexpr (std::is_same_v<T__, int64_t> || std::is_same_v<T__, double>)
+      return is_int(x__) || is_double(x__) ||
+             is_string(x__) && is_string_conv.operator()<T__>(x__);
 
     if constexpr (std::is_same_v<T__, std::string>)
-      return !is_vector(x);
+      return !is_vector(x__);
 
     return true;
   }
 } is_conv{};
 
 inline static struct {
-  [[nodiscard]] constexpr bool operator()(const auto &x) const noexcept {
-    return is_conv.operator()<int64_t>(x);
+  [[nodiscard]] constexpr auto operator()(auto &&x__) const noexcept
+      -> std::enable_if_t<
+          std::is_same_v<std::remove_cvref_t<decltype(x__)>, val_t__>, bool> {
+    return is_conv.operator()<int64_t>(x__);
   }
 } is_conv_int{};
 
 inline static struct {
-  [[nodiscard]] constexpr bool operator()(const auto &x) const noexcept {
-    return is_conv.operator()<double>(x);
+  [[nodiscard]] constexpr auto operator()(auto &&x__) const noexcept
+      -> std::enable_if_t<
+          std::is_same_v<std::remove_cvref_t<decltype(x__)>, val_t__>, bool> {
+    return is_conv.operator()<double>(x__);
   }
 } is_conv_double{};
 
@@ -108,8 +113,10 @@ inline static struct {
 } is_conv_string{};
 
 inline static struct {
-  [[nodiscard]] constexpr bool operator()(const auto &x) const noexcept {
-    return is_conv.operator()<vector_t__>(x);
+  [[nodiscard]] constexpr auto operator()(auto &&x__) const noexcept
+      -> std::enable_if_t<
+          std::is_same_v<std::remove_cvref_t<decltype(x__)>, val_t__>, bool> {
+    return is_conv.operator()<vector_t__>(x__);
   }
 } is_conv_vector{};
 
@@ -225,90 +232,201 @@ inline static struct {
   }
 } to_vector{};
 
-bool operator==(const val_t__ &x__, const std::integral auto &y__) noexcept {
+/// integer operators.
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline static constexpr bool
+operator==(T__ &&x__, std::integral auto &&y__) noexcept {
   return to_int(x__) == y__;
 }
 
-/// Integer Operators.
-
 template <typename T__>
-  requires std::is_same_v<T__, val_t__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
 [[nodiscard]] inline static constexpr int64_t
 operator+(T__ &&x__, std::integral auto &&y) noexcept {
   return to_int(x__) + y;
 }
 
 template <typename T__>
-  requires std::is_same_v<T__, val_t__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
 [[nodiscard]] inline static constexpr int64_t
 operator-(T__ &&x__, std::integral auto &&y) noexcept {
   return to_int(x__) - y;
 }
 
 template <typename T__>
-  requires std::is_same_v<T__, val_t__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
 [[nodiscard]] inline static constexpr int64_t
 operator*(T__ &&x__, std::integral auto &&y) noexcept {
   return to_int(x__) * y;
 }
 
 template <typename T__>
-  requires std::is_same_v<T__, val_t__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
 [[nodiscard]] inline static constexpr int64_t
 operator/(T__ &&x__, std::integral auto &&y) noexcept {
   return to_int(x__) / y;
 }
 
-val_t__ operator+(const val_t__ &x, const val_t__ &y) noexcept {
-  if (is_int(x)) {
-    return x + to_int(y);
-  } else if (is_double(x)) {
-    x + to_double(y);
-  } else if (is_string(x)) {
-    if (is_conv_int(x)) {
-      if (is_conv_int(y))
-        return to_int(x) + to_int(y);
-      if (is_conv_double(y))
-        return to_int(x) + to_double(y);
-      return to_string(x) + to_string(y);
+/// floating-point operators.
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline static constexpr bool
+operator==(T__ &&x__, std::floating_point auto &&y__) noexcept {
+  return to_double(x__) == y__;
+}
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline static constexpr int64_t
+operator+(T__ &&x__, std::floating_point auto &&y) noexcept {
+  return to_double(x__) + y;
+}
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline static constexpr int64_t
+operator-(T__ &&x__, std::floating_point auto &&y) noexcept {
+  return to_double(x__) - y;
+}
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline static constexpr int64_t
+operator*(T__ &&x__, std::floating_point auto &&y) noexcept {
+  return to_double(x__) * y;
+}
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline static constexpr int64_t
+operator/(T__ &&x__, std::floating_point auto &&y) noexcept {
+  return to_double(x__) / y;
+}
+
+/// val to val operators
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline val_t__ operator+(T__ &&x__, T__ &&y__) noexcept {
+  if (is_int(x__)) {
+    return x__ + to_int(y__);
+  } else if (is_double(x__)) {
+    return x__ + to_double(y__);
+  } else if (is_string(x__)) {
+    if (is_conv_int(x__)) {
+      if (is_conv_int(y__))
+        return to_int(x__) + to_int(y__);
+      if (is_conv_double(y__))
+        return to_int(x__) + to_double(y__);
+      return to_string(x__) + to_string(y__);
     }
-    if (is_conv_double(x)) {
-      if (is_conv_int(y))
-        return static_cast<int64_t>(to_double(y)) + to_int(y);
-      if (is_conv_double(y))
-        return to_double(x) + to_double(y);
+    if (is_conv_double(x__)) {
+      if (is_conv_int(y__))
+        return static_cast<int64_t>(to_double(y__)) + to_int(y__);
+      if (is_conv_double(y__))
+        return to_double(x__) + to_double(y__);
     }
-  } else if (is_vector(x)) {
-    auto z{to_vector(y)};
-    vector_t__ w{std::get<vector_t__>(x)};
-    std::ranges::move(z, std::back_inserter(w));
-    return w;
+  } else if (is_vector(x__)) {
+    auto z__{to_vector(y__)};
+    vector_t__ w__{std::get<vector_t__>(x__)};
+    std::ranges::move(z__, std::back_inserter(w__));
+    return w__;
   }
   return {};
 }
 
-std::ostream &
-operator<<(std::ostream &os,
-           const std::variant<int64_t, double, std::string> &cawk_x) {
-  if (is_int(cawk_x))
-    return os << std::get<int64_t>(cawk_x);
-  if (is_double(cawk_x))
-    return os << std::get<double>(cawk_x);
-  return os << std::get<std::string>(cawk_x);
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline val_t__ operator-(T__ &&x__, T__ &&y__) noexcept {
+  if (is_int(x__))
+    return std::get<int64_t>(x__) - to_int(y__);
+  if (is_double(x__)) {
+    if (is_int(y__))
+      return to_int(x__) - to_int(y__);
+    return to_double(x__) - to_double(y__);
+  }
+
+  if (is_conv_double(x__)) {
+    if (is_conv_int(y__))
+      return to_int(x__) - to_int(y__);
+    return to_double(x__) - to_double(y__);
+  }
+
+  if (is_conv_int(x__))
+    return to_int(x__) - to_int(y__);
+
+  return {};
 }
 
-std::ostream &operator<<(std::ostream &os, const val_t__ &cawk_x) {
-  if (is_int(cawk_x))
-    return os << std::get<int64_t>(cawk_x);
-  if (is_double(cawk_x))
-    return os << std::get<double>(cawk_x);
-  if (is_string(cawk_x))
-    return os << std::get<std::string>(cawk_x);
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline val_t__ operator*(T__ &&x__, T__ &&y__) noexcept {
+  if (is_int(x__))
+    return std::get<int64_t>(x__) * to_int(y__);
+  if (is_double(x__)) {
+    if (is_int(y__))
+      return to_int(x__) * to_int(y__);
+    return to_double(x__) * to_double(y__);
+  }
 
-  os << "[ ";
-  for (auto &&cawk_y : std::get<vector_t__>(cawk_x))
-    os << cawk_y << ' ';
-  return os << "]";
+  if (is_conv_double(x__)) {
+    if (is_conv_int(y__))
+      return to_int(x__) * to_int(y__);
+    return to_double(x__) * to_double(y__);
+  }
+
+  if (is_conv_int(x__))
+    return to_int(x__) * to_int(y__);
+
+  return {};
+}
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline val_t__ operator/(T__ &&x__, T__ &y__) noexcept {
+  if (is_int(x__))
+    return std::get<int64_t>(x__) / to_int(y__);
+  if (is_double(x__)) {
+    if (is_int(y__))
+      return to_int(x__) / to_int(y__);
+    return to_double(x__) / to_double(y__);
+  }
+
+  if (is_conv_double(x__)) {
+    if (is_conv_int(y__))
+      return to_int(x__) / to_int(y__);
+    return to_double(x__) / to_double(y__);
+  }
+
+  if (is_conv_int(x__))
+    return to_int(x__) / to_int(y__);
+
+  return {};
+}
+
+std::ostream &operator<<(std::ostream &os__, const primitive_t__ &x__) {
+  if (is_int(x__))
+    return os__ << std::get<int64_t>(x__);
+  if (is_double(x__))
+    return os__ << std::get<double>(x__);
+  return os__ << std::get<std::string>(x__);
+}
+
+std::ostream &operator<<(std::ostream &os__, const val_t__ &x__) {
+  if (is_int(x__))
+    return os__ << std::get<int64_t>(x__);
+  if (is_double(x__))
+    return os__ << std::get<double>(x__);
+  if (is_string(x__))
+    return os__ << std::get<std::string>(x__);
+
+  os__ << "[ ";
+  for (auto &&y__ : std::get<vector_t__>(x__))
+    os__ << y__ << ' ';
+  return os__ << ']';
 }
 
 std::vector<std::string> fields__{};
