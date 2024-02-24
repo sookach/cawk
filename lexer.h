@@ -333,10 +333,13 @@ class lexer final {
     case 'f':
       switch (peek()) {
       default:
-        return lex_identifier();
-      // default:
-      //   return match('3') ? lex_keyword("2", token_type::kw_f32)
-      //                     : lex_keyword("64", token_type::kw_f64);
+        return lex_keyword("128", token_type::kw_f128);
+      case '3':
+        next();
+        return lex_keyword("2", token_type::kw_f32);
+      case '6':
+        next();
+        return lex_keyword("4", token_type::kw_f64);
       case 'o':
         next();
         return lex_keyword("r", token_type::kw_for);
@@ -350,18 +353,19 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_identifier();
-      // case '8':
-      //   next();
-      //   return lex_keyword("", token_type::kw_i8);
-      // case '1':
-      //   next();
-      //   return lex_keyword("6", token_type::kw_i16);
-      // case '3':
-      //   next();
-      //   return lex_keyword("2", token_type::kw_i32);
-      // case '6':
-      //   next();
-      //   return lex_keyword("4", token_type::kw_i64);
+      case '8':
+        next();
+        return lex_keyword("", token_type::kw_i8);
+      case '1':
+        next();
+        return match('6') ? lex_keyword("", token_type::kw_i16)
+                          : lex_keyword("28", token_type::kw_i128);
+      case '3':
+        next();
+        return lex_keyword("2", token_type::kw_i32);
+      case '6':
+        next();
+        return lex_keyword("4", token_type::kw_i64);
       case 'f':
         next();
         return lex_keyword("", token_type::kw_if);
@@ -394,18 +398,19 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_identifier();
-      // case '8':
-      //   next();
-      //   return lex_keyword("", token_type::kw_u8);
-      // case '1':
-      //   next();
-      //   return lex_keyword("6", token_type::kw_u16);
-      // case '3':
-      //   next();
-      //   return lex_keyword("2", token_type::kw_u32);
-      // case '6':
-      //   next();
-      //   return lex_keyword("4", token_type::kw_u64);
+      case '8':
+        next();
+        return lex_keyword("", token_type::kw_u8);
+      case '1':
+        next();
+        return match('6') ? lex_keyword("", token_type::kw_u16)
+                          : lex_keyword("28", token_type::kw_u128);
+      case '3':
+        next();
+        return lex_keyword("2", token_type::kw_u32);
+      case '6':
+        next();
+        return lex_keyword("4", token_type::kw_u64);
       case 'n':
         next();
         return lex_keyword("ion", token_type::kw_union);

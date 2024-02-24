@@ -85,6 +85,7 @@ enum struct token_type {
   kw_extern,
   kw_f32,
   kw_f64,
+  kw_f128,
   kw_for,
   kw_fn,
   kw_goto,
@@ -92,6 +93,7 @@ enum struct token_type {
   kw_i16,
   kw_i32,
   kw_i64,
+  kw_i128,
   kw_if,
   kw_print,
   kw_return,
@@ -104,6 +106,7 @@ enum struct token_type {
   kw_u16,
   kw_u32,
   kw_u64,
+  kw_u128,
   kw_union,
   kw_void,
 };
