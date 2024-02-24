@@ -85,7 +85,7 @@ class lexer final {
         if (peek(1) == '/')
           for (; !end() && peek(1) != '/'; next())
             ;
-        break;
+        return;
       }
     }
   }
