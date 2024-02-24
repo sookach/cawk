@@ -121,3 +121,55 @@ std::string record__{};
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
+
+f32 i = 0;
+
+struct {
+  void operator()() const {}
+} run_begin__{};
+
+struct {
+  void operator()() const {
+    { i += cast__.operator()<f32>(fields__[1]); }
+  }
+} run_mid__{};
+
+struct {
+  void operator()() const {
+    { std::cout << i << NR << std::endl; }
+  }
+} run_end__{};
+
+struct {
+  bool operator()(std::istream &is__) const {
+    fields__.clear();
+    NF = 0;
+    fields__.emplace_back();
+    if (!std::getline(is__, fields__.back()))
+      return false;
+    std::stringstream ss__{fields__.back()};
+    for (std::string s__; ss__ >> s__; ++NF)
+      fields__.push_back(std::move(s__));
+    ++NR;
+    return true;
+  }
+} read_line__{};
+
+struct {
+  void operator()(std::istream &is__) const {
+    run_begin__();
+    for (; read_line__(is__);)
+      run_mid__();
+    run_end__();
+  }
+} run__{};
+
+int main(int argc, char **argv) {
+  if (argc == 2) {
+    std::ifstream in__{argv[1]};
+    run__(in__);
+  } else {
+    run_end__();
+    run_begin__();
+  }
+}

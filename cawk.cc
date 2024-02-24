@@ -29,10 +29,32 @@ int main() {
   out << "struct {";
   out << "void operator()() const {";
   for (auto &&x : tree)
-    if (dynamic_cast<cawk::if_stmt *>(x.get()) != nullptr)
+    if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
+        dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
+            cawk::pattern_action_decl::type::begin)
       x->operator()(out);
   out << "}";
-  out << "} run__;\n\n";
+  out << "} run_begin__{};\n\n";
+
+  out << "struct {";
+  out << "void operator()() const {";
+  for (auto &&x : tree)
+    if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
+        dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
+            cawk::pattern_action_decl::type::mid)
+      x->operator()(out);
+  out << "}";
+  out << "} run_mid__{};\n\n";
+
+  out << "struct {";
+  out << "void operator()() const {";
+  for (auto &&x : tree)
+    if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
+        dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
+            cawk::pattern_action_decl::type::end)
+      x->operator()(out);
+  out << "}";
+  out << "} run_end__{};\n\n";
 
   out << "struct {";
   out << "bool operator()(std::istream &is__) const {";
@@ -47,26 +69,24 @@ int main() {
   out << "++NR;";
   out << "return true;";
   out << "}";
-  out << "} read_line__;\n\n";
+  out << "} read_line__{};\n\n";
 
   out << "struct {";
   out << "void operator()(std::istream &is__) const {";
-  out << "run__();";
-  out << "BEGIN = false;";
+  out << "run_begin__();";
   out << "for (; read_line__(is__);)";
-  out << "run__();";
-  out << "END = true;";
-  out << "run__();";
+  out << "run_mid__();";
+  out << "run_end__();";
   out << "}";
-  out << "} run_all__;\n\n";
+  out << "} run__{};\n\n";
 
   out << "int main(int argc, char** argv) {";
   out << "if (argc == 2) {";
   out << "std::ifstream in__{argv[1]};";
-  out << "run_all__(in__);";
+  out << "run__(in__);";
   out << "} else {";
-  out << "END = true;";
-  out << "run__();";
+  out << "run_end__();";
+  out << "run_begin__();";
   out << "}";
   out << "}\n";
 

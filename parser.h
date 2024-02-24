@@ -222,23 +222,27 @@ class parser final {
 
   std::unique_ptr<stmt> parse_pattern_action() noexcept {
     std::unique_ptr<expr> pattern{};
+    pattern_action_decl::type pos{pattern_action_decl::type::mid};
+
     switch (peek().type_) {
     default:
       pattern = parse_expr();
       break;
-    case token_type::l_brace:
-      pattern = std::make_unique<atom_expr>(token{.lexeme_ = "1"});
-      break;
     case token_type::kw_begin:
+      next();
+      pos = pattern_action_decl::type::begin;
+      break;
     case token_type::kw_end:
-      pattern = std::make_unique<atom_expr>(next());
+      next();
+      pos = pattern_action_decl::type::end;
+    case token_type::l_brace:;
     }
 
-    auto action{peek().type_ == token_type::l_brace
-                    ? parse_block_stmt()
-                    : std::make_unique<print_record_stmt>()};
+    auto action{peek().type_ == token_type::l_brace ? parse_block_stmt()
+                                                    : nullptr};
 
-    return std::make_unique<if_stmt>(std::move(pattern), std::move(action));
+    return std::make_unique<pattern_action_decl>(std::move(pattern),
+                                                 std::move(action), pos);
   }
 
   std::unique_ptr<stmt> parse_expr_stmt() noexcept {
@@ -354,6 +358,18 @@ class parser final {
     default:
       return parse_pattern_action();
     case token_type::kw_auto:
+    case token_type::kw_i8:
+    case token_type::kw_i16:
+    case token_type::kw_i32:
+    case token_type::kw_i64:
+    case token_type::kw_i128:
+    case token_type::kw_u8:
+    case token_type::kw_u16:
+    case token_type::kw_u32:
+    case token_type::kw_u64:
+    case token_type::kw_u128:
+    case token_type::kw_f32:
+    case token_type::kw_f64:
       return parse_var_decl();
     case token_type::kw_fn:
       return parse_fn_decl();

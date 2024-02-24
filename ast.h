@@ -244,7 +244,8 @@ struct expr_stmt final : public stmt {
   expr_stmt(std::unique_ptr<expr> e) : e_{std::move(e)} {}
 
   virtual void operator()(std::ostream &os) const override final {
-    e_->operator()(os);
+    if (e_ != nullptr)
+      e_->operator()(os);
     os << ';';
   }
 };
@@ -358,9 +359,26 @@ struct range_stmt final : public stmt {
   }
 };
 
-struct print_record_stmt final : public stmt {
+struct pattern_action_decl final : public stmt {
+  std::unique_ptr<expr> pattern_{};
+  std::unique_ptr<stmt> action_{};
+  enum struct type { begin, mid, end } pos_{};
+
+  pattern_action_decl(std::unique_ptr<expr> pattern,
+                      std::unique_ptr<stmt> action, type pos)
+      : pattern_{std::move(pattern)}, action_{std::move(action)}, pos_{pos} {}
+
   virtual void operator()(std::ostream &os) const override final {
-    os << "std::cout << record__ << std::endl;";
+    if (pattern_ != nullptr) {
+      os << "if(";
+      pattern_->operator()(os);
+      os << ')';
+    }
+
+    if (action_ != nullptr)
+      action_->operator()(os);
+    else
+      os << "std::cout << record__ << std::endl;";
   }
 };
 
