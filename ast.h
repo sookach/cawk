@@ -117,6 +117,18 @@ struct call_expr final : public expr {
   }
 };
 
+struct field_expr final : public expr {
+  std::unique_ptr<expr> e_{};
+
+  field_expr(std::unique_ptr<expr> e) : e_{std::move(e)} {}
+
+  virtual void operator()(std::ostream &os) const override final {
+    os << "fields__[";
+    e_->operator()(os);
+    os << ']';
+  }
+};
+
 struct atom_expr final : public expr {
   token atom_{};
 

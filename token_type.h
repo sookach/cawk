@@ -69,6 +69,7 @@ enum struct token_type {
   hash,
   hashhash,
   hashat,
+  dollar,
 
   // Keywords.
   kw_auto,

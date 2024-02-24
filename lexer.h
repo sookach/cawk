@@ -295,6 +295,8 @@ class lexer final {
         next();
         return make_token(token_type::hashat);
       }
+    case '$':
+      return make_token(token_type::dollar);
     // Keywords.
     case 'a':
       return lex_keyword("uto", token_type::kw_auto);

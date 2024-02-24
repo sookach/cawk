@@ -112,6 +112,9 @@ class parser final {
       auto op{next()};
       return std::make_unique<prefix_expr>(op, parse_expr(12));
     }
+    case token_type::dollar:
+      next();
+      return std::make_unique<field_expr>(parse_expr(12));
     }
   }
 

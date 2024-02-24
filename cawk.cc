@@ -37,6 +37,7 @@ int main() {
   out << "struct {";
   out << "bool operator()(std::istream &is__) const {";
   out << "fields__.clear();";
+  out << "NF = 0;";
   out << "fields__.emplace_back();";
   out << "if (!std::getline(is__, fields__.back()))";
   out << "return false;";
