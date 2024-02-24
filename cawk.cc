@@ -27,37 +27,46 @@ int main() {
   out << std::endl << std::endl;
 
   out << "struct {";
-  out << "bool operator()() const {";
+  out << "void operator()() const {";
   for (auto &&x : tree)
     if (dynamic_cast<cawk::if_stmt *>(x.get()) != nullptr)
       x->operator()(out);
   out << "}";
-  out << "} cawk_run;\n\n";
+  out << "} run__;\n\n";
 
   out << "struct {";
-  out << "bool operator()(std::istream &cawk_is) const {";
-  out << "cawk_fields.clear();";
-  out << "if (!std::getline(cawk_is, cawk_record))";
+  out << "bool operator()(std::istream &is__) const {";
+  out << "fields__.clear();";
+  out << "fields__.emplace_back();";
+  out << "if (!std::getline(is__, fields__.back()))";
   out << "return false;";
-  out << "std::stringstream cawk_ss{cawk_record};";
-  out << "for (std::string cawk_s; cawk_ss >> cawk_s; "
-         "cawk_fields.push_back(std::move(cawk_s)));";
+  out << "std::stringstream ss__{fields__.back()};";
+  out << "for (std::string s__; ss__ >> s__; ++NF)";
+  out << "fields__.push_back(std::move(s__));";
+  out << "++NR;";
   out << "return true;";
   out << "}";
-  out << "} cawk_read_line;\n\n";
+  out << "} read_line__;\n\n";
 
-  out << "void cawk_run_all(std::istream &is) {";
-  out << "cawk_run();";
+  out << "struct {";
+  out << "void operator()(std::istream &is__) const {";
+  out << "run__();";
   out << "BEGIN = false;";
-  out << "for (; cawk_read_line(is);)";
-  out << "cawk_run();";
+  out << "for (; read_line__(is__);)";
+  out << "run__();";
   out << "END = true;";
-  out << "cawk_run();";
-  out << "}\n\n";
+  out << "run__();";
+  out << "}";
+  out << "} run_all__;\n\n";
 
   out << "int main(int argc, char** argv) {";
-  out << "std::ifstream in{argv[1]};";
-  out << "cawk_run_all(in);";
+  out << "if (argc == 2) {";
+  out << "std::ifstream in__{argv[1]};";
+  out << "run_all__(in__);";
+  out << "} else {";
+  out << "END = true;";
+  out << "run__();";
+  out << "}";
   out << "}\n";
 
   out.flush();
