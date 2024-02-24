@@ -4,8 +4,10 @@
 #include <iostream>
 #include <optional>
 #include <ranges>
+#include <regex>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <variant>
 #include <vector>
 
@@ -405,6 +407,18 @@ template <typename T__>
     return to_int(x__) / to_int(y__);
 
   return {};
+}
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline bool match__(T__ &&x__, T__ &&y__) noexcept {
+  return std::regex_match(std::regex{to_string(y__)}, to_string(x__));
+}
+
+template <typename T__>
+  requires requires(T__ t) { std::is_same_v<T__, val_t__>; }
+[[nodiscard]] inline bool match__(T__ &&x__, std::string_view y__) noexcept {
+  return std::regex_match(std::regex{y__.data()}, to_string(x__));
 }
 
 std::ostream &operator<<(std::ostream &os__, const primitive_t__ &x__) {

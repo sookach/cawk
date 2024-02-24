@@ -70,16 +70,18 @@ class parser final {
     case token_type::greater:
     case token_type::greaterequal:
       return 8;
+    case token_type::tilde:
+      return 9;
     case token_type::lessless:
     case token_type::greatergreater:
-      return 9;
+      return 10;
     case token_type::plus:
     case token_type::minus:
-      return 10;
+      return 11;
     case token_type::star:
     case token_type::slash:
     case token_type::percent:
-      return 11;
+      return 12;
     }
   }
 
@@ -179,8 +181,10 @@ class parser final {
     switch (peek().type_) {
     default:
       pattern = parse_expr();
+      break;
     case token_type::l_brace:
       pattern = std::make_unique<atom_expr>(token{.lexeme_ = "1"});
+      break;
     case token_type::kw_begin:
     case token_type::kw_end:
       pattern = std::make_unique<atom_expr>(next());

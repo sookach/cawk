@@ -25,9 +25,17 @@ struct binary_expr final : public expr {
       : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
   virtual void operator()(std::ostream &os) const override final {
-    lhs_->operator()(os);
-    os << op_.lexeme_;
-    rhs_->operator()(os);
+    if (op_.type_ == token_type::caret) {
+      os << "match__(";
+      lhs_->operator()(os);
+      os << ',';
+      rhs_->operator()(os);
+      os << ')';
+    } else {
+      lhs_->operator()(os);
+      os << op_.lexeme_;
+      rhs_->operator()(os);
+    }
   }
 };
 
