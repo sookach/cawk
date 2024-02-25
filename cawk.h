@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <fstream>
+#include <functional>
 #include <iostream>
 #include <optional>
 #include <ranges>
@@ -121,3 +122,55 @@ std::string record__{};
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
+
+struct {
+  bool operator()(std::istream &is__) const {
+    fields__.clear();
+    NF = 0;
+    fields__.emplace_back();
+
+    if (!std::getline(is__, fields__.front()))
+      return false;
+
+    for (auto it__{std::cbegin(fields__.front())};
+         it__ != std::cend(fields__.front()); ++NF) {
+      it__ = std::find_if_not(
+          it__, std::cend(fields__.front()),
+          [](auto &&x__) -> bool { return std::isspace(x__); });
+      const auto next__{
+          std::find_if(it__, std::cend(fields__.front()),
+                       [](auto &&x__) -> bool { return std::isspace(x__); })};
+      fields__.emplace_back(it__, next__);
+      it__ = next__;
+    }
+
+    ++NR;
+    return true;
+  }
+} read_line__{};
+
+inline std::function<void()> run_begin__{};
+inline std::function<void()> run_mid__{};
+inline std::function<void()> run_end__{};
+
+struct {
+  void operator()(std::istream &is__) const {
+    std::invoke(run_begin__);
+    for (; read_line__(is__);)
+      run_mid__();
+    run_end__();
+  }
+} run__{};
+
+inline void init__() noexcept;
+
+int main(int argc, char **argv) {
+  init__();
+  if (argc == 2) {
+    std::ifstream in__{argv[1]};
+    run__(in__);
+  } else {
+    run_end__();
+    run_begin__();
+  }
+}

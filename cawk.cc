@@ -26,39 +26,33 @@ int main() {
 
   out << std::endl << std::endl;
 
-  out << "struct {";
-  out << "void operator()() const {";
+  out << "inline  void init__() noexcept {";
+
+  out << "run_begin__ = [&]() noexcept -> void {";
   for (auto &&x : tree)
     if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
         dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
             cawk::pattern_action_decl::type::begin)
       x->operator()(out);
-  out << "}";
-  out << "} run_begin__{};\n\n";
+  out << "};";
 
-  out << "struct {";
-  out << "void operator()() const {";
+  out << "run_mid__ = [&]() noexcept -> void {";
   for (auto &&x : tree)
     if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
         dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
             cawk::pattern_action_decl::type::mid)
       x->operator()(out);
-  out << "}";
-  out << "} run_mid__{};\n\n";
+  out << "};";
 
-  out << "struct {";
-  out << "void operator()() const {";
+  out << "run_end__ = [&]() noexcept -> void {";
   for (auto &&x : tree)
     if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
         dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
             cawk::pattern_action_decl::type::end)
       x->operator()(out);
-  out << "}";
-  out << "} run_end__{};\n\n";
+  out << "};";
 
-  out << std::ifstream{"driver.h"}.rdbuf();
-
-  out.flush();
+  out << '}';
 
   out.close();
 
