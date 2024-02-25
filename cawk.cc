@@ -56,41 +56,10 @@ int main() {
   out << "}";
   out << "} run_end__{};\n\n";
 
-  out << "struct {";
-  out << "bool operator()(std::istream &is__) const {";
-  out << "fields__.clear();";
-  out << "NF = 0;";
-  out << "fields__.emplace_back();";
-  out << "if (!std::getline(is__, fields__.back()))";
-  out << "return false;";
-  out << "std::stringstream ss__{fields__.back()};";
-  out << "for (std::string s__; ss__ >> s__; ++NF)";
-  out << "fields__.push_back(std::move(s__));";
-  out << "++NR;";
-  out << "return true;";
-  out << "}";
-  out << "} read_line__{};\n\n";
-
-  out << "struct {";
-  out << "void operator()(std::istream &is__) const {";
-  out << "run_begin__();";
-  out << "for (; read_line__(is__);)";
-  out << "run_mid__();";
-  out << "run_end__();";
-  out << "}";
-  out << "} run__{};\n\n";
-
-  out << "int main(int argc, char** argv) {";
-  out << "if (argc == 2) {";
-  out << "std::ifstream in__{argv[1]};";
-  out << "run__(in__);";
-  out << "} else {";
-  out << "run_end__();";
-  out << "run_begin__();";
-  out << "}";
-  out << "}\n";
+  out << std::ifstream{"driver.h"}.rdbuf();
 
   out.flush();
+
   out.close();
 
   std::system("clang-format -style=llvm -i main.cc");
