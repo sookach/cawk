@@ -61,6 +61,21 @@ inline static constexpr struct {
   }
 
   template <typename T1__, typename T2__>
+    requires(std::is_same_v<T1__, i8> || std::is_same_v<T1__, i16> ||
+             std::is_same_v<T1__, i32>) &&
+            std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      const auto y__{std::exchange(*std::end(x__), '\0')};
+      const auto z__{std::strtol(x__.data())};
+      *std::end(x__) = y__;
+      return z__;
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, i64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
@@ -106,6 +121,20 @@ inline static constexpr struct {
   }
 
   template <typename T1__, typename T2__>
+    requires std::is_same_v<T1__, f32> &&
+             std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      const auto y__{std::exchange(*std::end(x__), '\0')};
+      const auto z__{std::strtof(x__.data(), nullptr)};
+      *std::end(x__) = y__;
+      return z__;
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, f64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
@@ -115,9 +144,31 @@ inline static constexpr struct {
       exit(EXIT_FAILURE);
     }
   }
+
+  template <typename T1__, typename T2__>
+    requires std::is_same_v<T1__, f64> &&
+             std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
+  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+    try {
+      const auto y__{std::exchange(*std::end(x__), '\0')};
+      const auto z__{std::strtod(x__.data(), nullptr)};
+      *std::end(x__) = y__;
+      return z__;
+    } catch (...) {
+      exit(EXIT_FAILURE);
+    }
+  }
 } cast__{};
 
-std::vector<std::string> fields__{};
+template <typename T__>
+std::ostream &operator<<(std::ostream &os__, const std::span<T__> &s__) {
+  for (const auto &x__ : s__)
+    os__ << x__;
+
+  return os__;
+}
+
+std::vector<std::span<char>> fields__{};
 std::string record__{};
 
 uint64_t NR{}, NF{};
@@ -129,29 +180,39 @@ struct {
     NF = 0;
     fields__.emplace_back();
 
-    if (!std::getline(is__, fields__.front()))
+    fields__.clear();
+
+    if (!std::getline(is__, record__))
       return false;
 
-    for (auto it__{std::cbegin(fields__.front())};
-         it__ != std::cend(fields__.front()); ++NF) {
-      it__ = std::find_if_not(
-          it__, std::cend(fields__.front()),
-          [](auto &&x__) -> bool { return std::isspace(x__); });
-      const auto next__{
-          std::find_if(it__, std::cend(fields__.front()),
-                       [](auto &&x__) -> bool { return std::isspace(x__); })};
-      fields__.emplace_back(it__, next__);
-      it__ = next__;
+    fields__.emplace_back(std::begin(record__), std::end(record__));
+
+    string::size_type first__{}, last__{};
+    bool curr__{};
+
+    for (string::size_type i__{}; auto &&x__ : record__) {
+      if (!std::isspace(x__) && !curr__) {
+        first__ = i__;
+        curr__ = true;
+      } else if (std::isspace(x__) && curr__) {
+        last__ = i__;
+        fields__.emplace_back(record__.data() + first__, last__ - first__);
+      }
+      ++i__;
     }
+
+    if (curr__)
+      fields__.emplace_back(record__.data() + first__,
+                            std::size(record__) - first__);
 
     ++NR;
     return true;
   }
 } read_line__{};
 
-inline std::function<void()> run_begin__{};
-inline std::function<void()> run_mid__{};
-inline std::function<void()> run_end__{};
+inline std::function<void(void)> run_begin__{};
+inline std::function<void(void)> run_mid__{};
+inline std::function<void(void)> run_end__{};
 
 struct {
   void operator()(std::istream &is__) const {
