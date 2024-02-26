@@ -53,11 +53,12 @@ inline static constexpr struct {
              std::is_same_v<T1__, i32>) &&
             std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      return std::stoi(x__);
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{strtol(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+    return y__;
   }
 
   template <typename T1__, typename T2__>
@@ -79,11 +80,12 @@ inline static constexpr struct {
     requires std::is_same_v<T1__, i64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      return std::stoll(x__);
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{strtoll(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+    return y__;
   }
 
   template <typename T1__, typename T2__>
@@ -91,72 +93,80 @@ inline static constexpr struct {
              std::is_same_v<T1__, u32>) &&
             std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      return std::stoul(x__);
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{strtoul(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+    return y__;
   }
 
   template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, u64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      return std::stoull(x__);
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{strtoull(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+    return y__;
   }
 
   template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, f32> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      return std::stof(x__);
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{strtof(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+
+    return y__;
   }
 
   template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, f32> &&
              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      const auto y__{std::exchange(*std::end(x__), '\0')};
-      const auto z__{std::strtof(x__.data(), nullptr)};
-      *std::end(x__) = y__;
-      return z__;
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{std::exchange(*std::end(x__), '\0')};
+    const auto z__{strtof(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+
+    *std::end(x__) = y__;
+    return z__;
   }
 
   template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, f64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      return std::stod(x__);
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{strtof(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+
+    return y__;
   }
 
   template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, f64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    try {
-      const auto y__{std::exchange(*std::end(x__), '\0')};
-      const auto z__{std::strtod(x__.data(), nullptr)};
-      *std::end(x__) = y__;
-      return z__;
-    } catch (...) {
-      exit(EXIT_FAILURE);
+    const auto y__{std::exchange(*std::end(x__), '\0')};
+    const auto z__{strtod(x__.data())};
+    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
+      perror("");
+      exit(errno);
     }
+
+    *std::end(x__) = y__;
+    return z__;
   }
 } cast__{};
 
@@ -174,8 +184,8 @@ std::string record__{};
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
 
-struct {
-  bool operator()(std::istream &is__) const {
+inline struct {
+  bool operator()(std::istream &is__) const noexcept {
     fields__.clear();
     NF = 0;
     fields__.emplace_back();
@@ -214,8 +224,8 @@ inline std::function<void(void)> run_begin__{};
 inline std::function<void(void)> run_mid__{};
 inline std::function<void(void)> run_end__{};
 
-struct {
-  void operator()(std::istream &is__) const {
+inline struct {
+  void operator()(std::istream &is__) const noexcept {
     std::invoke(run_begin__);
     for (; read_line__(is__);)
       run_mid__();
