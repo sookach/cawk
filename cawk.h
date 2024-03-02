@@ -1,6 +1,8 @@
 #include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
+#include <cstdlib>
 #include <format>
 #include <fstream>
 #include <functional>
@@ -200,6 +202,14 @@ std::ostream &operator<<(std::ostream &os__, const std::span<T__> &s__) {
 
   return os__;
 }
+
+using std::cos;
+using std::exp;
+using std::log;
+using std::rand;
+using std::sin;
+using std::sqrt;
+using std::srand;
 
 std::vector<std::span<char>> fields__{};
 std::string record__{};
