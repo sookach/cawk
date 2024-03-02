@@ -1,16 +1,14 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdio>
+#include <format>
 #include <fstream>
 #include <functional>
 #include <iostream>
-#include <optional>
 #include <ranges>
 #include <regex>
-#include <sstream>
 #include <string>
 #include <string_view>
-#include <variant>
 #include <vector>
 
 using i8 = int8_t;
@@ -53,7 +51,7 @@ inline static constexpr struct {
              std::is_same_v<T1__, i32>) &&
             std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtol(x__.data())};
+    const auto y__{strtol(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -68,7 +66,7 @@ inline static constexpr struct {
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
     try {
       const auto y__{std::exchange(*std::end(x__), '\0')};
-      const auto z__{std::strtol(x__.data())};
+      const auto z__{std::strtol(x__.data(), nullptr)};
       *std::end(x__) = y__;
       return z__;
     } catch (...) {
@@ -80,7 +78,7 @@ inline static constexpr struct {
     requires std::is_same_v<T1__, i64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtoll(x__.data())};
+    const auto y__{strtoll(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -93,7 +91,7 @@ inline static constexpr struct {
              std::is_same_v<T1__, u32>) &&
             std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtoul(x__.data())};
+    const auto y__{strtoul(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -105,7 +103,7 @@ inline static constexpr struct {
     requires std::is_same_v<T1__, u64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtoull(x__.data())};
+    const auto y__{strtoull(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -117,7 +115,7 @@ inline static constexpr struct {
     requires std::is_same_v<T1__, f32> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtof(x__.data())};
+    const auto y__{strtof(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -131,7 +129,7 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
     const auto y__{std::exchange(*std::end(x__), '\0')};
-    const auto z__{strtof(x__.data())};
+    const auto z__{strtof(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -145,7 +143,7 @@ inline static constexpr struct {
     requires std::is_same_v<T1__, f64> &&
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtof(x__.data())};
+    const auto y__{strtof(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -159,7 +157,7 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
   [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
     const auto y__{std::exchange(*std::end(x__), '\0')};
-    const auto z__{strtod(x__.data())};
+    const auto z__{strtod(x__.data(), nullptr)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -169,6 +167,31 @@ inline static constexpr struct {
     return z__;
   }
 } cast__{};
+
+inline constexpr struct {
+  template <typename T__> constexpr void operator()(T__ &&x__) const noexcept {
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i8>)
+      printf("%hh\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i16>)
+      printf("%h\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i32>)
+      printf("%d\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i64>)
+      printf("%ll\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u8>)
+      printf("%uhh\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u16>)
+      printf("%uh\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u32>)
+      printf("%u\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u64>)
+      printf("%ull\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, f32>)
+      printf("%f\n", x__);
+    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, f64>)
+      printf("%e\n", x__);
+  }
+} print__{};
 
 template <typename T__>
 std::ostream &operator<<(std::ostream &os__, const std::span<T__> &s__) {
