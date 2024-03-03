@@ -18,13 +18,14 @@ class parser final {
   std::vector<token> tokens_{};
   std::vector<token>::size_type curr_{};
 
-  token peek(std::vector<token>::size_type i = 0) const noexcept {
+  [[nodiscard]] __attribute__((const)) token
+  peek(std::vector<token>::size_type i = 0) const noexcept {
     return tokens_[curr_ + i];
   }
 
   token next() noexcept { return tokens_[curr_++]; }
 
-  bool match(token_type type) noexcept {
+  [[nodiscard]] bool match(token_type type) noexcept {
     if (peek().type_ != type)
       return false;
     next();
@@ -36,7 +37,8 @@ class parser final {
       exit(EXIT_FAILURE);
   }
 
-  uint8_t lbp(token_type type) const noexcept {
+  [[nodiscard]] __attribute__((const)) uint8_t
+  lbp(token_type type) const noexcept {
     switch (type) {
     default:
       return 0;
@@ -61,7 +63,6 @@ class parser final {
     case token_type::caretequal:
       [[fallthrough]];
     case token_type::pipeequal:
-      [[fallthrough]];
       return 1;
     case token_type::pipepipe:
       return 2;
@@ -104,7 +105,7 @@ class parser final {
     }
   }
 
-  std::unique_ptr<expr> nud() {
+  [[nodiscard]] std::unique_ptr<expr> nud() {
     switch (peek().type_) {
     default:
       std::cerr << "undefined nud" << std::endl;
@@ -121,7 +122,7 @@ class parser final {
     case token_type::l_paren: {
       next();
       auto e{parse_expr()};
-      match(token_type::r_paren);
+      expect(token_type::r_paren);
       return std::make_unique<grouping_expr>(std::move(e));
     }
     case token_type::minus: {
@@ -174,7 +175,7 @@ class parser final {
     }
   }
 
-  std::unique_ptr<expr> parse_expr(int rbp = 0) {
+  [[nodiscard]] std::unique_ptr<expr> parse_expr(int rbp = 0) {
     auto lhs{nud()};
 
     switch (peek().type_) {
@@ -214,7 +215,8 @@ class parser final {
     return std::move(lhs);
   }
 
-  std::unique_ptr<stmt> parse_var_decl(bool expect_semi = true) noexcept {
+  [[nodiscard]] std::unique_ptr<stmt>
+  parse_var_decl(bool expect_semi = true) noexcept {
     const auto type{next()};
     std::vector<token> templ{};
 
@@ -240,7 +242,7 @@ class parser final {
     return std::make_unique<var_decl>(type, templ, iden, std::move(init));
   }
 
-  std::unique_ptr<stmt> parse_fn_decl() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_fn_decl() noexcept {
     expect(token_type::kw_fn);
     const auto iden{next().lexeme_};
     expect(token_type::l_paren);
@@ -258,7 +260,7 @@ class parser final {
     return std::make_unique<fn_decl>(iden, std::move(body), params, ret);
   }
 
-  std::unique_ptr<stmt> parse_pattern_action() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_pattern_action() noexcept {
     std::unique_ptr<expr> pattern{};
     pattern_action_decl::type pos{pattern_action_decl::type::mid};
 
@@ -283,13 +285,13 @@ class parser final {
                                                  std::move(action), pos);
   }
 
-  std::unique_ptr<stmt> parse_expr_stmt() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_expr_stmt() noexcept {
     auto e{parse_expr()};
     expect(token_type::semi);
     return std::make_unique<expr_stmt>(std::move(e));
   }
 
-  std::unique_ptr<stmt> parse_block_stmt() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_block_stmt() noexcept {
     auto block{std::make_unique<block_stmt>()};
     expect(token_type::l_brace);
     for (; peek().type_ != token_type::eof &&
@@ -299,7 +301,7 @@ class parser final {
     return std::move(block);
   }
 
-  std::unique_ptr<stmt> parse_if_stmt() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_if_stmt() noexcept {
     expect(token_type::kw_if);
     expect(token_type::l_paren);
     auto cond{parse_expr()};
@@ -310,7 +312,7 @@ class parser final {
                                      std::move(else_branch));
   }
 
-  std::unique_ptr<stmt> parse_for_stmt() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_for_stmt() noexcept {
     expect(token_type::kw_for);
     expect(token_type::l_paren);
     auto init{peek().type_ == token_type::semi          ? nullptr
@@ -334,7 +336,7 @@ class parser final {
                                       std::move(incr), std::move(body));
   }
 
-  std::unique_ptr<stmt> parse_print_stmt() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_print_stmt() noexcept {
     expect(token_type::kw_print);
     std::vector<std::unique_ptr<expr>> args{};
 
@@ -346,14 +348,14 @@ class parser final {
     return std::make_unique<print_stmt>(std::move(args));
   }
 
-  std::unique_ptr<stmt> parse_return_stmt() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_return_stmt() noexcept {
     expect(token_type::kw_return);
     auto value{parse_expr()};
     expect(token_type::semi);
     return std::make_unique<return_stmt>(std::move(value));
   }
 
-  std::unique_ptr<stmt> parse_stmt() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_stmt() noexcept {
     switch (peek().type_) {
     default:
       return parse_expr_stmt();
@@ -370,7 +372,7 @@ class parser final {
     }
   }
 
-  std::unique_ptr<stmt> parse_inner_decl() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_inner_decl() noexcept {
     switch (peek().type_) {
     default:
       return parse_stmt();
@@ -405,7 +407,7 @@ class parser final {
     }
   }
 
-  std::unique_ptr<stmt> parse_outer_decl() noexcept {
+  [[nodiscard]] std::unique_ptr<stmt> parse_outer_decl() noexcept {
     switch (peek().type_) {
     default:
       return parse_pattern_action();
@@ -445,7 +447,7 @@ class parser final {
 public:
   parser(std::vector<token> tokens) : tokens_{tokens} {}
 
-  std::vector<std::unique_ptr<stmt>> operator()() {
+  [[nodiscard]] std::vector<std::unique_ptr<stmt>> operator()() {
     std::vector<std::unique_ptr<stmt>> ast{};
     for (; !match(token_type::eof);)
       ast.push_back(parse_outer_decl());

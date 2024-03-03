@@ -31,38 +31,45 @@ class lexer final {
   /// Current line the lexer is handling.
   uint16_t line_{1};
 
-  inline static struct {
-    inline constexpr bool operator()(char x) const {
+  inline static constexpr struct {
+    [[nodiscard]] __attribute__((const)) inline constexpr bool
+    operator()(char x) const {
       return std::isalpha(x) || x == '_';
     }
   } isalpha{};
 
-  inline static struct {
-    inline constexpr bool operator()(char x) const {
+  inline static constexpr struct {
+    [[nodiscard]] __attribute__((const)) inline constexpr bool
+    operator()(char x) const {
       return isalpha(x) || std::isdigit(x);
     }
   } isalnum{};
 
   /// @brief end - Check if entire source was lexed.
   /// @return true if end of input, false otherwise.
-  bool end() const noexcept { return next_ == std::size(source_); }
+  [[nodiscard]] __attribute__((const)) constexpr bool end() const noexcept {
+    return next_ == std::size(source_);
+  }
 
-  char peek(std::string::size_type i = 0) const noexcept {
+  [[nodiscard]] __attribute__((const)) constexpr char
+  peek(std::string::size_type i = 0) const noexcept {
     return next_ + i < std::size(source_) ? source_[next_ + i] : '\0';
   }
 
   /// @brief prev - Get starting character of lexeme.
   /// @return value at source_[prev_].
-  char prev() const noexcept { return source_[prev_]; }
+  [[nodiscard]] __attribute__((const)) char prev() const noexcept {
+    return source_[prev_];
+  }
 
   /// @brief next - Advances the next_ pointer.
   /// @return value at source_[next_].
-  char next() noexcept { return source_[next_++]; }
+  constexpr char next() noexcept { return source_[next_++]; }
 
   /// @brief match - If the current character matches the expected, advance.
   /// @param expected The expected character.
   /// @return true if current character matches expected, false otherwise.
-  bool match(char expected) noexcept {
+  [[nodiscard]] constexpr bool match(char expected) noexcept {
     if (peek() != expected)
       return false;
     next();
@@ -70,7 +77,7 @@ class lexer final {
   }
 
   /// @brief whitespace - Skips all whitespace including comments.
-  void whitespace() noexcept {
+  constexpr void whitespace() noexcept {
     for (; !end(); next()) {
       switch (peek()) {
       default:
@@ -94,14 +101,15 @@ class lexer final {
   /// token with the given type, the current lexeme, and current line.
   /// @param type token_type.
   /// @return A token with values set as described above.
-  token make_token(token_type type) const {
+  [[nodiscard]] __attribute__((const)) constexpr token
+  make_token(token_type type) const {
     return token{type, source_.substr(prev_, next_ - prev_), line_};
   }
 
   /// @brief lex_numeric_constant - Lexes a numeric constant. Handles both
   /// integers and real numbers.
   /// @return A token with the lexeme as the string literal of the numeric.
-  token lex_numeric_constant() noexcept {
+  [[nodiscard]] constexpr token lex_numeric_constant() noexcept {
     for (; std::isdigit(peek()); next())
       ;
 
@@ -115,11 +123,11 @@ class lexer final {
   /// @brief lex_string_literal - Lexes a string literal. Allows multi-line
   /// strings.
   /// @return The lexed string literal.
-  token lex_string_literal() noexcept {
+  [[nodiscard]] constexpr token lex_string_literal() noexcept {
     for (next(); !end() && peek() != '"'; next())
       ;
 
-    if (end())
+    if (end()) [[unlikely]]
       return make_token(token_type::unknown);
 
     ++prev_;
@@ -131,7 +139,7 @@ class lexer final {
 
   /// @brief lex_identifier - Lexes an identifier.
   /// @return The lexed identifier.
-  token lex_identifier() noexcept {
+  [[nodiscard]] constexpr token lex_identifier() noexcept {
     for (; isalnum(peek()); next())
       ;
     return make_token(token_type::identifier);
@@ -143,7 +151,8 @@ class lexer final {
   /// @param type The type of the keyword.
   /// @return A keyword token if matched, result of handle_identifier()
   /// otherwise.
-  token lex_keyword(std::string_view expected, token_type type) noexcept {
+  [[nodiscard]] constexpr token lex_keyword(std::string_view expected,
+                                            token_type type) noexcept {
     for (auto &&x : expected)
       if (next() != x)
         return lex_identifier();
@@ -152,10 +161,10 @@ class lexer final {
 
   /// @brief lex_token - Lexes the next token from the input.
   /// @return The next token from the input.
-  token lex_token() noexcept {
+  [[nodiscard]] constexpr token lex_token() noexcept {
     whitespace();
 
-    if (end())
+    if (end()) [[unlikely]]
       return make_token(token_type::eof);
 
     switch (prev_ = next_; next()) {
@@ -455,12 +464,12 @@ public:
                std::istreambuf_iterator<char>{}};
   }
 
-  std::vector<token> operator()() {
+  [[nodiscard]] std::vector<token> operator()() {
     std::vector<token> tokens{};
 
     for (;;) {
       tokens.push_back(lex_token());
-      if (tokens.back().type_ == token_type::eof)
+      if (tokens.back().type_ == token_type::eof) [[unlikely]]
         break;
     }
 
