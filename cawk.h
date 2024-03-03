@@ -299,6 +299,32 @@ inline static constexpr struct {
   }
 } length{};
 
+inline static constexpr struct {
+  __attribute__((const)) inline constexpr void
+  operator()(auto &&string__, auto &&array__, auto &&fieldsep__) const noexcept
+    requires std::__is_same_uncvref<decltype(string__), string>::value
+             && std::__is_same_uncvref<decltype(array__), slice<string>>::value
+             && std::__is_same_uncvref<decltype(fieldsep__), char>::value
+  {
+    auto first__{std::cbegin(string__)}, next__{std::cbegin(string__)};
+    for (; first__ != std::cend(string__);) {
+      first__ =
+          std::find_if(std::execution::par_unseq, first__, std::cend(string__),
+                       [fieldsep__](auto &&x__) constexpr noexcept -> bool {
+                         return x__ != fieldsep__;
+                       });
+
+      if (first__ == std::cend(string__)) [[unlikely]]
+        break;
+
+      next__ = std::find(std::execution::par_unseq, first__,
+                         std::cend(string__), fieldsep__);
+      array__.emplace_back(first__, next__);
+      first__ = next__;
+    }
+  }
+} split{};
+
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
 
