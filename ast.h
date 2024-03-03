@@ -326,9 +326,13 @@ struct print_stmt final : public stmt {
 
   virtual void operator()(std::ostream &os) const override final {
     os << "std::cout";
-    for (auto &&x : args_) {
-      os << "<<";
-      x->operator()(os);
+    if (std::empty(args_))
+      os << "<<record__";
+    else {
+      for (auto &&x : args_) {
+        os << "<<";
+        x->operator()(os);
+      }
     }
     os << "<< std::endl;";
   }
