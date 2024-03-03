@@ -287,11 +287,17 @@ inline static constexpr struct {
                             std::string_view>) &&
             std::is_same_v<std::remove_cvref_t<decltype(find__)>, char>
   {
-    return std::cbegin(
-               std::ranges::find(std::execution::par_unseq, in__, find__)) -
+    return std::cbegin(std::find(std::execution::par_unseq, in__, find__)) -
            std::cbegin(in__);
   }
 } index{};
+
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((const)) inline constexpr auto
+  operator()(auto &&c__) const noexcept {
+    return std::size(c__);
+  }
+} length{};
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
