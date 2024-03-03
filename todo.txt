@@ -1,0 +1,32 @@
+- lexer error handling
+- parser error handling
+- illegal keywords
+- builtin functions
+  - string functions
+    x asort
+    - asorti
+    - gensub
+    - gsub
+    x index
+    x length
+    - match
+    - patsplit
+    o split
+    - sprintf
+    - strtonum
+    - sub
+    - substr
+    - tolower
+    - toupper
+  - input/ output functions
+    - close
+    - fflush
+    - system
+  - time functions
+    - mktime
+    - strftime
+    - systime
+  - bitwise operations (already part of the language, but some helpers)
+    - and
+    - or
+    - xor
