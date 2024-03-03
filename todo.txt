@@ -21,11 +21,11 @@
   - input/ output functions
     - close
     - fflush
-    - system
+    x system
   - time functions
     - mktime
     - strftime
-    - systime
+    x systime
   - bitwise operations (already part of the language, but some helpers)
     - and
     - or

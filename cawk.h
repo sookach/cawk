@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdio>
@@ -264,6 +265,7 @@ using std::rand;
 using std::sin;
 using std::sqrt;
 using std::srand;
+using std::system;
 
 inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline constexpr std::string::size_type
@@ -339,6 +341,16 @@ inline static constexpr struct {
     return x__;
   }
 } asort{};
+
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((const)) inline constexpr u64
+  operator()() const noexcept {
+    return static_cast<u64>(
+        std::chrono::duration_cast<std::chrono::seconds>(
+            std::chrono::system_clock::now().time_since_epoch())
+            .count());
+  }
+} systime{};
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
