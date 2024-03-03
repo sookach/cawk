@@ -44,7 +44,8 @@ template <typename T__>
 
 inline static constexpr struct {
   template <typename T1__, typename T2__>
-  [[nodiscard]] constexpr T1__ operator()(T2__ &&x__) const noexcept {
+  [[nodiscard]] [[gnu::pure]] constexpr T1__
+  operator()(T2__ &&x__) const noexcept {
     return static_cast<T1__>(x__);
   }
 
@@ -194,6 +195,36 @@ inline constexpr struct {
       printf("%e\n", x__);
   }
 } print__{};
+
+template <typename T__>
+auto operator+=(slice<T__> &s__, auto &&v__) noexcept
+    -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
+                        slice<T__> &> {
+  s__.push_back(std::forward<decltype(v__)>(v__));
+  return s__;
+}
+
+template <typename T__>
+auto operator+=(slice<T__> &&s__, auto &&v__) noexcept
+    -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
+                        slice<T__> &&> {
+  s__.push_back(std::forward<decltype(v__)>(v__));
+  return std::move(s__);
+}
+
+template <typename T__>
+auto operator+(slice<T__> &s__, auto &&v__) noexcept
+    -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
+                        slice<T__> &> {
+  return s__ + std::forward<decltype(v__)>(v__);
+}
+
+template <typename T__>
+auto operator+(slice<T__> &&s__, auto &&v__) noexcept
+    -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
+                        slice<T__> &&> {
+  return std::move(s__) + std::forward<decltype(v__)>(v__);
+}
 
 template <typename T__>
 std::ostream &operator<<(std::ostream &os__, const std::span<T__> &s__) {
