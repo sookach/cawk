@@ -41,16 +41,27 @@ class parser final {
     default:
       return 0;
     case token_type::equal:
+      [[fallthrough]];
     case token_type::plusequal:
+      [[fallthrough]];
     case token_type::minusequal:
+      [[fallthrough]];
     case token_type::starequal:
+      [[fallthrough]];
     case token_type::slashequal:
+      [[fallthrough]];
     case token_type::percentequal:
+      [[fallthrough]];
     case token_type::lesslessequal:
+      [[fallthrough]];
     case token_type::greatergreaterequal:
+      [[fallthrough]];
     case token_type::ampequal:
+      [[fallthrough]];
     case token_type::caretequal:
+      [[fallthrough]];
     case token_type::pipeequal:
+      [[fallthrough]];
       return 1;
     case token_type::pipepipe:
       return 2;
@@ -63,23 +74,31 @@ class parser final {
     case token_type::amp:
       return 6;
     case token_type::equalequal:
+      [[fallthrough]];
     case token_type::exclaimequal:
       return 7;
     case token_type::less:
+      [[fallthrough]];
     case token_type::lessequal:
+      [[fallthrough]];
     case token_type::greater:
+      [[fallthrough]];
     case token_type::greaterequal:
       return 8;
     case token_type::tilde:
       return 9;
     case token_type::lessless:
+      [[fallthrough]];
     case token_type::greatergreater:
       return 10;
     case token_type::plus:
+      [[fallthrough]];
     case token_type::minus:
       return 11;
     case token_type::star:
+      [[fallthrough]];
     case token_type::slash:
+      [[fallthrough]];
     case token_type::percent:
       return 12;
     }
@@ -94,7 +113,9 @@ class parser final {
       /// TODO: is this the right way to handle empty expressions?
       return nullptr;
     case token_type::identifier:
+      [[fallthrough]];
     case token_type::numeric_constant:
+      [[fallthrough]];
     case token_type::string_literal:
       return std::make_unique<atom_expr>(next());
     case token_type::l_paren: {
@@ -108,6 +129,7 @@ class parser final {
       return std::make_unique<prefix_expr>(op, parse_expr(12));
     }
     case token_type::plusplus:
+      [[fallthrough]];
     case token_type::minusminus: {
       auto op{next()};
       return std::make_unique<prefix_expr>(op, parse_expr(12));
@@ -159,6 +181,7 @@ class parser final {
     default:
       break;
     case token_type::plusplus:
+      [[fallthrough]];
     case token_type::minusminus: {
       auto op{next()};
       lhs = std::make_unique<postfix_expr>(op, std::move(lhs));
@@ -352,18 +375,31 @@ class parser final {
     default:
       return parse_stmt();
     case token_type::kw_auto:
+      [[fallthrough]];
     case token_type::kw_i8:
+      [[fallthrough]];
     case token_type::kw_i16:
+      [[fallthrough]];
     case token_type::kw_i32:
+      [[fallthrough]];
     case token_type::kw_i64:
+      [[fallthrough]];
     case token_type::kw_i128:
+      [[fallthrough]];
     case token_type::kw_u8:
+      [[fallthrough]];
     case token_type::kw_u16:
+      [[fallthrough]];
     case token_type::kw_u32:
+      [[fallthrough]];
     case token_type::kw_u64:
+      [[fallthrough]];
     case token_type::kw_u128:
+      [[fallthrough]];
     case token_type::kw_f32:
+      [[fallthrough]];
     case token_type::kw_f64:
+      [[fallthrough]];
     case token_type::kw_slice:
       return parse_var_decl();
     }
@@ -374,18 +410,31 @@ class parser final {
     default:
       return parse_pattern_action();
     case token_type::kw_auto:
+      [[fallthrough]];
     case token_type::kw_i8:
+      [[fallthrough]];
     case token_type::kw_i16:
+      [[fallthrough]];
     case token_type::kw_i32:
+      [[fallthrough]];
     case token_type::kw_i64:
+      [[fallthrough]];
     case token_type::kw_i128:
+      [[fallthrough]];
     case token_type::kw_u8:
+      [[fallthrough]];
     case token_type::kw_u16:
+      [[fallthrough]];
     case token_type::kw_u32:
+      [[fallthrough]];
     case token_type::kw_u64:
+      [[fallthrough]];
     case token_type::kw_u128:
+      [[fallthrough]];
     case token_type::kw_f32:
+      [[fallthrough]];
     case token_type::kw_f64:
+      [[fallthrough]];
     case token_type::kw_slice:
       return parse_var_decl();
     case token_type::kw_fn:
