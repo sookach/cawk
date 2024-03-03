@@ -51,6 +51,10 @@ class lexer final {
     return next_ == std::size(source_);
   }
 
+  /// @brief peek - Peek an arbitrary number of characters ahead in the input
+  /// stream.
+  /// @param i The lookahed amount (default is 0).
+  /// @return The character at source_[next_ + i];
   [[nodiscard]] __attribute__((const)) constexpr char
   peek(std::string::size_type i = 0) const noexcept {
     return next_ + i < std::size(source_) ? source_[next_ + i] : '\0';
