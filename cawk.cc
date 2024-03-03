@@ -26,7 +26,7 @@ int main() {
 
   out << std::endl << std::endl;
 
-  out << "cawk::init__() = [&]() noexcept -> void {";
+  out << "inline void cawk::init__() noexcept {";
 
   out << "run_begin__ = [&]() noexcept -> void {";
   for (auto &&x : tree)

@@ -66,7 +66,7 @@ inline static constexpr struct {
             std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtol(x__.data(), nullptr)};
+    const auto y__{strtol(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -82,7 +82,7 @@ inline static constexpr struct {
   operator()(T2__ &&x__) const noexcept {
     try {
       const auto y__{std::exchange(*std::end(x__), '\0')};
-      const auto z__{std::strtol(x__.data(), nullptr)};
+      const auto z__{strtol(x__.data(), nullptr, 10)};
       *std::end(x__) = y__;
       return z__;
     } catch (...) {
@@ -95,7 +95,7 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtoll(x__.data(), nullptr)};
+    const auto y__{strtoll(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -109,7 +109,7 @@ inline static constexpr struct {
             std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtoul(x__.data(), nullptr)};
+    const auto y__{strtoul(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -122,7 +122,7 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtoull(x__.data(), nullptr)};
+    const auto y__{strtoull(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -135,7 +135,7 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtof(x__.data(), nullptr)};
+    const auto y__{strtof(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -150,7 +150,7 @@ inline static constexpr struct {
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{std::exchange(*std::end(x__), '\0')};
-    const auto z__{strtof(x__.data(), nullptr)};
+    const auto z__{strtof(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -165,7 +165,7 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<T2__>, string>
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
-    const auto y__{strtof(x__.data(), nullptr)};
+    const auto y__{strtof(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -180,7 +180,7 @@ inline static constexpr struct {
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{std::exchange(*std::end(x__), '\0')};
-    const auto z__{strtod(x__.data(), nullptr)};
+    const auto z__{strtod(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
@@ -403,7 +403,7 @@ inline struct {
   }
 } run__{};
 
-inline std::function<void(void)> init__{};
+inline void init__() noexcept;
 
 } // namespace cawk
 
