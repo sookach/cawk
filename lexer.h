@@ -58,7 +58,7 @@ class lexer final {
 
   /// @brief prev - Get starting character of lexeme.
   /// @return value at source_[prev_].
-  [[nodiscard]] __attribute__((const)) char prev() const noexcept {
+  [[nodiscard]] __attribute__((const)) constexpr char prev() const noexcept {
     return source_[prev_];
   }
 

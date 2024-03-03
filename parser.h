@@ -18,26 +18,26 @@ class parser final {
   std::vector<token> tokens_{};
   std::vector<token>::size_type curr_{};
 
-  [[nodiscard]] __attribute__((const)) token
+  [[nodiscard]] __attribute__((const)) constexpr token
   peek(std::vector<token>::size_type i = 0) const noexcept {
     return tokens_[curr_ + i];
   }
 
-  token next() noexcept { return tokens_[curr_++]; }
+  constexpr token next() noexcept { return tokens_[curr_++]; }
 
-  [[nodiscard]] bool match(token_type type) noexcept {
+  [[nodiscard]] constexpr bool match(token_type type) noexcept {
     if (peek().type_ != type)
       return false;
     next();
     return true;
   }
 
-  void expect(token_type type) noexcept {
+  constexpr void expect(token_type type) noexcept {
     if (!match(type))
       exit(EXIT_FAILURE);
   }
 
-  [[nodiscard]] __attribute__((const)) uint8_t
+  [[nodiscard]] __attribute__((const)) constexpr uint8_t
   lbp(token_type type) const noexcept {
     switch (type) {
     default:
@@ -292,13 +292,13 @@ class parser final {
   }
 
   [[nodiscard]] std::unique_ptr<stmt> parse_block_stmt() noexcept {
-    auto block{std::make_unique<block_stmt>()};
+    std::vector<std::unique_ptr<stmt>> block{};
     expect(token_type::l_brace);
     for (; peek().type_ != token_type::eof &&
            peek().type_ != token_type::r_brace;)
-      block->body_.push_back(parse_inner_decl());
+      block.push_back(parse_inner_decl());
     expect(token_type::r_brace);
-    return std::move(block);
+    return std::make_unique<block_stmt>(std::move(block));
   }
 
   [[nodiscard]] std::unique_ptr<stmt> parse_if_stmt() noexcept {
