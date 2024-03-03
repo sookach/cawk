@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
+#include <execution>
 #include <format>
 #include <fstream>
 #include <functional>
@@ -12,6 +13,8 @@
 #include <string>
 #include <string_view>
 #include <vector>
+
+namespace cawk {
 
 using i8 = int8_t;
 using i16 = int16_t;
@@ -213,7 +216,7 @@ inline constexpr struct {
 } print__{};
 
 template <typename T__>
-auto operator+=(slice<T__> &s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+=(slice<T__> &s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
                         slice<T__> &> {
   s__.push_back(std::forward<decltype(v__)>(v__));
@@ -221,7 +224,7 @@ auto operator+=(slice<T__> &s__, auto &&v__) noexcept
 }
 
 template <typename T__>
-auto operator+=(slice<T__> &&s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+=(slice<T__> &&s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
                         slice<T__> &&> {
   s__.push_back(std::forward<decltype(v__)>(v__));
@@ -229,26 +232,30 @@ auto operator+=(slice<T__> &&s__, auto &&v__) noexcept
 }
 
 template <typename T__>
-auto operator+(slice<T__> &s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+(slice<T__> &s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
                         slice<T__> &> {
   return s__ + std::forward<decltype(v__)>(v__);
 }
 
 template <typename T__>
-auto operator+(slice<T__> &&s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+(slice<T__> &&s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
                         slice<T__> &&> {
   return std::move(s__) + std::forward<decltype(v__)>(v__);
 }
 
 template <typename T__>
-std::ostream &operator<<(std::ostream &os__, const std::span<T__> &s__) {
+[[nodiscard]] std::ostream &operator<<(std::ostream &os__,
+                                       const std::span<T__> &s__) {
   for (const auto &x__ : s__)
     os__ << x__;
 
   return os__;
 }
+
+std::vector<std::span<char>> fields__{};
+std::string record__{};
 
 using std::cos;
 using std::exp;
@@ -258,14 +265,39 @@ using std::sin;
 using std::sqrt;
 using std::srand;
 
-std::vector<std::span<char>> fields__{};
-std::string record__{};
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((const)) inline constexpr std::string::size_type
+  operator()(auto &&in__, auto &&find__) const
+    requires(std::is_same_v<std::remove_cvref_t<decltype(in__)>, string> ||
+             std::is_same_v<std::remove_cvref_t<decltype(in__)>,
+                            std::string_view>) &&
+            (std::is_same_v<std::remove_cvref_t<decltype(find__)>, string> ||
+             std::is_same_v<std::remove_cvref_t<decltype(find__)>,
+                            std::string_view>)
+  {
+    return std::cbegin(std::execution::par_unseq,
+                       std::search(std::cbegin(in__), std::cbegin(find__))) -
+           std::cbegin(in__);
+  }
+
+  [[nodiscard]] __attribute__((const)) inline constexpr std::string::size_type
+  operator()(auto &&in__, auto &&find__) const
+    requires(std::is_same_v<std::remove_cvref_t<decltype(in__)>, string> ||
+             std::is_same_v<std::remove_cvref_t<decltype(in__)>,
+                            std::string_view>) &&
+            std::is_same_v<std::remove_cvref_t<decltype(find__)>, char>
+  {
+    return std::cbegin(
+               std::ranges::find(std::execution::par_unseq, in__, find__)) -
+           std::cbegin(in__);
+  }
+} index{};
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
 
 inline struct {
-  bool operator()(std::istream &is__) const noexcept {
+  [[nodiscard]] bool operator()(std::istream &is__) const noexcept {
     fields__.clear();
     NF = 0;
     fields__.emplace_back();
@@ -315,13 +347,15 @@ inline struct {
 
 inline void init__() noexcept;
 
+} // namespace cawk
+
 int main(int argc, char **argv) {
-  init__();
+  cawk::init__();
   if (argc == 2) {
     std::ifstream in__{argv[1]};
-    run__(in__);
+    cawk::run__(in__);
   } else {
-    run_end__();
-    run_begin__();
+    cawk::run_end__();
+    cawk::run_begin__();
   }
 }
