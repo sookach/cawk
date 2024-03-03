@@ -260,8 +260,16 @@ class lexer final {
     case '~':
       return make_token(token_type::tilde);
     case '!':
-      return make_token(match('=') ? token_type::exclaimequal
-                                   : token_type::exclaim);
+      switch (peek()) {
+      default:
+        return make_token(token_type::exclaim);
+      case '=':
+        next();
+        return make_token(token_type::exclaimequal);
+      case '[':
+        next();
+        return make_token(token_type::exclaiml_square);
+      }
     case '/':
       return make_token(match('=') ? token_type::slashequal
                                    : token_type::slash);
@@ -440,6 +448,7 @@ class lexer final {
       case 't':
         switch (next(); peek()) {
         case 'a':
+          next();
           return lex_keyword("tic", token_type::kw_static);
         case 'r':
           next();

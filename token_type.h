@@ -42,6 +42,7 @@ enum struct token_type {
   tilde,
   exclaim,
   exclaimequal,
+  exclaiml_square,
   slash,
   slashequal,
   percent,

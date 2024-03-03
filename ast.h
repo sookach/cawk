@@ -198,6 +198,7 @@ struct stmt {
 // };
 
 struct var_decl final : public stmt {
+  const bool is_static_{};
   const token type_{};
   const std::vector<token> templ_{};
   const token iden_{};
@@ -211,7 +212,14 @@ struct var_decl final : public stmt {
                      std::unique_ptr<expr> init = nullptr)
       : type_{type}, templ_{templ}, iden_{iden}, init_{std::move(init)} {}
 
+  constexpr var_decl(bool is_static, token type, std::vector<token> templ,
+                     token iden, std::unique_ptr<expr> init = nullptr)
+      : is_static_{is_static}, type_{type}, templ_{templ}, iden_{iden},
+        init_{std::move(init)} {}
+
   constexpr virtual void operator()(std::ostream &os) const override final {
+    if (is_static_)
+      os << "static ";
     os << type_.lexeme_;
     switch (std::size(templ_)) {
     default:
@@ -228,7 +236,8 @@ struct var_decl final : public stmt {
     if (init_ != nullptr) {
       os << '=';
       init_->operator()(os);
-    }
+    } else
+      os << "{}";
     os << ';';
   }
 };

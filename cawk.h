@@ -343,8 +343,7 @@ inline static constexpr struct {
 } asort{};
 
 inline static constexpr struct {
-  [[nodiscard]] __attribute__((const)) inline constexpr u64
-  operator()() const noexcept {
+  [[nodiscard]] __attribute__((const)) inline u64 operator()() const noexcept {
     return static_cast<u64>(
         std::chrono::duration_cast<std::chrono::seconds>(
             std::chrono::system_clock::now().time_since_epoch())
@@ -404,7 +403,7 @@ inline struct {
   }
 } run__{};
 
-inline void init__() noexcept;
+inline std::function<void(void)> init__{};
 
 } // namespace cawk
 

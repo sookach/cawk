@@ -162,7 +162,7 @@ class parser final {
     case token_type::dollar:
       next();
       return std::make_unique<field_expr>(parse_expr(12));
-    case token_type::less:
+    case token_type::exclaiml_square:
       next();
       switch (peek().type_) {
       default:
@@ -193,7 +193,7 @@ class parser final {
         [[fallthrough]];
       case token_type::kw_string:
         auto type{next()};
-        expect(token_type::greater);
+        expect(token_type::r_square);
         return std::make_unique<cast_expr>(type, parse_expr());
       }
     }
@@ -249,6 +249,7 @@ class parser final {
   /// @return A var_decl ast node representing the declaration.
   [[nodiscard]] std::unique_ptr<stmt>
   parse_var_decl(bool expect_semi = true) noexcept {
+    const auto is_static{match(token_type::kw_static)};
     const auto type{next()};
     std::vector<token> templ{};
 
@@ -256,13 +257,13 @@ class parser final {
     default:
       break;
     case token_type::kw_slice:
-      expect(token_type::less);
+      expect(token_type::exclaiml_square);
       templ = {next()};
       for (; match(token_type::comma);) {
         next();
         templ.push_back(next());
       }
-      expect(token_type::greater);
+      expect(token_type::r_square);
     }
 
     const auto iden{next()};
@@ -271,7 +272,8 @@ class parser final {
     if (expect_semi)
       expect(token_type::semi);
 
-    return std::make_unique<var_decl>(type, templ, iden, std::move(init));
+    return std::make_unique<var_decl>(is_static, type, templ, iden,
+                                      std::move(init));
   }
 
   /// @brief parse_fn_decl - Parse a function declaration (really definition
@@ -381,6 +383,8 @@ class parser final {
     case token_type::semi:
       next();
       break;
+    case token_type::kw_static:
+      [[fallthrough]];
     case token_type::kw_auto:
       [[fallthrough]];
     case token_type::kw_i8:
@@ -473,6 +477,8 @@ class parser final {
     switch (peek().type_) {
     default:
       return parse_stmt();
+    case token_type::kw_static:
+      [[fallthrough]];
     case token_type::kw_auto:
       [[fallthrough]];
     case token_type::kw_i8:
