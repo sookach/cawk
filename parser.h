@@ -193,13 +193,28 @@ class parser final {
 
   std::unique_ptr<stmt> parse_var_decl(bool expect_semi = true) noexcept {
     const auto type{next()};
+    std::vector<token> templ{};
+
+    switch (type.type_) {
+    default:
+      break;
+    case token_type::kw_slice:
+      expect(token_type::less);
+      templ = {next()};
+      for (; match(token_type::comma);) {
+        next();
+        templ.push_back(next());
+      }
+      expect(token_type::greater);
+    }
+
     const auto iden{next()};
     auto init{match(token_type::equal) ? parse_expr() : nullptr};
 
     if (expect_semi)
       expect(token_type::semi);
 
-    return std::make_unique<var_decl>(type, iden, std::move(init));
+    return std::make_unique<var_decl>(type, templ, iden, std::move(init));
   }
 
   std::unique_ptr<stmt> parse_fn_decl() noexcept {
@@ -278,7 +293,7 @@ class parser final {
     auto init{peek().type_ == token_type::semi          ? nullptr
               : peek(1).type_ == token_type::identifier ? parse_var_decl(false)
                                                         : parse_stmt()};
-    if (next().type_ == token_type::colon) {
+    if (next().type_ == token_type::kw_in) {
       auto range{parse_expr()};
       expect(token_type::r_paren);
       auto body{parse_stmt()};
@@ -349,6 +364,7 @@ class parser final {
     case token_type::kw_u128:
     case token_type::kw_f32:
     case token_type::kw_f64:
+    case token_type::kw_slice:
       return parse_var_decl();
     }
   }
@@ -370,6 +386,7 @@ class parser final {
     case token_type::kw_u128:
     case token_type::kw_f32:
     case token_type::kw_f64:
+    case token_type::kw_slice:
       return parse_var_decl();
     case token_type::kw_fn:
       return parse_fn_decl();

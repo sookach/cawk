@@ -177,15 +177,31 @@ struct stmt {
 
 struct var_decl final : public stmt {
   token type_{};
+  std::vector<token> templ_{};
   token iden_{};
   std::unique_ptr<expr> init_{};
 
   var_decl(token type, token iden, std::unique_ptr<expr> init = nullptr)
       : type_{type}, iden_{iden}, init_{std::move(init)} {}
 
+  var_decl(token type, std::vector<token> templ, token iden,
+           std::unique_ptr<expr> init = nullptr)
+      : type_{type}, templ_{templ}, iden_{iden}, init_{std::move(init)} {}
+
   virtual void operator()(std::ostream &os) const override final {
-    os << type_.lexeme_ << ' ';
-    os << iden_.lexeme_;
+    os << type_.lexeme_;
+    switch (std::size(templ_)) {
+    default:
+      os << '<' << templ_.front().lexeme_;
+      for (auto &&x : templ_ | std::views::drop(1))
+        os << ',' << x.lexeme_;
+      os << '>';
+    case 0:
+      break;
+    case 1:
+      os << '<' << templ_.front().lexeme_ << '>';
+    }
+    os << ' ' << iden_.lexeme_;
     if (init_ != nullptr) {
       os << '=';
       init_->operator()(os);

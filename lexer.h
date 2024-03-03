@@ -383,6 +383,9 @@ class lexer final {
       case 'f':
         next();
         return lex_keyword("", token_type::kw_if);
+      case 'n':
+        next();
+        return lex_keyword("", token_type::kw_in);
       }
     case 'p':
       return lex_keyword("rint", token_type::kw_print);
@@ -398,6 +401,8 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_identifier();
+      case 'l':
+        return lex_keyword("lice", token_type::kw_slice);
       case 't':
         next();
         return match('a') ? lex_keyword("tic", token_type::kw_static)
