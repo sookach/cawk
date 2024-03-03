@@ -325,6 +325,21 @@ inline static constexpr struct {
   }
 } split{};
 
+inline static constexpr struct {
+  inline constexpr void operator()(auto &&r__) const noexcept {
+    std::sort(std::execution::par_unseq, std::begin(r__), std::end(r__));
+  }
+} sort{};
+
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((const)) inline constexpr auto
+  operator()(auto &&r__) const noexcept {
+    auto x__{std::forward<decltype(r__)>(r__)};
+    std::sort(std::execution::par_unseq, std::begin(x__), std::end(x__));
+    return x__;
+  }
+} asort{};
+
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
 
