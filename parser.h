@@ -118,6 +118,8 @@ class parser final {
     case token_type::numeric_constant:
       [[fallthrough]];
     case token_type::string_literal:
+      [[fallthrough]];
+    case token_type::char_constant:
       return std::make_unique<atom_expr>(next());
     case token_type::l_paren: {
       next();
@@ -315,15 +317,56 @@ class parser final {
   [[nodiscard]] std::unique_ptr<stmt> parse_for_stmt() noexcept {
     expect(token_type::kw_for);
     expect(token_type::l_paren);
-    auto init{peek().type_ == token_type::semi          ? nullptr
-              : peek(1).type_ == token_type::identifier ? parse_var_decl(false)
-                                                        : parse_stmt()};
-    if (next().type_ == token_type::kw_in) {
+
+    if (peek(1).type_ == token_type::kw_in) {
+      auto var{next()};
+      next();
       auto range{parse_expr()};
       expect(token_type::r_paren);
       auto body{parse_stmt()};
-      return std::make_unique<range_stmt>(std::move(init), std::move(range),
+
+      return std::make_unique<range_stmt>(std::move(var), std::move(range),
                                           std::move(body));
+    }
+
+    std::unique_ptr<stmt> init{};
+    switch (peek().type_) {
+    default:
+      init = parse_expr_stmt();
+      break;
+    case token_type::semi:
+      next();
+      break;
+    case token_type::kw_auto:
+      [[fallthrough]];
+    case token_type::kw_i8:
+      [[fallthrough]];
+    case token_type::kw_i16:
+      [[fallthrough]];
+    case token_type::kw_i32:
+      [[fallthrough]];
+    case token_type::kw_i64:
+      [[fallthrough]];
+    case token_type::kw_i128:
+      [[fallthrough]];
+    case token_type::kw_u8:
+      [[fallthrough]];
+    case token_type::kw_u16:
+      [[fallthrough]];
+    case token_type::kw_u32:
+      [[fallthrough]];
+    case token_type::kw_u64:
+      [[fallthrough]];
+    case token_type::kw_u128:
+      [[fallthrough]];
+    case token_type::kw_f32:
+      [[fallthrough]];
+    case token_type::kw_f64:
+      [[fallthrough]];
+    case token_type::kw_slice:
+      [[fallthrough]];
+    case token_type::kw_string:
+      init = parse_var_decl();
     }
 
     auto cond{peek().type_ == token_type::semi ? nullptr : parse_expr()};
@@ -403,6 +446,8 @@ class parser final {
     case token_type::kw_f64:
       [[fallthrough]];
     case token_type::kw_slice:
+      [[fallthrough]];
+    case token_type::kw_string:
       return parse_var_decl();
     }
   }
@@ -438,6 +483,8 @@ class parser final {
     case token_type::kw_f64:
       [[fallthrough]];
     case token_type::kw_slice:
+      [[fallthrough]];
+    case token_type::kw_string:
       return parse_var_decl();
     case token_type::kw_fn:
       return parse_fn_decl();

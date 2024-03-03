@@ -124,7 +124,7 @@ class lexer final {
   /// strings.
   /// @return The lexed string literal.
   [[nodiscard]] constexpr token lex_string_literal() noexcept {
-    for (next(); !end() && peek() != '"'; next())
+    for (; !end() && peek() != '"'; next())
       ;
 
     if (end()) [[unlikely]]
@@ -132,6 +132,25 @@ class lexer final {
 
     ++prev_;
     const auto tok{make_token(token_type::string_literal)};
+    next();
+
+    return tok;
+  }
+
+  /// @brief lex_string_literal - Lexes a character constant. Uses the same
+  /// process as string literal lexing so it will allow completely invalid
+  /// characters, which will get caught in the final build.
+  /// TODO: should catch invalid characters here instead of pasing the buck.
+  /// @return The lexed string literal.
+  [[nodiscard]] constexpr token lex_char_constant() noexcept {
+    for (; !end() && peek() != '\''; next())
+      ;
+
+    if (end()) [[unlikely]]
+      return make_token(token_type::unknown);
+
+    ++prev_;
+    const auto tok{make_token(token_type::char_constant)};
     next();
 
     return tok;
@@ -153,9 +172,11 @@ class lexer final {
   /// otherwise.
   [[nodiscard]] constexpr token lex_keyword(std::string_view expected,
                                             token_type type) noexcept {
-    for (auto &&x : expected)
-      if (next() != x)
+    for (auto &&x : expected) {
+      if (peek() != x)
         return lex_identifier();
+      next();
+    }
     return isalnum(peek()) ? lex_identifier() : make_token(type);
   }
 
@@ -174,7 +195,7 @@ class lexer final {
                                     : make_token(token_type::unknown);
     case '\'':
       /// TODO: figure out character constant lexing.
-
+      return lex_char_constant();
     case '"':
       return lex_string_literal();
     // Punctuators.
@@ -413,9 +434,14 @@ class lexer final {
       case 'l':
         return lex_keyword("lice", token_type::kw_slice);
       case 't':
-        next();
-        return match('a') ? lex_keyword("tic", token_type::kw_static)
-                          : lex_keyword("ruct", token_type::kw_struct);
+        switch (next(); peek()) {
+        case 'a':
+          return lex_keyword("tic", token_type::kw_static);
+        case 'r':
+          next();
+          return match('i') ? lex_keyword("ng", token_type::kw_string)
+                            : lex_keyword("uct", token_type::kw_struct);
+        }
       case 'w':
         next();
         return lex_keyword("itch", token_type::kw_switch);

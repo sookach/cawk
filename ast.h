@@ -105,16 +105,21 @@ struct call_expr final : public expr {
   constexpr virtual void operator()(std::ostream &os) const override final {
     callee_->operator()(os);
 
-    if (std::empty(args_))
-      os << "()";
-    else {
-      for (os << '('; auto &&x : args_) {
-        x->operator()(os);
+    switch (os << '('; std::size(args_)) {
+    default:
+      for (args_.front()->operator()(os);
+           auto &&x : args_ | std::views::drop(1)) {
         os << ',';
+        x->operator()(os);
       }
-      os.seekp(os.tellp() - std::streampos{1});
-      os << ")";
+      [[fallthrough]];
+    case 0:
+      break;
+    case 1:
+      args_.front()->operator()(os);
     }
+
+    os << ')';
   }
 };
 
@@ -152,11 +157,27 @@ struct atom_expr final : public expr {
   constexpr atom_expr(token atom) : atom_{atom} {}
 
   virtual void operator()(std::ostream &os) const override final {
-    if (atom_.type_ == token_type::string_literal)
+    switch (atom_.type_) {
+    default:
+      break;
+    case token_type::char_constant:
+      os << '\'';
+      break;
+    case token_type::string_literal:
       os << '"';
+    }
+
     os << atom_.lexeme_;
-    if (atom_.type_ == token_type::string_literal)
+
+    switch (atom_.type_) {
+    default:
+      break;
+    case token_type::char_constant:
+      os << '\'';
+      break;
+    case token_type::string_literal:
       os << '"';
+    }
   }
 };
 
@@ -362,19 +383,16 @@ struct return_stmt final : public stmt {
 };
 
 struct range_stmt final : public stmt {
-  const std::unique_ptr<stmt> init_{};
+  const token var_{};
   const std::unique_ptr<expr> range_{};
   const std::unique_ptr<stmt> body_{};
 
-  constexpr range_stmt(std::unique_ptr<stmt> init, std::unique_ptr<expr> range,
+  constexpr range_stmt(token var, std::unique_ptr<expr> range,
                        std::unique_ptr<stmt> body)
-      : init_{std::move(init)}, range_{std::move(range)},
-        body_{std::move(body)} {}
+      : var_{var}, range_{std::move(range)}, body_{std::move(body)} {}
 
   constexpr virtual void operator()(std::ostream &os) const override final {
-    os << "for(";
-    init_->operator()(os);
-    os << ':';
+    os << "for(auto &&" << var_.lexeme_ << ':';
     range_->operator()(os);
     os << ')';
     if (body_ != nullptr)
