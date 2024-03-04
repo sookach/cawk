@@ -61,7 +61,8 @@ inline static constexpr struct {
   template <typename T1__, typename T2__>
     requires(std::is_same_v<T1__, i8> || std::is_same_v<T1__, i16> ||
              std::is_same_v<T1__, i32>) &&
-            std::is_same_v<std::remove_cvref_t<T2__>, string>
+            (std::is_same_v<std::remove_cvref_t<T2__>, string> ||
+             std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>)
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{strtol(x__.data(), nullptr, 10)};
@@ -69,28 +70,14 @@ inline static constexpr struct {
       perror("");
       exit(errno);
     }
+
     return y__;
   }
 
   template <typename T1__, typename T2__>
-    requires(std::is_same_v<T1__, i8> || std::is_same_v<T1__, i16> ||
-             std::is_same_v<T1__, i32>) &&
-            std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
-  [[nodiscard]] __attribute__((pure)) constexpr T1__
-  operator()(T2__ &&x__) const noexcept {
-    try {
-      const auto y__{std::exchange(*std::end(x__), '\0')};
-      const auto z__{strtol(x__.data(), nullptr, 10)};
-      *std::end(x__) = y__;
-      return z__;
-    } catch (...) {
-      exit(EXIT_FAILURE);
-    }
-  }
-
-  template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, i64> &&
-             std::is_same_v<std::remove_cvref_t<T2__>, string>
+             (std::is_same_v<std::remove_cvref_t<T2__>, string> ||
+              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>)
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{strtoll(x__.data(), nullptr, 10)};
@@ -98,13 +85,15 @@ inline static constexpr struct {
       perror("");
       exit(errno);
     }
+
     return y__;
   }
 
   template <typename T1__, typename T2__>
     requires(std::is_same_v<T1__, u8> || std::is_same_v<T1__, u16> ||
              std::is_same_v<T1__, u32>) &&
-            std::is_same_v<std::remove_cvref_t<T2__>, string>
+            (std::is_same_v<std::remove_cvref_t<T2__>, string> ||
+             std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>)
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{strtoul(x__.data(), nullptr, 10)};
@@ -112,12 +101,14 @@ inline static constexpr struct {
       perror("");
       exit(errno);
     }
+
     return y__;
   }
 
   template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, u64> &&
-             std::is_same_v<std::remove_cvref_t<T2__>, string>
+             (std::is_same_v<std::remove_cvref_t<T2__>, string> ||
+              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>)
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{strtoull(x__.data(), nullptr, 10)};
@@ -125,12 +116,14 @@ inline static constexpr struct {
       perror("");
       exit(errno);
     }
+
     return y__;
   }
 
   template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, f32> &&
-             std::is_same_v<std::remove_cvref_t<T2__>, string>
+             (std::is_same_v<std::remove_cvref_t<T2__>, string> ||
+              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>)
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{strtof(x__.data(), nullptr, 10)};
@@ -143,24 +136,9 @@ inline static constexpr struct {
   }
 
   template <typename T1__, typename T2__>
-    requires std::is_same_v<T1__, f32> &&
-             std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
-  [[nodiscard]] __attribute__((pure)) constexpr T1__
-  operator()(T2__ &&x__) const noexcept {
-    const auto y__{std::exchange(*std::end(x__), '\0')};
-    const auto z__{strtof(x__.data(), nullptr, 10)};
-    if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
-      perror("");
-      exit(errno);
-    }
-
-    *std::end(x__) = y__;
-    return z__;
-  }
-
-  template <typename T1__, typename T2__>
     requires std::is_same_v<T1__, f64> &&
-             std::is_same_v<std::remove_cvref_t<T2__>, string>
+             (std::is_same_v<std::remove_cvref_t<T2__>, string> ||
+              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>)
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
     const auto y__{strtof(x__.data(), nullptr, 10)};
@@ -177,15 +155,13 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<T2__>, std::span<char>>
   [[nodiscard]] __attribute__((pure)) constexpr T1__
   operator()(T2__ &&x__) const noexcept {
-    const auto y__{std::exchange(*std::end(x__), '\0')};
-    const auto z__{strtod(x__.data(), nullptr, 10)};
+    const auto y__{strtod(x__.data(), nullptr, 10)};
     if (errno == EINVAL || errno == ERANGE) [[unlikely]] {
       perror("");
       exit(errno);
     }
 
-    *std::end(x__) = y__;
-    return z__;
+    return y__;
   }
 } cast__{};
 
@@ -470,8 +446,8 @@ inline void init__() noexcept;
 int main(int argc, char **argv) {
   cawk::init__();
   if (argc == 2) {
-    std::ifstream in__{argv[1]};
-    cawk::run__(in__);
+    cawk::mmap__(argv[1]);
+    cawk::mmap_run__();
   } else {
     cawk::run_end__();
     cawk::run_begin__();
