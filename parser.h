@@ -277,6 +277,8 @@ class parser final {
     switch (type.type_) {
     default:
       break;
+    case token_type::kw_set:
+      [[fallthrough]];
     case token_type::kw_slice:
       expect(token_type::exclaiml_square);
       templ = {next()};
@@ -443,6 +445,8 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_bool:
       [[fallthrough]];
+    case token_type::kw_set:
+      [[fallthrough]];
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
@@ -545,6 +549,8 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_bool:
       [[fallthrough]];
+    case token_type::kw_set:
+      [[fallthrough]];
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
@@ -588,6 +594,8 @@ class parser final {
     case token_type::kw_char:
       [[fallthrough]];
     case token_type::kw_bool:
+      [[fallthrough]];
+    case token_type::kw_set:
       [[fallthrough]];
     case token_type::kw_slice:
       [[fallthrough]];

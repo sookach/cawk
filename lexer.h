@@ -450,7 +450,7 @@ class lexer final {
     case 's':
       switch (peek()) {
       default:
-        return lex_identifier();
+        return lex_keyword("et", token_type::kw_set);
       case 'l':
         return lex_keyword("lice", token_type::kw_slice);
       case 't':

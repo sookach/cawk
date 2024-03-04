@@ -12,6 +12,7 @@
 #include <iostream>
 #include <ranges>
 #include <regex>
+#include <set>
 #include <string>
 #include <string_view>
 #include <sys/mman.h>
@@ -39,6 +40,8 @@ using f64 = double;
 using std::string;
 
 template <typename T__> using slice = std::vector<T__>;
+
+using std::set;
 
 template <typename T__>
 concept regex__ =
@@ -229,8 +232,24 @@ template <typename T__>
   return os__;
 }
 
-std::vector<std::span<char>> fields__{};
+template <typename T__>
+auto operator+=(set<T__> &s__, auto &&v__) noexcept
+    -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
+                        set<T__> &> {
+  s__.insert(std::forward<decltype(v__)>(v__));
+  return s__;
+}
+
+template <typename T__>
+auto operator+=(set<T__> &&s__, auto &&v__) noexcept
+    -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
+                        set<T__> &&> {
+  s__.insert(std::forward<decltype(v__)>(v__));
+  return std::move(s__);
+}
+
 std::string record__{};
+std::vector<std::span<char>> fields__{};
 
 using std::cos;
 using std::exp;

@@ -101,6 +101,7 @@ enum struct token_type {
   kw_in,
   kw_print,
   kw_return,
+  kw_set,
   kw_slice,
   kw_static,
   kw_string,
