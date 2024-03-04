@@ -390,7 +390,8 @@ class lexer final {
         return lex_keyword("se", token_type::kw_else);
       case 'x':
         next();
-        return lex_keyword("tern", token_type::kw_extern);
+        return match('i') ? lex_keyword("t", token_type::kw_exit)
+                          : lex_keyword("tern", token_type::kw_extern);
       }
     case 'E':
       return lex_keyword("ND", token_type::kw_end);

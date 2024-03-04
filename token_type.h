@@ -85,6 +85,7 @@ enum struct token_type {
   kw_else,
   kw_end,
   kw_enum,
+  kw_exit,
   kw_extern,
   kw_f32,
   kw_f64,
@@ -332,6 +333,9 @@ std::ostream &operator<<(std::ostream &os, token_type t) {
   case token_type::kw_enum:
     os << "kw_enum";
     break;
+  case token_type::kw_exit:
+    os << "kw_exit";
+    break;
   case token_type::kw_extern:
     os << "kw_extern";
     break;
@@ -423,5 +427,7 @@ std::ostream &operator<<(std::ostream &os, token_type t) {
     os << "kw_void";
     break;
   }
+
+  return os;
 }
 } // namespace cawk

@@ -375,6 +375,22 @@ class parser final {
     return std::make_unique<block_stmt>(std::move(block));
   }
 
+  /// @brief parse_exit_stmt - Parse an exit statement.
+  /// @return An expr_stmt with a call to the exit() function.
+  /// NB: I could create a seperate ast node for exit statements, but it is
+  /// simple enough to just reuse code.
+  [[nodiscard]] std::unique_ptr<stmt> parse_exit_stmt() noexcept {
+    expect(token_type::kw_exit);
+    auto exit_code{
+        peek().type_ == token_type::semi
+            ? std::make_unique<atom_expr>(token{.lexeme_ = "EXIT_SUCCESS"})
+            : parse_expr()};
+    expect(token_type::semi);
+    return std::make_unique<expr_stmt>(std::make_unique<call_expr>(
+        std::make_unique<atom_expr>(token{.lexeme_ = "exit"}),
+        std::move(exit_code)));
+  }
+
   /// @brief parse_if_stmt - Parse an if statement.
   /// @return An if_stmt ast node representing the if statement.
   [[nodiscard]] std::unique_ptr<stmt> parse_if_stmt() noexcept {
@@ -501,6 +517,8 @@ class parser final {
       return parse_block_stmt();
     case token_type::kw_if:
       return parse_if_stmt();
+    case token_type::kw_exit:
+      return parse_exit_stmt();
     case token_type::kw_for:
       return parse_for_stmt();
     case token_type::kw_print:

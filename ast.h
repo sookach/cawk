@@ -102,6 +102,11 @@ struct call_expr final : public expr {
                       std::vector<std::unique_ptr<expr>> args = {})
       : callee_{std::move(callee)}, args_{std::move(args)} {}
 
+  constexpr call_expr(std::unique_ptr<expr> callee, std::unique_ptr<expr> arg)
+      : callee_{std::move(callee)} {
+    args_.push_back(std::move(arg));
+  }
+
   constexpr virtual void operator()(std::ostream &os) const override final {
     callee_->operator()(os);
 
