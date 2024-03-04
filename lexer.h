@@ -165,7 +165,9 @@ class lexer final {
   [[nodiscard]] constexpr token lex_identifier() noexcept {
     for (; isalnum(peek()); next())
       ;
-    return make_token(token_type::identifier);
+    auto tok{make_token(token_type::identifier)};
+    tok.lexeme_.push_back('_');
+    return tok;
   }
 
   /// @brief lex_keyword - Checks if the identifier matches a suffix of a

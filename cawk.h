@@ -292,14 +292,14 @@ inline static constexpr struct {
     return std::cbegin(std::find(std::execution::par_unseq, in__, find__)) -
            std::cbegin(in__);
   }
-} index{};
+} index_{};
 
 inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline constexpr auto
   operator()(auto &&c__) const noexcept {
     return std::size(c__);
   }
-} length{};
+} length_{};
 
 inline static constexpr struct {
   __attribute__((const)) inline constexpr void
@@ -325,13 +325,13 @@ inline static constexpr struct {
       first__ = next__;
     }
   }
-} split{};
+} split_{};
 
 inline static constexpr struct {
   inline constexpr void operator()(auto &&r__) const noexcept {
     std::sort(std::execution::par_unseq, std::begin(r__), std::end(r__));
   }
-} sort{};
+} sort_{};
 
 inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline constexpr auto
@@ -340,7 +340,7 @@ inline static constexpr struct {
     std::sort(std::execution::par_unseq, std::begin(x__), std::end(x__));
     return x__;
   }
-} asort{};
+} asort_{};
 
 inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline u64 operator()() const noexcept {
@@ -349,7 +349,7 @@ inline static constexpr struct {
             std::chrono::system_clock::now().time_since_epoch())
             .count());
   }
-} systime{};
+} systime_{};
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
