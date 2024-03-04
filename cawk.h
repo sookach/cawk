@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <execution>
+#include <fcntl.h>
 #include <format>
 #include <fstream>
 #include <functional>
@@ -13,6 +14,9 @@
 #include <regex>
 #include <string>
 #include <string_view>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <vector>
 
 namespace cawk {
@@ -347,6 +351,33 @@ inline static constexpr struct {
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
+char *bytes__{}, *prev__{}, *next__{};
+off_t size__{};
+
+inline static struct {
+  void operator()(std::string_view filename__) const noexcept {
+    const int fd__{open(filename__.data(), O_RDONLY)};
+    if (fd__ == -1) [[unlikely]] {
+      perror("");
+      exit(errno);
+    }
+
+    struct stat fileinfo__ {};
+    if (fstat(fd__, &fileinfo__) == -1) [[unlikely]] {
+      perror("");
+      exit(errno);
+    }
+
+    size__ = fileinfo__.st_size;
+    if ((next__ = bytes__ = (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED,
+                                         fd__, 0)) == MAP_FAILED) [[unlikely]] {
+      perror("");
+      exit(errno);
+    }
+
+    close(fd__);
+  }
+} mmap__{};
 
 inline struct {
   [[nodiscard]] bool operator()(std::istream &is__) const noexcept {
@@ -384,6 +415,32 @@ inline struct {
   }
 } read_line__{};
 
+inline static constexpr struct {
+  [[nodiscard]] bool operator()() const noexcept {
+    NF = 0;
+    fields__.clear();
+
+    if (next__ >= bytes__ + size__) [[unlikely]]
+      return false;
+
+    ++NR;
+
+    char *const start__ = next__;
+
+    for (fields__.emplace_back();
+         next__ != bytes__ + size__ && *next__ != '\n';) {
+      prev__ = std::find_if_not(next__, bytes__ + size__, ::isspace);
+      next__ = std::find_if(prev__, bytes__ + size__, ::isspace);
+      fields__.emplace_back(prev__, next__);
+    }
+
+    fields__.front() = {start__, next__};
+
+    ++next__;
+    return true;
+  }
+} mmap_read_line__{};
+
 inline std::function<void(void)> run_begin__{};
 inline std::function<void(void)> run_mid__{};
 inline std::function<void(void)> run_end__{};
@@ -396,6 +453,15 @@ inline struct {
     run_end__();
   }
 } run__{};
+
+inline static constexpr struct {
+  void operator()() const noexcept {
+    std::invoke(run_begin__);
+    for (; mmap_read_line__();)
+      run_mid__();
+    run_end__();
+  }
+} mmap_run__{};
 
 inline void init__() noexcept;
 
