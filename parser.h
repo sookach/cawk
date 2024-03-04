@@ -336,6 +336,7 @@ class parser final {
     case token_type::kw_end:
       next();
       pos = pattern_action_decl::type::end;
+      break;
     case token_type::slash:
       pattern = std::make_unique<binary_expr>(
           token{.type_ = token_type::tilde},
@@ -465,7 +466,11 @@ class parser final {
     std::vector<std::unique_ptr<expr>> args{};
 
     for (; peek().type_ != token_type::eof && peek().type_ != token_type::semi;)
-      args.push_back(parse_expr());
+      args.push_back(
+          match(token_type::comma)
+              ? std::make_unique<atom_expr>(
+                    token{.type_ = token_type::string_literal, .lexeme_ = " "})
+              : parse_expr());
 
     expect(token_type::semi);
 
