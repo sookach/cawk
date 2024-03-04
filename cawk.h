@@ -432,10 +432,20 @@ inline static constexpr struct {
 
     char *const start__ = next__;
 
-    for (fields__.emplace_back();
-         next__ != bytes__ + size__ && *next__ != '\n';) {
-      prev__ = std::find_if_not(next__, bytes__ + size__, ::isspace);
-      next__ = std::find_if(prev__, bytes__ + size__, ::isspace);
+    for (fields__.emplace_back(); next__ != bytes__ + size__;) {
+      prev__ = std::find_if(next__, bytes__ + size__,
+                            [](auto &&x__) constexpr noexcept -> bool {
+                              return x__ == '\n' || !::isspace(x__);
+                            });
+
+      if (*prev__ == '\n') [[unlikely]] {
+        next__ = prev__;
+        break;
+      }
+
+      next__ = std::find_if(
+          prev__, bytes__ + size__,
+          [](auto &&x__) constexpr noexcept -> bool { return ::isspace(x__); });
       fields__.emplace_back(prev__, next__);
       ++NF_;
     }
