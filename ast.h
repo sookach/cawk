@@ -365,7 +365,7 @@ struct print_stmt final : public stmt {
   constexpr virtual void operator()(std::ostream &os) const override final {
     os << "std::cout";
     if (std::empty(args_))
-      os << "<<record__";
+      os << "<<fields__.front()";
     else {
       for (auto &&x : args_) {
         os << "<<";
@@ -433,7 +433,7 @@ struct pattern_action_decl final : public stmt {
     if (action_ != nullptr)
       action_->operator()(os);
     else
-      os << "std::cout << record__ << std::endl;";
+      os << "std::cout << fields__.front() << std::endl;";
   }
 };
 

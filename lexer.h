@@ -345,7 +345,13 @@ class lexer final {
     case 'a':
       return lex_keyword("uto", token_type::kw_auto);
     case 'b':
-      return lex_keyword("reak", token_type::kw_break);
+      switch (peek()) {
+      default:
+        return lex_keyword("ool", token_type::kw_bool);
+      case 'r':
+        next();
+        return lex_keyword("eak", token_type::kw_break);
+      }
     case 'B':
       return lex_keyword("EGIN", token_type::kw_begin);
     case 'c':
@@ -391,7 +397,7 @@ class lexer final {
     case 'f':
       switch (peek()) {
       default:
-        return lex_identifier();
+        return lex_keyword("alse", token_type::kw_false);
       case '3':
         next();
         return lex_keyword("2", token_type::kw_f32);
@@ -462,7 +468,7 @@ class lexer final {
         return lex_keyword("itch", token_type::kw_switch);
       }
     case 't':
-      return lex_keyword("ypedef", token_type::kw_typedef);
+      return lex_keyword("rue", token_type::kw_true);
     case 'u':
       switch (peek()) {
       default:

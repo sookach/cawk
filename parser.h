@@ -143,6 +143,10 @@ class parser final {
     case token_type::string_literal:
       [[fallthrough]];
     case token_type::char_constant:
+      [[fallthrough]];
+    case token_type::kw_true:
+      [[fallthrough]];
+    case token_type::kw_false:
       return std::make_unique<atom_expr>(next());
     case token_type::l_paren: {
       next();
@@ -191,6 +195,10 @@ class parser final {
       case token_type::kw_f32:
         [[fallthrough]];
       case token_type::kw_f64:
+        [[fallthrough]];
+      case token_type::kw_char:
+        [[fallthrough]];
+      case token_type::kw_bool:
         [[fallthrough]];
       case token_type::kw_string: {
         auto type{next()};
@@ -430,6 +438,10 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_f64:
       [[fallthrough]];
+    case token_type::kw_char:
+      [[fallthrough]];
+    case token_type::kw_bool:
+      [[fallthrough]];
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
@@ -524,6 +536,10 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_f64:
       [[fallthrough]];
+    case token_type::kw_char:
+      [[fallthrough]];
+    case token_type::kw_bool:
+      [[fallthrough]];
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
@@ -563,6 +579,10 @@ class parser final {
     case token_type::kw_f32:
       [[fallthrough]];
     case token_type::kw_f64:
+      [[fallthrough]];
+    case token_type::kw_char:
+      [[fallthrough]];
+    case token_type::kw_bool:
       [[fallthrough]];
     case token_type::kw_slice:
       [[fallthrough]];
