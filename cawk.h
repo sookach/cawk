@@ -325,7 +325,7 @@ inline static constexpr struct {
   }
 } systime_{};
 
-uint64_t NR{}, NF{};
+uint64_t NR_{}, NF_{};
 bool BEGIN{true}, END{}, mid__{false};
 std::string_view filename__{};
 char *bytes__{}, *prev__{}, *next__{};
@@ -368,7 +368,7 @@ struct mmap__ final {
 inline struct {
   [[nodiscard]] bool operator()(std::istream &is__) const noexcept {
     fields__.clear();
-    NF = 0;
+    NF_ = 0;
     fields__.emplace_back();
 
     fields__.clear();
@@ -396,20 +396,20 @@ inline struct {
       fields__.emplace_back(record__.data() + first__,
                             std::size(record__) - first__);
 
-    ++NR;
+    ++NR_;
     return true;
   }
 } read_line__{};
 
 inline static constexpr struct {
   [[nodiscard]] bool operator()() const noexcept {
-    NF = 0;
+    NF_ = 0;
     fields__.clear();
 
     if (next__ >= bytes__ + size__) [[unlikely]]
       return false;
 
-    ++NR;
+    ++NR_;
 
     char *const start__ = next__;
 
@@ -418,6 +418,7 @@ inline static constexpr struct {
       prev__ = std::find_if_not(next__, bytes__ + size__, ::isspace);
       next__ = std::find_if(prev__, bytes__ + size__, ::isspace);
       fields__.emplace_back(prev__, next__);
+      ++NF_;
     }
 
     fields__.front() = {start__, next__};
