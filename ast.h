@@ -26,7 +26,7 @@ struct binary_expr final : public expr {
       : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
   constexpr virtual void operator()(std::ostream &os) const override final {
-    if (op_.type_ == token_type::caret) {
+    if (op_.type_ == token_type::tilde) {
       os << "match__(";
       lhs_->operator()(os);
       os << ',';
@@ -155,6 +155,9 @@ struct atom_expr final : public expr {
   const token atom_{};
 
   constexpr atom_expr(token atom) : atom_{atom} {}
+
+  constexpr atom_expr(token_type type, std::string lexeme)
+      : atom_{.type_ = type, .lexeme_ = lexeme} {}
 
   virtual void operator()(std::ostream &os) const override final {
     switch (atom_.type_) {

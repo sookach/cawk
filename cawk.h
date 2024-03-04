@@ -36,22 +36,16 @@ using std::string;
 
 template <typename T__> using slice = std::vector<T__>;
 
-template <typename T1__, typename T2__>
-  requires requires(T2__ t2__) {
-    requires std::is_same_v<T1__, std::string>;
-    requires std::to_string(t2__);
-  }
-[[nodiscard]] __attribute__((pure)) inline bool match__(T1__ &&x__,
-                                                        T2__ &&y__) noexcept {
-  return std::regex_match(std::regex{y__}, std::to_string(x__));
-}
-
 template <typename T__>
-  requires requires(T__ t__) { requires std::to_string(t__); }
-[[nodiscard]] __attribute__((pure)) inline bool
-match__(T__ &&x__, std::string_view y__) noexcept {
-  return std::regex_match(std::regex{y__.data()}, std::to_string(x__));
-}
+concept regex__ =
+    requires(T__ t__) { requires std::is_convertible_v<T__, string>; };
+
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((pure)) inline bool
+  operator()(regex__ auto &&x__, regex__ auto &&y__) const noexcept {
+    return std::regex_search(x__, std::regex{y__});
+  }
+} match__{};
 
 inline static constexpr struct {
   template <typename T1__, typename T2__>

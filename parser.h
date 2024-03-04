@@ -27,6 +27,7 @@ class parser final {
   /// stream.
   /// @param i The lookahed amount (default is 0).
   /// @return The token at tokens_[curr_ + i];
+  /// TODO: should probably change this to a referene
   [[nodiscard]] __attribute__((const)) constexpr token
   peek(std::vector<token>::size_type i = 0) const noexcept {
     return tokens_[curr_ + i];
@@ -191,11 +192,23 @@ class parser final {
         [[fallthrough]];
       case token_type::kw_f64:
         [[fallthrough]];
-      case token_type::kw_string:
+      case token_type::kw_string: {
         auto type{next()};
         expect(token_type::r_square);
         return std::make_unique<cast_expr>(type, parse_expr());
       }
+      }
+    case token_type::slash:
+      next();
+      std::string regex{};
+      for (; peek().type_ != token_type::eof &&
+             peek().type_ != token_type::slash;) {
+        regex += peek().lexeme_;
+        if (next().type_ == token_type::identifier)
+          regex.pop_back();
+      }
+      expect(token_type::slash);
+      return std::make_unique<atom_expr>(token_type::string_literal, regex);
     }
   }
 
@@ -315,6 +328,12 @@ class parser final {
     case token_type::kw_end:
       next();
       pos = pattern_action_decl::type::end;
+    case token_type::slash:
+      pattern = std::make_unique<binary_expr>(
+          token{.type_ = token_type::tilde},
+          std::make_unique<atom_expr>(token{.lexeme_ = "record__"}),
+          parse_expr());
+      [[fallthrough]];
     case token_type::l_brace:;
     }
 
