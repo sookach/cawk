@@ -327,11 +327,14 @@ inline static constexpr struct {
 
 uint64_t NR{}, NF{};
 bool BEGIN{true}, END{}, mid__{false};
+std::string_view filename__{};
 char *bytes__{}, *prev__{}, *next__{};
 off_t size__{};
 
-inline static struct {
-  void operator()(std::string_view filename__) const noexcept {
+struct mmap__ final {
+  constexpr mmap__(std::string_view fname__) noexcept {
+    filename__ = fname__;
+
     const int fd__{open(filename__.data(), O_RDONLY)};
     if (fd__ == -1) [[unlikely]] {
       perror("");
@@ -353,7 +356,14 @@ inline static struct {
 
     close(fd__);
   }
-} mmap__{};
+
+  ~mmap__() noexcept {
+    if (munmap(bytes__, size__) == -1) [[unlikely]] {
+      perror("");
+      exit(EXIT_FAILURE);
+    }
+  }
+};
 
 inline struct {
   [[nodiscard]] bool operator()(std::istream &is__) const noexcept {
@@ -446,7 +456,7 @@ inline void init__() noexcept;
 int main(int argc, char **argv) {
   cawk::init__();
   if (argc == 2) {
-    cawk::mmap__(argv[1]);
+    cawk::mmap__ file__{argv[1]};
     cawk::mmap_run__();
   } else {
     cawk::run_end__();
