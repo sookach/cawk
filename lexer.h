@@ -189,13 +189,23 @@ class lexer final {
   /// @brief lex_regex - Lexes a regular expression literal.
   /// @return A token with the regex as the lexeme (excluding the delimiters).
   [[nodiscard]] constexpr token lex_regex() noexcept {
-    for (prev_ = next_; !end() && peek() != '/'; next())
-      ;
+    std::string raw{};
 
-    auto tok{make_token(token_type::regex_literal)};
+    for (prev_ = next_; !end(); next()) {
+      if (peek() == '/') [[unlikely]] {
+        if (source_[next_ - 1] != '\\')
+          break;
+        raw.back() = '/';
+      } else
+        raw.push_back(peek());
+    }
+
+    if (end()) [[unlikely]]
+      return make_token(token_type::unknown);
+
     next();
 
-    return tok;
+    return token{token_type::regex_literal, std::move(raw), line_};
   }
 
   /// @brief lex_token - Lexes the next token from the input.
