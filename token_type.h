@@ -16,6 +16,7 @@ enum struct token_type {
   identifier,
   numeric_constant,
   char_constant,
+  regex_literal,
   string_literal,
 
   // Punctuators.

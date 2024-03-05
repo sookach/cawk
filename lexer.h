@@ -186,6 +186,18 @@ class lexer final {
     return isalnum(peek()) ? lex_identifier() : make_token(type);
   }
 
+  /// @brief lex_regex - Lexes a regular expression literal.
+  /// @return A token with the regex as the lexeme (excluding the delimiters).
+  [[nodiscard]] constexpr token lex_regex() noexcept {
+    for (prev_ = next_; !end() && peek() != '/'; next())
+      ;
+
+    auto tok{make_token(token_type::regex_literal)};
+    next();
+
+    return tok;
+  }
+
   /// @brief lex_token - Lexes the next token from the input.
   /// @return The next token from the input.
   [[nodiscard]] constexpr token lex_token() noexcept {
@@ -335,6 +347,9 @@ class lexer final {
       case '#':
         next();
         return make_token(token_type::hashhash);
+      case '/':
+        next();
+        return lex_regex();
       case '@':
         next();
         return make_token(token_type::hashat);

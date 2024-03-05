@@ -147,6 +147,8 @@ class parser final {
     case token_type::kw_true:
       [[fallthrough]];
     case token_type::kw_false:
+      [[fallthrough]];
+    case token_type::regex_literal:
       return std::make_unique<atom_expr>(next());
     case token_type::l_paren: {
       next();
@@ -206,17 +208,6 @@ class parser final {
         return std::make_unique<cast_expr>(type, parse_expr());
       }
       }
-    case token_type::slash:
-      next();
-      std::string regex{};
-      for (; peek().type_ != token_type::eof &&
-             peek().type_ != token_type::slash;) {
-        regex += peek().lexeme_;
-        if (next().type_ == token_type::identifier)
-          regex.pop_back();
-      }
-      expect(token_type::slash);
-      return std::make_unique<atom_expr>(token_type::string_literal, regex);
     }
   }
 
@@ -339,11 +330,11 @@ class parser final {
       next();
       pos = pattern_action_decl::type::end;
       break;
-    case token_type::slash:
+    case token_type::regex_literal:
       pattern = std::make_unique<binary_expr>(
           token{.type_ = token_type::tilde},
-          std::make_unique<atom_expr>(token{.lexeme_ = "record__"}),
-          parse_expr());
+          std::make_unique<atom_expr>(token{.lexeme_ = "fields__.front()"}),
+          std::make_unique<atom_expr>(next()));
       [[fallthrough]];
     case token_type::l_brace:;
     }

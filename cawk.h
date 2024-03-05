@@ -48,9 +48,17 @@ concept regex__ =
     requires(T__ t__) { requires std::is_convertible_v<T__, string>; };
 
 inline static constexpr struct {
-  [[nodiscard]] __attribute__((pure)) inline bool
+  [[nodiscard]] __attribute__((pure)) inline constexpr bool
   operator()(regex__ auto &&x__, regex__ auto &&y__) const noexcept {
     return std::regex_search(x__, std::regex{y__});
+  }
+
+  [[nodiscard]] __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__, regex__ auto &&y__) const noexcept -> std::enable_if_t<
+      std::is_same_v<std::remove_cvref_t<decltype(x__)>, std::span<char>>,
+      bool> {
+    return std::regex_search(string{std::cbegin(x__), std::cend(x__)},
+                             std::regex{y__});
   }
 } match__{};
 
