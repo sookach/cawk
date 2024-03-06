@@ -5,7 +5,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <execution>
-#include <fcntl.h>
 #include <format>
 #include <fstream>
 #include <functional>
@@ -15,10 +14,15 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <vector>
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||      \
+    defined(__NetBSD__) || defined(__linux__)
+#include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <vector>
+#endif
 
 namespace cawk {
 
@@ -46,6 +50,141 @@ using std::set;
 template <typename T__>
 concept regex__ =
     requires(T__ t__) { requires std::is_convertible_v<T__, string>; };
+
+uint64_t NR_{}, NF_{};
+bool BEGIN{true}, END{}, mid__{false};
+std::string_view FILENAME_{};
+std::vector<std::span<char>> fields__{};
+
+char *bytes__{}, *prev__{}, *next__{};
+off_t size__{};
+
+#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||      \
+    defined(__NetBSD__) || defined(__linux__)
+struct main_file__ final {
+  constexpr main_file__(std::string_view fname__) noexcept {
+    FILENAME_ = fname__;
+
+    const int fd__{open(FILENAME_.data(), O_RDONLY)};
+    if (fd__ == -1) [[unlikely]] {
+      perror("");
+      exit(errno);
+    }
+
+    struct stat fileinfo__ {};
+    if (fstat(fd__, &fileinfo__) == -1) [[unlikely]] {
+      perror("");
+      exit(errno);
+    }
+
+    size__ = fileinfo__.st_size;
+    if ((next__ = bytes__ = (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED,
+                                         fd__, 0)) == MAP_FAILED) [[unlikely]] {
+      perror("");
+      exit(errno);
+    }
+
+    close(fd__);
+  }
+
+  ~main_file__() noexcept {
+    if (munmap(bytes__, size__) == -1) [[unlikely]] {
+      perror("");
+      exit(EXIT_FAILURE);
+    }
+  }
+};
+#else
+struct main_file__ final {
+  constexpr main_file__(std::string_view fname__) noexcept {
+    FILENAME_ = fname__;
+
+    std::ifstream fs__{fname__, std::ios::binary};
+    if (!fs__.is_open()) [[unlikely]] {
+      std::cerr << "Failed to open file." << std::endl;
+      exit(EXIT_FAILURE);
+    }
+
+    fs__.seekg(0, std::ios::end);
+    size__ = static_cast<i64>(fs__.tellg());
+
+    next__ = bytes__ = (char *)malloc(size__);
+
+    if (bytes__ == NULL || !file.read(bytes__, size__)) [[unlikely]] {
+      std::cerr << "file byte read failed for file" << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  ~main_file__() noexcept { free(bytes__); }
+};
+#endif
+
+inline static constexpr struct {
+  template <bool T__ = true>
+  [[nodiscard]] bool
+  operator()(std::unique_ptr<std::string> var__ = nullptr) const noexcept {
+    if constexpr (std::bool_constant<T__>::value) {
+      NF_ = 0;
+      fields__.clear();
+    }
+
+    if (next__ >= bytes__ + size__) [[unlikely]]
+      return false;
+
+    if constexpr (std::bool_constant<T__>::value)
+      ++NR_;
+
+    char *const start__{next__};
+
+    if constexpr (std::bool_constant<T__>::value)
+      fields__.emplace_back();
+
+    for (; next__ != bytes__ + size__;) {
+      prev__ = std::find_if(next__, bytes__ + size__,
+                            [](auto &&x__) constexpr noexcept -> bool {
+                              return x__ == '\n' || !::isspace(x__);
+                            });
+
+      if (*prev__ == '\n') [[unlikely]] {
+        next__ = prev__;
+        break;
+      }
+
+      next__ = std::find_if(
+          prev__, bytes__ + size__,
+          [](auto &&x__) constexpr noexcept -> bool { return ::isspace(x__); });
+
+      if constexpr (std::bool_constant<T__>::value) {
+        fields__.emplace_back(prev__, next__);
+        ++NF_;
+      }
+    }
+
+    if constexpr (std::bool_constant<T__>::value)
+      fields__.front() = {start__, next__};
+    else
+      *var__ = {start__, next__};
+
+    ++next__;
+    return true;
+  }
+} read_main__{};
+
+inline std::function<void(void)> run_begin__{};
+inline std::function<void(void)> run_mid__{};
+inline std::function<void(void)> run_end__{};
+
+inline static constexpr struct {
+  void operator()() const noexcept {
+    run_begin__();
+    for (; read_main__();)
+      run_mid__();
+    run_end__();
+  }
+} run__{};
+
+inline void init__() noexcept;
 
 inline static constexpr struct {
   [[nodiscard]] __attribute__((pure)) inline constexpr bool
@@ -256,9 +395,6 @@ auto operator+=(set<T__> &&s__, auto &&v__) noexcept
   return std::move(s__);
 }
 
-std::string record__{};
-std::vector<std::span<char>> fields__{};
-
 using std::cos;
 using std::exp;
 using std::log;
@@ -352,150 +488,24 @@ inline static constexpr struct {
   }
 } systime_{};
 
-uint64_t NR_{}, NF_{};
-bool BEGIN{true}, END{}, mid__{false};
-std::string_view filename__{};
-char *bytes__{}, *prev__{}, *next__{};
-off_t size__{};
-
-struct mmap__ final {
-  constexpr mmap__(std::string_view fname__) noexcept {
-    filename__ = fname__;
-
-    const int fd__{open(filename__.data(), O_RDONLY)};
-    if (fd__ == -1) [[unlikely]] {
-      perror("");
-      exit(errno);
-    }
-
-    struct stat fileinfo__ {};
-    if (fstat(fd__, &fileinfo__) == -1) [[unlikely]] {
-      perror("");
-      exit(errno);
-    }
-
-    size__ = fileinfo__.st_size;
-    if ((next__ = bytes__ = (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED,
-                                         fd__, 0)) == MAP_FAILED) [[unlikely]] {
-      perror("");
-      exit(errno);
-    }
-
-    close(fd__);
-  }
-
-  ~mmap__() noexcept {
-    if (munmap(bytes__, size__) == -1) [[unlikely]] {
-      perror("");
-      exit(EXIT_FAILURE);
-    }
-  }
-};
-
-inline struct {
-  [[nodiscard]] bool operator()(std::istream &is__) const noexcept {
-    fields__.clear();
-    NF_ = 0;
-    fields__.emplace_back();
-
-    fields__.clear();
-
-    if (!std::getline(is__, record__))
-      return false;
-
-    fields__.emplace_back(std::begin(record__), std::end(record__));
-
-    string::size_type first__{}, last__{};
-    bool curr__{};
-
-    for (string::size_type i__{}; auto &&x__ : record__) {
-      if (!std::isspace(x__) && !curr__) {
-        first__ = i__;
-        curr__ = true;
-      } else if (std::isspace(x__) && curr__) {
-        last__ = i__;
-        fields__.emplace_back(record__.data() + first__, last__ - first__);
-      }
-      ++i__;
-    }
-
-    if (curr__)
-      fields__.emplace_back(record__.data() + first__,
-                            std::size(record__) - first__);
-
-    ++NR_;
-    return true;
-  }
-} read_line__{};
-
 inline static constexpr struct {
-  [[nodiscard]] bool operator()() const noexcept {
-    NF_ = 0;
-    fields__.clear();
-
-    if (next__ >= bytes__ + size__) [[unlikely]]
-      return false;
-
-    ++NR_;
-
-    char *const start__ = next__;
-
-    for (fields__.emplace_back(); next__ != bytes__ + size__;) {
-      prev__ = std::find_if(next__, bytes__ + size__,
-                            [](auto &&x__) constexpr noexcept -> bool {
-                              return x__ == '\n' || !::isspace(x__);
-                            });
-
-      if (*prev__ == '\n') [[unlikely]] {
-        next__ = prev__;
-        break;
-      }
-
-      next__ = std::find_if(
-          prev__, bytes__ + size__,
-          [](auto &&x__) constexpr noexcept -> bool { return ::isspace(x__); });
-      fields__.emplace_back(prev__, next__);
-      ++NF_;
-    }
-
-    fields__.front() = {start__, next__};
-
-    ++next__;
-    return true;
+  [[nodiscard]] inline constexpr bool operator()() const {
+    return read_main__();
   }
-} mmap_read_line__{};
 
-inline std::function<void(void)> run_begin__{};
-inline std::function<void(void)> run_mid__{};
-inline std::function<void(void)> run_end__{};
-
-inline struct {
-  void operator()(std::istream &is__) const noexcept {
-    std::invoke(run_begin__);
-    for (; read_line__(is__);)
-      run_mid__();
-    run_end__();
+  [[nodiscard]] inline constexpr bool
+  operator()(std::string &v__) const noexcept {
+    return read_main__.operator()<false>(std::unique_ptr<std::string>{&v__});
   }
-} run__{};
-
-inline static constexpr struct {
-  void operator()() const noexcept {
-    std::invoke(run_begin__);
-    for (; mmap_read_line__();)
-      run_mid__();
-    run_end__();
-  }
-} mmap_run__{};
-
-inline void init__() noexcept;
+} getline_{};
 
 } // namespace cawk
 
 int main(int argc, char **argv) {
   cawk::init__();
   if (argc == 2) {
-    cawk::mmap__ file__{argv[1]};
-    cawk::mmap_run__();
+    cawk::main_file__ file__{argv[1]};
+    cawk::run__();
   } else {
     cawk::run_end__();
     cawk::run_begin__();
