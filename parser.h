@@ -208,6 +208,44 @@ class parser final {
         return std::make_unique<cast_expr>(type, parse_expr());
       }
       }
+    case token_type::kw_getline: {
+      auto getline_call{std::make_unique<atom_expr>(next())};
+      std::vector<std::unique_ptr<expr>> args{};
+
+      switch (peek().type_) {
+      default:
+        return std::make_unique<call_expr>(std::move(getline_call));
+      case token_type::identifier:
+        return std::make_unique<call_expr>(std::move(getline_call),
+                                           std::make_unique<atom_expr>(next()));
+      case token_type::less:
+        args.push_back(
+            std::make_unique<atom_expr>(token_type::kw_true, "true"));
+        break;
+      case token_type::pipe:
+        args.push_back(
+            std::make_unique<atom_expr>(token_type::kw_false, "false"));
+        break;
+      }
+
+      next();
+      if (match(token_type::l_paren)) {
+        args.push_back(parse_expr());
+        expect(token_type::r_paren);
+      } else
+        args.push_back(std::make_unique<atom_expr>(next()));
+
+      if (match(token_type::greater)) {
+        auto var{next()};
+        if (var.type_ != token_type::identifier) [[unlikely]]
+          exit(EXIT_FAILURE);
+
+        args.push_back(std::make_unique<atom_expr>(var));
+      }
+
+      return std::make_unique<call_expr>(std::move(getline_call),
+                                         std::move(args));
+    }
     }
   }
 

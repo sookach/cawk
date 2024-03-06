@@ -93,6 +93,7 @@ enum struct token_type {
   kw_false,
   kw_for,
   kw_fn,
+  kw_getline,
   kw_goto,
   kw_i8,
   kw_i16,
@@ -354,6 +355,9 @@ std::ostream &operator<<(std::ostream &os, token_type t) {
     break;
   case token_type::kw_fn:
     os << "kw_fn";
+    break;
+  case token_type::kw_getline:
+    os << "kw_getline";
     break;
   case token_type::kw_goto:
     os << "kw_goto";

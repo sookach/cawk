@@ -438,7 +438,8 @@ class lexer final {
         return lex_keyword("", token_type::kw_fn);
       }
     case 'g':
-      return lex_keyword("oto", token_type::kw_goto);
+      return match('e') ? lex_keyword("tline", token_type::kw_getline)
+                        : lex_keyword("oto", token_type::kw_goto);
     case 'i':
       switch (peek()) {
       default:
