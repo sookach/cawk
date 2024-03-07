@@ -222,7 +222,7 @@ class parser final {
         break;
       case token_type::pipe:
         getline_call = std::make_unique<atom_expr>(
-            token{.lexeme_ = "getline.opeartor()<false>"});
+            token{.lexeme_ = "getline.operator()<false>"});
         break;
       }
 

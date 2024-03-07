@@ -57,6 +57,7 @@ concept regex__ =
     requires(T__ t__) { requires std::is_convertible_v<T__, string>; };
 
 uint64_t NR_{}, NF_{};
+char FS_{'1'}, RS_{'\n'};
 bool BEGIN{true}, END{}, mid__{false};
 std::string_view FILENAME_{};
 std::vector<std::span<char>> fields__{};
@@ -67,58 +68,70 @@ enum struct input_type__ { main__, file__, cmd__ };
 triple<char *> bytes__{};
 off_t size__{};
 
-#if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||      \
-    defined(__NetBSD__) || defined(__linux__)
 inline static constexpr struct {
   template <input_type__ T__ = input_type__::main__>
   inline constexpr void operator()(std::string_view name__) const noexcept {
     if constexpr (T__ == input_type__::main__)
       FILENAME_ = name__;
 
-    const auto fd__{[name__]() constexpr noexcept -> int {
-      if constexpr (T__ == input_type__::main__ ||
-                    T__ == input_type__::file__) {
-        if (const auto fd__{open(name__.data(), O_RDONLY)}; fd__ != -1)
-            [[likely]]
-          return fd__;
-      } else {
-        if (FILE *const pipe__{popen(name__.data(), "r")}; pipe__ != nullptr)
-            [[likely]]
-          return fileno(pipe__);
+    if constexpr (T__ == input_type__::main__ || T__ == input_type__::file__) {
+      const auto fd__{open(name__.data(), O_RDONLY)};
+      if (fd__ == -1) [[unlikely]] {
+        perror("");
+        exit(errno);
       }
-      perror("");
-      exit(errno);
-    }()};
 
-    auto [first__, last__, curr__]{[&]() noexcept -> triple<char *&> {
-      if constexpr (T__ == input_type__::main__)
-        return {bytes__.first, bytes__.second, bytes__.third};
-      if constexpr (T__ == input_type__::file__)
-        return {file_table__[name__.data()].first,
-                file_table__[name__.data()].second,
-                file_table__[name__.data()].third};
-      if constexpr (T__ == input_type__::cmd__)
-        return {cmd_table__[name__.data()].first,
-                cmd_table__[name__.data()].second,
-                cmd_table__[name__.data()].third};
-    }()};
+      auto [first__, last__, curr__]{[&]() noexcept -> triple<char *&> {
+        if constexpr (T__ == input_type__::main__)
+          return {bytes__.first, bytes__.second, bytes__.third};
+        if constexpr (T__ == input_type__::file__)
+          return {file_table__[name__.data()].first,
+                  file_table__[name__.data()].second,
+                  file_table__[name__.data()].third};
+      }()};
 
-    const auto size__{[fd__]() constexpr noexcept -> off_t {
-      if (struct stat fileinfo__{}; fstat(fd__, &fileinfo__) != -1) [[likely]]
-        return fileinfo__.st_size;
-      perror("");
-      exit(errno);
-    }()};
+      const auto size__{[fd__]() constexpr noexcept -> off_t {
+        if (struct stat fileinfo__{}; fstat(fd__, &fileinfo__) != -1) [[likely]]
+          return fileinfo__.st_size;
+        perror("");
+        exit(errno);
+      }()};
 
-    if ((first__ = curr__ = (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED,
-                                         fd__, 0)) == MAP_FAILED) [[unlikely]] {
-      perror("");
-      exit(errno);
+      if ((first__ = curr__ = (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED,
+                                           fd__, 0)) == MAP_FAILED)
+          [[unlikely]] {
+        perror("");
+        exit(errno);
+      }
+
+      close(fd__);
+
+      last__ = first__ + size__;
     }
 
-    last__ = first__ + size__;
+    if constexpr (T__ == input_type__::cmd__) {
+      const auto pipe__{popen(name__.data(), "r")};
+      if (pipe__ == nullptr) [[unlikely]] {
+        perror("");
+        exit(errno);
+      }
 
-    close(fd__);
+      auto &[first__, last__, curr__]{cmd_table__[name__.data()]};
+
+      static constexpr size_t buffer_size__{8192};
+      first__ = curr__ = (char *)malloc(buffer_size__);
+
+      const auto size__{fread(first__, sizeof(char), buffer_size__, pipe__)};
+      if (ferror(pipe__)) [[unlikely]] {
+        perror("");
+        exit(errno);
+      }
+
+      fclose(pipe__);
+
+      first__ = curr__ = (char *)realloc(first__, size__);
+      last__ = first__ + size__;
+    }
   }
 } open__{};
 
@@ -150,62 +163,6 @@ inline static constexpr struct {
       cmd_table__.erase(name__.data());
   }
 } close__{};
-
-#else
-inline static constexpr struct {
-  template <bool T__ = true>
-  inline constexpr void operator()()(std::string_view fname__) const noexcept {
-    if constexpr (std::bool_constant<T__>::value)
-      FILENAME_ = fname__;
-
-    std::ifstream fs__{fname__, std::ios::binary};
-    if (!fs__.is_open()) [[unlikely]] {
-      std::cerr << "Failed to open file." << std::endl;
-      exit(EXIT_FAILURE);
-    }
-
-    fs__.seekg(0, std::ios::end);
-    const auto fsize__{fs__.tellg()};
-    fs__.seekg(0, std::ios::beg);
-
-    if constexpr (std::bool_constant<T__>::value)
-      size__ = static_cast<i64>(fsize__);
-
-    char *fbytes__{};
-
-    if constexpr (std::bool_constant<T__>::value)
-      next__ = bytes__ = (char *)malloc(size__);
-    else
-      fbytes__ = (char *)malloc(size__);
-
-    if constexpr (std::bool_constant<T__>::value) {
-      if (bytes__ == nullptr || !fs__.read(bytes__, size__)) [[unlikely]] {
-        std::cerr << "file byte read failed for file" << std::endl;
-        exit(EXIT_FAILURE);
-      }
-    } else {
-      if (fbytes__ == nullptr || !fs__.read(fbytes__, fsize__)) [[unlikely]] {
-        std::cerr << "file byte read failed for file" << std::endl;
-        exit(EXIT_FAILURE);
-      }
-      fds__[fname__.data()] = {first__, first__ + fileinfo__.st_size};
-    }
-  }
-} open__{};
-
-inline static constexpr struct {
-  template <bool T__ = true>
-  inline constexpr void
-  operator()(std::string_view fname__ = "") const noexcept {
-    if constexpr (std::bool_constant<T__>::value)
-      free(bytes__);
-    else {
-      free(fds__[fname__.data()].first__);
-      fds__.erase(fname__.data());
-    }
-  }
-  close__{};
-#endif
 
 inline static constexpr struct {
   template <input_type__ T1__ = input_type__::main__, bool T2__ = true>
@@ -249,7 +206,7 @@ inline static constexpr struct {
     for (char *prev__{}; first__ != last__;) {
       prev__ = std::find_if(first__, last__,
                             [](auto &&x__) constexpr noexcept -> bool {
-                              return x__ == '\n' || !::isspace(x__);
+                              return x__ == RS_ || x__ != FS_;
                             });
 
       if (*prev__ == '\n') [[unlikely]] {
@@ -257,9 +214,10 @@ inline static constexpr struct {
         break;
       }
 
-      first__ = std::find_if(
-          prev__, last__,
-          [](auto &&x__) constexpr noexcept -> bool { return ::isspace(x__); });
+      first__ = std::find_if(prev__, last__,
+                             [](auto &&x__) constexpr noexcept -> bool {
+                               return x__ == RS_ || x__ == FS_;
+                             });
 
       if constexpr (std::bool_constant<T__>::value) {
         fields__.emplace_back(prev__, first__);
@@ -501,6 +459,16 @@ auto operator+=(set<T__> &&s__, auto &&v__) noexcept
   return std::move(s__);
 }
 
+[[nodiscard]] __attribute__((const)) constexpr bool
+operator==(std::span<char> s1__, std::string_view s2__) noexcept {
+  return std::ranges::equal(s1__, s2__);
+}
+
+[[nodiscard]] __attribute__((const)) constexpr bool
+operator==(std::span<char> s1__, std::span<char> s2__) noexcept {
+  return std::ranges::equal(s1__, s2__);
+}
+
 using std::cos;
 using std::exp;
 using std::log;
@@ -633,8 +601,8 @@ inline static constexpr struct {
 inline static constexpr struct {
   [[nodiscard]] inline constexpr i32
   operator()(std::string_view name__) const noexcept {
-    /// TODO: need to add close for commands also.
     close__.operator()<input_type__::file__>(name__);
+    close__.operator()<input_type__::cmd__>(name__);
     return 0;
   }
 } close_{};
@@ -648,7 +616,6 @@ int main(int argc, char **argv) {
     cawk::run__();
     cawk::close__();
   } else {
-    cawk::run_end__();
     cawk::run_begin__();
   }
 }
