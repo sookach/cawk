@@ -56,7 +56,7 @@ bool BEGIN{true}, END{}, mid__{false};
 std::string_view FILENAME_{};
 std::vector<std::span<char>> fields__{};
 
-std::unordered_map<std::string, std::span<char>> fds__{};
+std::unordered_map<std::string, std::pair<char *, char *>> fds__{};
 
 char *bytes__{}, *prev__{}, *next__{};
 off_t size__{};
@@ -115,7 +115,7 @@ inline static constexpr struct {
         exit(EXIT_FAILURE);
       }
     } else {
-      free(fds__[fname__.data()].data());
+      free(fds__[fname__.data()].first);
       fds__.erase(fname__.data());
     }
   }
@@ -161,8 +161,6 @@ inline static constexpr struct {
       fds__.emplace(fname__.data(), fbytes__, fsize__);
     }
   }
-
-  ~main_file__() noexcept { free(bytes__); }
 } open__{};
 
 inline static constexpr struct {
@@ -183,52 +181,59 @@ inline static constexpr struct {
   template <bool T__ = true>
   [[nodiscard]] inline constexpr bool
   operator()(std::string *var__ = nullptr) const noexcept {
+    return this->operator()<T__>(next__, bytes__ + size__, var__);
+  }
+
+  template <bool T__ = true>
+  [[nodiscard]] inline constexpr bool
+  operator()(char *&first__, char *last__,
+             std::string *var__ = nullptr) const noexcept {
     if constexpr (std::bool_constant<T__>::value) {
       NF_ = 0;
       fields__.clear();
     }
 
-    if (next__ >= bytes__ + size__) [[unlikely]]
+    if (first__ >= last__) [[unlikely]]
       return false;
 
     if constexpr (std::bool_constant<T__>::value)
       ++NR_;
 
-    char *const start__{next__};
+    char *const start__{first__};
 
     if constexpr (std::bool_constant<T__>::value)
       fields__.emplace_back();
 
-    for (; next__ != bytes__ + size__;) {
-      prev__ = std::find_if(next__, bytes__ + size__,
+    for (; first__ != last__;) {
+      prev__ = std::find_if(first__, last__,
                             [](auto &&x__) constexpr noexcept -> bool {
                               return x__ == '\n' || !::isspace(x__);
                             });
 
       if (*prev__ == '\n') [[unlikely]] {
-        next__ = prev__;
+        first__ = prev__;
         break;
       }
 
-      next__ = std::find_if(
-          prev__, bytes__ + size__,
+      first__ = std::find_if(
+          prev__, last__,
           [](auto &&x__) constexpr noexcept -> bool { return ::isspace(x__); });
 
       if constexpr (std::bool_constant<T__>::value) {
-        fields__.emplace_back(prev__, next__);
+        fields__.emplace_back(prev__, first__);
         ++NF_;
       }
     }
 
     if constexpr (std::bool_constant<T__>::value)
-      fields__.front() = {start__, next__};
+      fields__.front() = {start__, first__};
     else
-      *var__ = {start__, next__};
+      *var__ = {start__, first__};
 
-    ++next__;
+    ++first__;
     return true;
   }
-} read_main__{};
+} read_line__{};
 
 inline std::function<void(void)> run_begin__{};
 inline std::function<void(void)> run_mid__{};
@@ -237,7 +242,7 @@ inline std::function<void(void)> run_end__{};
 inline static constexpr struct {
   void operator()() const noexcept {
     run_begin__();
-    for (; read_main__();)
+    for (; read_line__();)
       run_mid__();
     run_end__();
   }
@@ -549,12 +554,12 @@ inline static constexpr struct {
 
 inline static constexpr struct {
   [[nodiscard]] inline constexpr bool operator()() const {
-    return read_main__();
+    return read_line__();
   }
 
   [[nodiscard]] inline constexpr bool
   operator()(std::string &v__) const noexcept {
-    return read_main__.operator()<false>(&v__);
+    return read_line__.operator()<false>(&v__);
   }
 } getline{};
 
