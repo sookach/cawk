@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <execution>
+#include <filesystem>
 #include <format>
 #include <fstream>
 #include <functional>
@@ -99,7 +100,7 @@ inline static constexpr struct {
         perror("");
         exit(errno);
       } else
-        fds__.emplace(fname__.data(), first__, fileinfo__.st_size);
+        fds__[fname__.data()] = {first__, first__ + fileinfo__.st_size};
     }
 
     close(fd__);
@@ -158,7 +159,7 @@ inline static constexpr struct {
         std::cerr << "file byte read failed for file" << std::endl;
         exit(EXIT_FAILURE);
       }
-      fds__.emplace(fname__.data(), fbytes__, fsize__);
+      fds__[fname__.data()] = {first__, first__ + fileinfo__.st_size};
     }
   }
 } open__{};
@@ -560,6 +561,25 @@ inline static constexpr struct {
   [[nodiscard]] inline constexpr bool
   operator()(std::string &v__) const noexcept {
     return read_line__.operator()<false>(&v__);
+  }
+
+  template <bool T__ = true>
+  [[nodiscard]] inline constexpr bool
+  operator()(std::string_view f__) const noexcept {
+    const auto path__{[f__]() noexcept -> std::string {
+      return (!std::empty(f__) && f__.front() == '/'
+                  ? ""
+                  : std::string{std::filesystem::current_path()} + '/') +
+             std::string{f__};
+    }()};
+
+    if constexpr (std::bool_constant<T__>::value) {
+      if (!fds__.contains(path__.data()))
+        open__.operator()<false>(path__.data());
+    }
+
+    auto &&[first__, last__]{fds__[path__.data()]};
+    return read_line__(first__, last__);
   }
 } getline{};
 

@@ -219,12 +219,10 @@ class parser final {
         return std::make_unique<call_expr>(std::move(getline_call),
                                            std::make_unique<atom_expr>(next()));
       case token_type::less:
-        args.push_back(
-            std::make_unique<atom_expr>(token_type::kw_true, "true"));
         break;
       case token_type::pipe:
-        args.push_back(
-            std::make_unique<atom_expr>(token_type::kw_false, "false"));
+        getline_call = std::make_unique<atom_expr>(
+            token{.lexeme_ = "getline.opeartor()<false>"});
         break;
       }
 
