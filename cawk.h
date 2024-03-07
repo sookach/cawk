@@ -56,14 +56,19 @@ bool BEGIN{true}, END{}, mid__{false};
 std::string_view FILENAME_{};
 std::vector<std::span<char>> fields__{};
 
+std::unordered_map<std::string, std::span<char>> fds__{};
+
 char *bytes__{}, *prev__{}, *next__{};
 off_t size__{};
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||      \
     defined(__NetBSD__) || defined(__linux__)
-struct main_file__ final {
-  constexpr main_file__(std::string_view fname__) noexcept {
-    FILENAME_ = fname__;
+inline static constexpr struct {
+
+  template <bool T__ = true>
+  inline constexpr void operator()(std::string_view fname__) const noexcept {
+    if constexpr (std::bool_constant<T__>::value)
+      FILENAME_ = fname__;
 
     const int fd__{open(FILENAME_.data(), O_RDONLY)};
     if (fd__ == -1) [[unlikely]] {
@@ -77,27 +82,51 @@ struct main_file__ final {
       exit(errno);
     }
 
-    size__ = fileinfo__.st_size;
-    if ((next__ = bytes__ = (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED,
-                                         fd__, 0)) == MAP_FAILED) [[unlikely]] {
-      perror("");
-      exit(errno);
+    if constexpr (std::bool_constant<T__>::value)
+      size__ = fileinfo__.st_size;
+
+    if constexpr (std::bool_constant<T__>::value) {
+      if ((next__ = bytes__ = (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED,
+                                           fd__, 0)) == MAP_FAILED)
+          [[unlikely]] {
+        perror("");
+        exit(errno);
+      }
+    } else {
+      if (char *first__{
+              (char *)mmap(NULL, size__, PROT_READ, MAP_SHARED, fd__, 0)};
+          first__ == MAP_FAILED) [[unlikely]] {
+        perror("");
+        exit(errno);
+      } else
+        fds__.emplace(fname__.data(), first__, fileinfo__.st_size);
     }
 
     close(fd__);
   }
+} open__{};
 
-  ~main_file__() noexcept {
-    if (munmap(bytes__, size__) == -1) [[unlikely]] {
-      perror("");
-      exit(EXIT_FAILURE);
+inline static constexpr struct {
+  template <bool T__ = true>
+  inline void operator()(std::string_view fname__ = "") const noexcept {
+    if constexpr (std::bool_constant<T__>::value) {
+      if (munmap(bytes__, size__) == -1) [[unlikely]] {
+        perror("");
+        exit(EXIT_FAILURE);
+      }
+    } else {
+      free(fds__[fname__.data()].data());
+      fds__.erase(fname__.data());
     }
   }
-};
+} close__{};
+
 #else
-struct main_file__ final {
-  constexpr main_file__(std::string_view fname__) noexcept {
-    FILENAME_ = fname__;
+inline static constexpr struct {
+  template <bool T__ = true>
+  inline constexpr void operator()()(std::string_view fname__) const noexcept {
+    if constexpr (std::bool_constant<T__>::value)
+      FILENAME_ = fname__;
 
     std::ifstream fs__{fname__, std::ios::binary};
     if (!fs__.is_open()) [[unlikely]] {
@@ -106,24 +135,54 @@ struct main_file__ final {
     }
 
     fs__.seekg(0, std::ios::end);
-    size__ = static_cast<i64>(fs__.tellg());
+    const auto fsize__{fs__.tellg()};
+    fs__.seekg(0, std::ios::beg);
 
-    next__ = bytes__ = (char *)malloc(size__);
+    if constexpr (std::bool_constant<T__>::value)
+      size__ = static_cast<i64>(fsize__);
 
-    if (bytes__ == NULL || !file.read(bytes__, size__)) [[unlikely]] {
-      std::cerr << "file byte read failed for file" << std::endl;
-      exit(EXIT_FAILURE);
+    char *fbytes__{};
+
+    if constexpr (std::bool_constant<T__>::value)
+      next__ = bytes__ = (char *)malloc(size__);
+    else
+      fbytes__ = (char *)malloc(size__);
+
+    if constexpr (std::bool_constant<T__>::value) {
+      if (bytes__ == nullptr || !fs__.read(bytes__, size__)) [[unlikely]] {
+        std::cerr << "file byte read failed for file" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+    } else {
+      if (fbytes__ == nullptr || !fs__.read(fbytes__, fsize__)) [[unlikely]] {
+        std::cerr << "file byte read failed for file" << std::endl;
+        exit(EXIT_FAILURE);
+      }
+      fds__.emplace(fname__.data(), fbytes__, fsize__);
     }
   }
 
   ~main_file__() noexcept { free(bytes__); }
-};
+} open__{};
+
+inline static constexpr struct {
+  template <bool T__ = true>
+  inline constexpr void
+  operator()(std::string_view fname__ = "") const noexcept {
+    if constexpr (std::bool_constant<T__>::value)
+      free(bytes__);
+    else {
+      free(fds__[fname__.data()]);
+      fds__.erase(fname__.data());
+    }
+  }
+  close__{};
 #endif
 
 inline static constexpr struct {
   template <bool T__ = true>
-  [[nodiscard]] bool
-  operator()(std::unique_ptr<std::string> var__ = nullptr) const noexcept {
+  [[nodiscard]] inline constexpr bool
+  operator()(std::string *var__ = nullptr) const noexcept {
     if constexpr (std::bool_constant<T__>::value) {
       NF_ = 0;
       fields__.clear();
@@ -495,17 +554,29 @@ inline static constexpr struct {
 
   [[nodiscard]] inline constexpr bool
   operator()(std::string &v__) const noexcept {
-    return read_main__.operator()<false>(std::unique_ptr<std::string>{&v__});
+    return read_main__.operator()<false>(&v__);
   }
-} getline_{};
+} getline{};
+
+inline static constexpr struct {
+  [[nodiscard]] inline constexpr i32
+  operator()(std::string_view name__) const noexcept {
+    if (!fds__.contains(name__.data()))
+      return -1;
+
+    close__(name__);
+    return 0;
+  }
+} close_{};
 
 } // namespace cawk
 
 int main(int argc, char **argv) {
   cawk::init__();
   if (argc == 2) {
-    cawk::main_file__ file__{argv[1]};
+    cawk::open__(argv[1]);
     cawk::run__();
+    cawk::close__();
   } else {
     cawk::run_end__();
     cawk::run_begin__();
