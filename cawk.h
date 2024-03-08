@@ -127,7 +127,7 @@ inline static constexpr struct {
         exit(errno);
       }
 
-      fclose(pipe__);
+      pclose(pipe__);
 
       first__ = curr__ = (char *)realloc(first__, size__);
       last__ = first__ + size__;
@@ -151,10 +151,15 @@ inline static constexpr struct {
                 cmd_table__[name__.data()].second};
     }()};
 
-    if (munmap(first__, last__ - first__) == -1) [[unlikely]] {
-      perror("");
-      exit(EXIT_FAILURE);
+    if constexpr (T__ == input_type__::main__ || T__ == input_type__::file__) {
+      if (munmap(first__, last__ - first__) == -1) [[unlikely]] {
+        perror("");
+        exit(EXIT_FAILURE);
+      }
     }
+
+    if constexpr (T__ == input_type__::cmd__)
+      free(first__);
 
     if constexpr (T__ == input_type__::file__)
       file_table__.erase(name__.data());
@@ -598,11 +603,131 @@ inline static constexpr struct {
   }
 } getline{};
 
+enum struct json_token_type__ {
+  l_square,
+  r_square,
+  l_brace,
+  r_brace,
+  colon,
+  comma,
+  string_literal,
+  other_literal
+};
+
+struct json_token__ final {
+  json_token_type__ type__{};
+  string lexeme__{};
+};
+
+struct json_slice_elem__ final {
+  union {
+    slice<json_slice_elem__> slice__;
+    std::string string__;
+  } data__{};
+  enum struct elem_type__ { slice__, string__ };
+};
+
+slice<json_token__> lex_json__(std::string_view source__) noexcept {
+  auto prev__{std::cbegin(source__)}, next__{prev__};
+  slice<json_token__> tokens__{};
+
+  for (; next__ != std::cend(source__);) {
+    switch (prev__ = next__++; *next__) {
+    default: {
+      string value__{};
+      for (; next__ != std::cend(source__) && std::isalpha(*next__); ++next__)
+        value__.push_back(*next__);
+
+      tokens__.emplace_back(json_token_type__::other_literal, value__);
+      break;
+    }
+    case ' ':
+      [[fallthrough]];
+    case '\t':
+      [[fallthrough]];
+    case '\n':
+      [[fallthrough]];
+    case '\r':
+      break;
+    case '[':
+      tokens__.emplace_back(json_token_type__::l_square);
+      break;
+    case ']':
+      tokens__.emplace_back(json_token_type__::r_square);
+      break;
+    case '{':
+      tokens__.emplace_back(json_token_type__::l_brace);
+      break;
+    case '}':
+      tokens__.emplace_back(json_token_type__::r_brace);
+      break;
+    case ':':
+      tokens__.emplace_back(json_token_type__::colon);
+      break;
+    case ',':
+      tokens__.emplace_back(json_token_type__::comma);
+      break;
+    case '"': {
+      string value__{};
+      for (; next__ != std::cend(source__) && *next__ != '"'; ++next__)
+        value__.push_back(*next__);
+
+      if (next__ == std::cend(source__)) [[unlikely]] {
+        fprintf(stderr, "unexpected eoi while parsing json");
+        exit(EXIT_FAILURE);
+      }
+
+      ++next__;
+      tokens__.emplace_back(json_token_type__::string_literal, value__);
+      break;
+    }
+    case 0:
+      [[fallthrough]];
+    case 1:
+      [[fallthrough]];
+    case 2:
+      [[fallthrough]];
+    case 3:
+      [[fallthrough]];
+    case 4:
+      [[fallthrough]];
+    case 5:
+      [[fallthrough]];
+    case 6:
+      [[fallthrough]];
+    case 7:
+      [[fallthrough]];
+    case 8:
+      [[fallthrough]];
+    case 9:
+      [[fallthrough]];
+    case '-': {
+      string value__{*prev__};
+      for (; next__ != std::cend(source__) && std::isdigit(*next__); ++next__)
+        value__.push_back(*next__);
+
+      if (next__ < std::cend(source__) - 1 && *next__ == '.' &&
+          std::isdigit(next__[1]))
+        for (++next__; next__ != std::cend(source__) && std::isdigit(*next__);
+             ++next__)
+          value__.push_back(*next__);
+
+      tokens__.emplace_back(json_token_type__::other_literal, value__);
+    }
+    }
+  }
+}
+
+json_slice_elem__
+parse_json_slice_elem__(slice<json_token__> &&tokens__) noexcept {}
+
 inline static constexpr struct {
   [[nodiscard]] inline constexpr i32
   operator()(std::string_view name__) const noexcept {
-    close__.operator()<input_type__::file__>(name__);
-    close__.operator()<input_type__::cmd__>(name__);
+    if (file_table__.contains(name__.data()))
+      close__.operator()<input_type__::file__>(name__);
+    else
+      close__.operator()<input_type__::cmd__>(name__);
     return 0;
   }
 } close_{};
