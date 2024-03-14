@@ -15,6 +15,8 @@
 #include <set>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 #if defined(__APPLE__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||      \
@@ -46,7 +48,13 @@ using std::string;
 
 template <typename T__> using slice = std::vector<T__>;
 
+using std::map;
 using std::set;
+
+template <typename T__> using hset = std::unordered_set<T__>;
+
+template <typename Key__, typename T__>
+using hmap = std::unordered_map<Key__, T__>;
 
 template <typename T__> struct triple final {
   T__ first{}, second{}, third{};
@@ -448,6 +456,11 @@ template <typename T__>
   return os__;
 }
 
+template <typename T__, typename U__>
+std::ostream &operator<<(std::ostream &os, const std::pair<T__, U__> &p) {
+  return os << '[' << p.first << ' ' << p.second << ']';
+}
+
 template <typename T__>
 auto operator+=(set<T__> &s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
@@ -611,7 +624,8 @@ enum struct json_token_type__ {
   colon,
   comma,
   string_literal,
-  other_literal
+  other_literal,
+  eof
 };
 
 struct json_token__ final {
@@ -619,107 +633,161 @@ struct json_token__ final {
   string lexeme__{};
 };
 
-struct json_slice_elem__ final {
-  union {
-    slice<json_slice_elem__> slice__;
-    std::string string__;
-  } data__{};
-  enum struct elem_type__ { slice__, string__ };
-};
+inline static constexpr struct {
+  constexpr slice<json_token__>
+  operator()(std::string_view source__) const noexcept {
+    auto prev__{std::cbegin(source__)}, next__{prev__};
+    slice<json_token__> tokens__{};
 
-slice<json_token__> lex_json__(std::string_view source__) noexcept {
-  auto prev__{std::cbegin(source__)}, next__{prev__};
-  slice<json_token__> tokens__{};
-
-  for (; next__ != std::cend(source__);) {
-    switch (prev__ = next__++; *next__) {
-    default: {
-      string value__{};
-      for (; next__ != std::cend(source__) && std::isalpha(*next__); ++next__)
-        value__.push_back(*next__);
-
-      tokens__.emplace_back(json_token_type__::other_literal, value__);
-      break;
-    }
-    case ' ':
-      [[fallthrough]];
-    case '\t':
-      [[fallthrough]];
-    case '\n':
-      [[fallthrough]];
-    case '\r':
-      break;
-    case '[':
-      tokens__.emplace_back(json_token_type__::l_square);
-      break;
-    case ']':
-      tokens__.emplace_back(json_token_type__::r_square);
-      break;
-    case '{':
-      tokens__.emplace_back(json_token_type__::l_brace);
-      break;
-    case '}':
-      tokens__.emplace_back(json_token_type__::r_brace);
-      break;
-    case ':':
-      tokens__.emplace_back(json_token_type__::colon);
-      break;
-    case ',':
-      tokens__.emplace_back(json_token_type__::comma);
-      break;
-    case '"': {
-      string value__{};
-      for (; next__ != std::cend(source__) && *next__ != '"'; ++next__)
-        value__.push_back(*next__);
-
-      if (next__ == std::cend(source__)) [[unlikely]] {
-        fprintf(stderr, "unexpected eoi while parsing json");
-        exit(EXIT_FAILURE);
-      }
-
-      ++next__;
-      tokens__.emplace_back(json_token_type__::string_literal, value__);
-      break;
-    }
-    case 0:
-      [[fallthrough]];
-    case 1:
-      [[fallthrough]];
-    case 2:
-      [[fallthrough]];
-    case 3:
-      [[fallthrough]];
-    case 4:
-      [[fallthrough]];
-    case 5:
-      [[fallthrough]];
-    case 6:
-      [[fallthrough]];
-    case 7:
-      [[fallthrough]];
-    case 8:
-      [[fallthrough]];
-    case 9:
-      [[fallthrough]];
-    case '-': {
-      string value__{*prev__};
-      for (; next__ != std::cend(source__) && std::isdigit(*next__); ++next__)
-        value__.push_back(*next__);
-
-      if (next__ < std::cend(source__) - 1 && *next__ == '.' &&
-          std::isdigit(next__[1]))
-        for (++next__; next__ != std::cend(source__) && std::isdigit(*next__);
-             ++next__)
+    for (; next__ != std::cend(source__);) {
+      switch (prev__ = next__++; *prev__) {
+      default: {
+        string value__{};
+        for (; next__ != std::cend(source__) && std::isalpha(*next__); ++next__)
           value__.push_back(*next__);
 
-      tokens__.emplace_back(json_token_type__::other_literal, value__);
-    }
-    }
-  }
-}
+        tokens__.emplace_back(json_token_type__::other_literal, value__);
+        break;
+      }
+      case ' ':
+        [[fallthrough]];
+      case '\t':
+        [[fallthrough]];
+      case '\n':
+        [[fallthrough]];
+      case '\r':
+        break;
+      case '[':
+        tokens__.emplace_back(json_token_type__::l_square);
+        break;
+      case ']':
+        tokens__.emplace_back(json_token_type__::r_square);
+        break;
+      case '{':
+        tokens__.emplace_back(json_token_type__::l_brace);
+        break;
+      case '}':
+        tokens__.emplace_back(json_token_type__::r_brace);
+        break;
+      case ':':
+        tokens__.emplace_back(json_token_type__::colon);
+        break;
+      case ',':
+        tokens__.emplace_back(json_token_type__::comma);
+        break;
+      case '"': {
+        string value__{};
+        for (; next__ != std::cend(source__) && *next__ != '"'; ++next__)
+          value__.push_back(*next__);
 
-json_slice_elem__
-parse_json_slice_elem__(slice<json_token__> &&tokens__) noexcept {}
+        if (next__ == std::cend(source__)) [[unlikely]] {
+          fprintf(stderr, "unexpected eoi while parsing json");
+          exit(EXIT_FAILURE);
+        }
+
+        ++next__;
+        tokens__.emplace_back(json_token_type__::string_literal, value__);
+        break;
+      }
+      case '0':
+        [[fallthrough]];
+      case '1':
+        [[fallthrough]];
+      case '2':
+        [[fallthrough]];
+      case '3':
+        [[fallthrough]];
+      case '4':
+        [[fallthrough]];
+      case '5':
+        [[fallthrough]];
+      case '6':
+        [[fallthrough]];
+      case '7':
+        [[fallthrough]];
+      case '8':
+        [[fallthrough]];
+      case '9':
+        [[fallthrough]];
+      case '-': {
+        string value__{*prev__};
+        for (; next__ != std::cend(source__) && std::isdigit(*next__); ++next__)
+          value__.push_back(*next__);
+
+        if (next__ < std::cend(source__) - 1 && *next__ == '.' &&
+            std::isdigit(next__[1]))
+          for (++next__; next__ != std::cend(source__) && std::isdigit(*next__);
+               ++next__)
+            value__.push_back(*next__);
+
+        tokens__.emplace_back(json_token_type__::other_literal, value__);
+      }
+      }
+    }
+
+    tokens__.emplace_back(json_token_type__::eof);
+
+    return tokens__;
+  }
+} lex_json__{};
+
+inline static constexpr struct {
+  hmap<string, string> operator()(std::string_view source__) const noexcept {
+    const auto tokens__{lex_json__(source__)};
+    hmap<string, string> values__{};
+
+    auto next__{std::cbegin(tokens__)};
+
+    auto match__{[&next__](json_token_type__ t__) constexpr noexcept -> bool {
+      if (next__->type__ != t__)
+        return false;
+      ++next__;
+      return true;
+    }};
+
+    auto expect__{[&match__](json_token_type__ t__) constexpr noexcept -> void {
+      if (!match__(t__)) [[unlikely]] {
+        fprintf(stderr, "json parsing error.\n");
+        exit(EXIT_FAILURE);
+      }
+    }};
+
+    auto expect_one_of__{
+        [&match__](json_token_type__ t1__,
+                   json_token_type__ t2__) constexpr noexcept -> void {
+          if (!match__(t1__) && !match__(t2__)) [[unlikely]] {
+            fprintf(stderr, "json parsing error.\n");
+            exit(EXIT_FAILURE);
+          }
+        }};
+
+    if (expect__(json_token_type__::l_brace);
+        match__(json_token_type__::r_brace))
+      return values__;
+
+    expect__(json_token_type__::string_literal);
+    expect__(json_token_type__::colon);
+    expect_one_of__(json_token_type__::string_literal,
+                    json_token_type__::other_literal);
+    values__[(next__ - 3)->lexeme__] = (next__ - 1)->lexeme__;
+
+    for (; match__(json_token_type__::comma);) {
+      expect__(json_token_type__::string_literal);
+      expect__(json_token_type__::colon);
+      expect_one_of__(json_token_type__::string_literal,
+                      json_token_type__::other_literal);
+      values__[(next__ - 3)->lexeme__] = (next__ - 1)->lexeme__;
+    }
+
+    expect__(json_token_type__::r_brace);
+
+    return values__;
+  }
+
+  hmap<string, string> operator()(std::span<char> source__) const noexcept {
+    return this->operator()(std::string_view{source__});
+  }
+} parse_basic_json__{};
 
 inline static constexpr struct {
   [[nodiscard]] inline constexpr i32

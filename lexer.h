@@ -440,6 +440,14 @@ class lexer final {
     case 'g':
       return match('e') ? lex_keyword("tline", token_type::kw_getline)
                         : lex_keyword("oto", token_type::kw_goto);
+    case 'h':
+      switch (peek()) {
+      default:
+        return lex_keyword("map", token_type::kw_hmap);
+      case 's':
+        next();
+        return lex_keyword("et", token_type::kw_hset);
+      }
     case 'i':
       switch (peek()) {
       default:
@@ -464,6 +472,8 @@ class lexer final {
         next();
         return lex_keyword("", token_type::kw_in);
       }
+    case 'm':
+      return lex_keyword("ap", token_type::kw_map);
     case 'p':
       return lex_keyword("rint", token_type::kw_print);
     case 'r':

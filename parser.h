@@ -299,20 +299,25 @@ class parser final {
   parse_var_decl(bool expect_semi = true) noexcept {
     const auto is_static{match(token_type::kw_static)};
     const auto type{next()};
-    std::vector<token> templ{};
 
+    /// TODO: need to figure out nested template parsing.
+    std::vector<token> templ{};
     switch (type.type_) {
     default:
       break;
+    case token_type::kw_hmap:
+      [[fallthrough]];
+    case token_type::kw_hset:
+      [[fallthrough]];
+    case token_type::kw_map:
+      [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];
     case token_type::kw_slice:
       expect(token_type::exclaiml_square);
       templ = {next()};
-      for (; match(token_type::comma);) {
-        next();
+      for (; match(token_type::comma);)
         templ.push_back(next());
-      }
       expect(token_type::r_square);
     }
 
@@ -488,6 +493,12 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_bool:
       [[fallthrough]];
+    case token_type::kw_hset:
+      [[fallthrough]];
+    case token_type::kw_hmap:
+      [[fallthrough]];
+    case token_type::kw_map:
+      [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];
     case token_type::kw_slice:
@@ -594,6 +605,12 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_bool:
       [[fallthrough]];
+    case token_type::kw_hmap:
+      [[fallthrough]];
+    case token_type::kw_hset:
+      [[fallthrough]];
+    case token_type::kw_map:
+      [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];
     case token_type::kw_slice:
@@ -639,6 +656,12 @@ class parser final {
     case token_type::kw_char:
       [[fallthrough]];
     case token_type::kw_bool:
+      [[fallthrough]];
+    case token_type::kw_hmap:
+      [[fallthrough]];
+    case token_type::kw_hset:
+      [[fallthrough]];
+    case token_type::kw_map:
       [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];

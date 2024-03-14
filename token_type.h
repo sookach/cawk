@@ -95,6 +95,8 @@ enum struct token_type {
   kw_fn,
   kw_getline,
   kw_goto,
+  kw_hmap,
+  kw_hset,
   kw_i8,
   kw_i16,
   kw_i32,
@@ -102,6 +104,7 @@ enum struct token_type {
   kw_i128,
   kw_if,
   kw_in,
+  kw_map,
   kw_print,
   kw_return,
   kw_set,
@@ -362,6 +365,12 @@ std::ostream &operator<<(std::ostream &os, token_type t) {
   case token_type::kw_goto:
     os << "kw_goto";
     break;
+  case token_type::kw_hmap:
+    os << "kw_hmap";
+    break;
+  case token_type::kw_hset:
+    os << "kw_hset";
+    break;
   case token_type::kw_i8:
     os << "kw_i8";
     break;
@@ -382,6 +391,9 @@ std::ostream &operator<<(std::ostream &os, token_type t) {
     break;
   case token_type::kw_in:
     os << "kw_in";
+    break;
+  case token_type::kw_map:
+    os << "kw_map";
     break;
   case token_type::kw_print:
     os << "kw_print";
