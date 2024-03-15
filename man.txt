@@ -1,0 +1,43 @@
+================================================================================
+Users' Reference to CAWK
+================================================================================
+
+Andrew Sukach
+
+--------------------------------------------------------------------------------
+Types
+--------------------------------------------------------------------------------
+
+Unlike AWK, CAWK is a statically and strongly typed. CAWK provides the following
+types:
+
+Primitive Types
+
+i8      - 8 bit signed integer
+i16             - 16 bit signed integer
+i32             - 32 bit signed integer
+i64             - 64 bit signed integer
+i128    - 128 bit signed integer
+
+u8      - 8 bit unsigned integer
+u16             - 16 bit unsigned integer
+u32             - 32 bit unsigned integer
+u64             - 64 bit unsigned integer
+u128    - 128 bit unsigned integer
+
+f32             - 32 bit IEEE 754 single precision floating point number
+f64             - 64 bit IEEE 754 double precision floating point number
+
+string  - a dynamic sequence of characters.
+
+Built-in Data Structures
+
+slice   - a dynamic sequence of a primitive type
+set             - an ordered set of unique objects
+map             - an ordered map of unique keys mapping to some primitive type
+                  value
+hset    - a hash set
+hmap    - a hash table
+
+Note that the containers must have the type(s) of the data in the declarator
+(more on this point later).
