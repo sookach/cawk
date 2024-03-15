@@ -574,6 +574,28 @@ inline static constexpr struct {
 } systime_{};
 
 inline static constexpr struct {
+  [[nodiscard]] __attribute__((pure)) inline auto operator()() const noexcept {
+    return std::chrono::high_resolution_clock::now();
+  }
+} time_point__{};
+
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((const)) inline auto
+  operator()(auto &&x__, auto &&y__) const noexcept {
+    return std::chrono::duration_cast<std::chrono::milliseconds>(y__ - x__)
+        .count();
+  }
+} time_ms__{};
+
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((const)) inline auto
+  operator()(auto &&x__, auto &&y__) const noexcept {
+    return std::chrono::duration_cast<std::chrono::microseconds>(y__ - x__)
+        .count();
+  }
+} time_us__{};
+
+inline static constexpr struct {
   [[nodiscard]] inline constexpr bool operator()() const {
     return read_line__();
   }

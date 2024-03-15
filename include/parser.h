@@ -346,7 +346,7 @@ class parser final {
     case token_type::l_paren: {
       next();
       std::vector<std::unique_ptr<expr>> args{};
-      if (!match(token_type::r_paren)) {
+      if (peek().type_ != token_type::r_paren) {
         for (args.push_back(parse_expr()); match(token_type::comma);)
           args.push_back(parse_expr());
       }
