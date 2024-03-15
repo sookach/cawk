@@ -23,6 +23,12 @@ class parser final {
   /// Lookahead token index.
   std::vector<token>::size_type curr_{};
 
+  /// Indicates whether parser is in panic mode.
+  bool panic_{};
+
+  /// Indicates whether parser encountered an error.
+  bool error_{};
+
   /// @brief peek - Peek an arbitrary number of tokens ahead in the input
   /// stream.
   /// @param i The lookahed amount (default is 0).
@@ -51,8 +57,81 @@ class parser final {
   /// the expected. Exits with a failure status if they do not match.
   /// @param type The expected token_type.
   constexpr void expect(token_type type) noexcept {
-    if (!match(type))
-      exit(EXIT_FAILURE);
+    if (!match(type) && !panic_) [[unlikely]] {
+      error_ = panic_ = true;
+      std::cerr << "error on line " << peek().line_ << ": expected " << type
+                << ", got " << peek().type_ << std::endl;
+    }
+  }
+
+  /// @brief panic - Performs panic mode error recovery.
+  constexpr void panic() noexcept {
+    for (panic_ = false;;) {
+      switch (peek().type_) {
+      default:
+        next();
+        continue;
+      case token_type::r_brace:
+        [[fallthrough]];
+      case token_type::semi:
+        next();
+        return;
+      case token_type::eof:
+        [[fallthrough]];
+      case token_type::l_brace:
+        [[fallthrough]];
+      case token_type::kw_for:
+        [[fallthrough]];
+      case token_type::kw_begin:
+        [[fallthrough]];
+      case token_type::kw_end:
+        [[fallthrough]];
+      case token_type::kw_static:
+        [[fallthrough]];
+      case token_type::kw_auto:
+        [[fallthrough]];
+      case token_type::kw_i8:
+        [[fallthrough]];
+      case token_type::kw_i16:
+        [[fallthrough]];
+      case token_type::kw_i32:
+        [[fallthrough]];
+      case token_type::kw_i64:
+        [[fallthrough]];
+      case token_type::kw_i128:
+        [[fallthrough]];
+      case token_type::kw_u8:
+        [[fallthrough]];
+      case token_type::kw_u16:
+        [[fallthrough]];
+      case token_type::kw_u32:
+        [[fallthrough]];
+      case token_type::kw_u64:
+        [[fallthrough]];
+      case token_type::kw_u128:
+        [[fallthrough]];
+      case token_type::kw_f32:
+        [[fallthrough]];
+      case token_type::kw_f64:
+        [[fallthrough]];
+      case token_type::kw_char:
+        [[fallthrough]];
+      case token_type::kw_bool:
+        [[fallthrough]];
+      case token_type::kw_hmap:
+        [[fallthrough]];
+      case token_type::kw_hset:
+        [[fallthrough]];
+      case token_type::kw_map:
+        [[fallthrough]];
+      case token_type::kw_set:
+        [[fallthrough]];
+      case token_type::kw_slice:
+        [[fallthrough]];
+      case token_type::kw_string:
+        return;
+      }
+    }
   }
 
   /// @brief lbp - The left binding power of an operator.
@@ -574,9 +653,11 @@ class parser final {
   /// local scope.
   /// @return A stmt AST node.
   [[nodiscard]] std::unique_ptr<stmt> parse_inner_decl() noexcept {
+    std::unique_ptr<stmt> s{};
     switch (peek().type_) {
     default:
-      return parse_stmt();
+      s = parse_stmt();
+      break;
     case token_type::kw_static:
       [[fallthrough]];
     case token_type::kw_auto:
@@ -620,17 +701,25 @@ class parser final {
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
-      return parse_var_decl();
+      s = parse_var_decl();
     }
+
+    if (panic_) [[unlikely]]
+      panic();
+
+    return s;
   }
 
   /// @brief parse_outer_decl - Parse a declaration that can appear in the
   /// global scope.
   /// @return A stmt AST node.
   [[nodiscard]] std::unique_ptr<stmt> parse_outer_decl() noexcept {
+    std::unique_ptr<stmt> s;
+
     switch (peek().type_) {
     default:
-      return parse_pattern_action();
+      s = parse_pattern_action();
+      break;
     case token_type::kw_auto:
       [[fallthrough]];
     case token_type::kw_i8:
@@ -672,10 +761,17 @@ class parser final {
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
-      return parse_var_decl();
+      s = parse_var_decl();
+      break;
     case token_type::kw_function:
-      return parse_fn_decl();
+      s = parse_fn_decl();
+      break;
     }
+
+    if (panic_) [[unlikely]]
+      panic();
+
+    return s;
   }
 
 public:
@@ -685,6 +781,10 @@ public:
     std::vector<std::unique_ptr<stmt>> ast{};
     for (; !match(token_type::eof);)
       ast.push_back(parse_outer_decl());
+
+    if (error_)
+      ast.clear();
+
     return ast;
   }
 };
