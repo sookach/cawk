@@ -335,7 +335,7 @@ class parser final {
   /// since cawk does not have function declarations).
   /// @return A fn_decl ast node representing the function definition.
   [[nodiscard]] std::unique_ptr<stmt> parse_fn_decl() noexcept {
-    expect(token_type::kw_fn);
+    expect(token_type::kw_function);
     const auto iden{next().lexeme_};
     expect(token_type::l_paren);
     std::vector<std::string> params{};
@@ -669,7 +669,7 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_string:
       return parse_var_decl();
-    case token_type::kw_fn:
+    case token_type::kw_function:
       return parse_fn_decl();
     }
   }

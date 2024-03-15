@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
   cawk::lexer l{input_filename};
   std::ofstream out{std::empty(output_filename) ? "main.cc"
                                                 : output_filename.c_str()};
-  out << std::ifstream{"cawk.h"}.rdbuf();
+  out << std::ifstream{"include/cawk.h"}.rdbuf();
 
   out << std::endl << std::endl;
 

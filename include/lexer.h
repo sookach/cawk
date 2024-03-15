@@ -433,9 +433,9 @@ class lexer final {
       case 'o':
         next();
         return lex_keyword("r", token_type::kw_for);
-      case 'n':
+      case 'u':
         next();
-        return lex_keyword("", token_type::kw_fn);
+        return lex_keyword("nction", token_type::kw_function);
       }
     case 'g':
       return match('e') ? lex_keyword("tline", token_type::kw_getline)
