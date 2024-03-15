@@ -390,30 +390,26 @@ inline static constexpr struct {
 
     return y__;
   }
+
+  template <typename T1__, typename T2__>
+    requires std::is_same_v<T1__, string> && std::is_arithmetic_v<T2__>
+  [[nodiscard]] __attribute__((const)) constexpr T1__
+  operator()(T2__ &&x__) const noexcept {
+    return std::to_string(x__);
+  }
 } cast__{};
 
 inline constexpr struct {
-  template <typename T__> constexpr void operator()(T__ &&x__) const noexcept {
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i8>)
-      printf("%hh\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i16>)
-      printf("%h\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i32>)
-      printf("%d\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, i64>)
-      printf("%ll\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u8>)
-      printf("%uhh\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u16>)
-      printf("%uh\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u32>)
-      printf("%u\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, u64>)
-      printf("%ull\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, f32>)
-      printf("%f\n", x__);
-    if constexpr (std::is_same_v<std::remove_cvref_t<T__>, f64>)
-      printf("%e\n", x__);
+  __attribute__((__const__)) constexpr void operator()() const noexcept {}
+
+  template <typename T__, typename... Args__>
+  constexpr void operator()(T__ &&x__, Args__ &&...y__) const noexcept {
+    if constexpr (sizeof...(y__) == 1)
+      std::cout << x__;
+    else {
+      std::cout << x__ << ' ';
+      this->operator()(y__...);
+    }
   }
 } print__{};
 
@@ -506,8 +502,7 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<decltype(find__)>,
                             std::string_view>)
   {
-    return std::cbegin(std::execution::par_unseq,
-                       std::search(std::cbegin(in__), std::cbegin(find__))) -
+    return std::cbegin(std::search(std::cbegin(in__), std::cbegin(find__))) -
            std::cbegin(in__);
   }
 
@@ -518,8 +513,7 @@ inline static constexpr struct {
                             std::string_view>) &&
             std::is_same_v<std::remove_cvref_t<decltype(find__)>, char>
   {
-    return std::cbegin(std::find(std::execution::par_unseq, in__, find__)) -
-           std::cbegin(in__);
+    return std::cbegin(std::find(in__, find__)) - std::cbegin(in__);
   }
 } index_{};
 
@@ -540,7 +534,7 @@ inline static constexpr struct {
     auto first__{std::cbegin(string__)}, next__{std::cbegin(string__)};
     for (; first__ != std::cend(string__);) {
       first__ =
-          std::find_if(std::execution::par_unseq, first__, std::cend(string__),
+          std::find_if(first__, std::cend(string__),
                        [fieldsep__](auto &&x__) constexpr noexcept -> bool {
                          return x__ != fieldsep__;
                        });
@@ -548,8 +542,7 @@ inline static constexpr struct {
       if (first__ == std::cend(string__)) [[unlikely]]
         break;
 
-      next__ = std::find(std::execution::par_unseq, first__,
-                         std::cend(string__), fieldsep__);
+      next__ = std::find(first__, std::cend(string__), fieldsep__);
       array__.emplace_back(first__, next__);
       first__ = next__;
     }
@@ -558,7 +551,7 @@ inline static constexpr struct {
 
 inline static constexpr struct {
   inline constexpr void operator()(auto &&r__) const noexcept {
-    std::sort(std::execution::par_unseq, std::begin(r__), std::end(r__));
+    std::sort(std::begin(r__), std::end(r__));
   }
 } sort_{};
 
@@ -566,7 +559,7 @@ inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline constexpr auto
   operator()(auto &&r__) const noexcept {
     auto x__{std::forward<decltype(r__)>(r__)};
-    std::sort(std::execution::par_unseq, std::begin(x__), std::end(x__));
+    std::sort(std::begin(x__), std::end(x__));
     return x__;
   }
 } asort_{};

@@ -267,9 +267,10 @@ class parser final {
     case token_type::l_paren: {
       next();
       std::vector<std::unique_ptr<expr>> args{};
-      for (; peek().type_ != token_type::eof &&
-             peek().type_ != token_type::r_paren;)
-        args.push_back(parse_expr());
+      if (!match(token_type::r_paren)) {
+        for (args.push_back(parse_expr()); match(token_type::comma);)
+          args.push_back(parse_expr());
+      }
       expect(token_type::r_paren);
       lhs = std::make_unique<call_expr>(std::move(lhs), std::move(args));
       break;
@@ -340,8 +341,11 @@ class parser final {
     expect(token_type::l_paren);
     std::vector<std::string> params{};
 
-    for (; peek().type_ != token_type::eof && !match(token_type::r_paren);)
-      params.push_back(next().lexeme_);
+    if (!match(token_type::r_paren)) {
+      for (params.push_back(next().lexeme_); match(token_type::comma);)
+        params.push_back(next().lexeme_);
+      expect(token_type::r_paren);
+    }
 
     if (peek().type_ == token_type::eof)
       exit(EXIT_FAILURE);

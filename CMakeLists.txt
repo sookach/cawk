@@ -16,7 +16,7 @@ add_definitions(${LLVM_DEFINITIONS})
 file(GLOB SOURCES "src/*.cc")
 
 add_executable(cawk ${SOURCES})
-add_executable(main main.cc)
+# add_executable(main main.cc)
 
 llvm_map_components_to_libnames(llvm_libs support)
 

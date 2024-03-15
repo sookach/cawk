@@ -23,6 +23,8 @@ int main(int argc, char **argv) {
 
   out << std::endl << std::endl;
 
+  out << "namespace cawk {";
+
   auto tree{cawk::parser{l()}()};
   for (auto &&x : tree)
     if (dynamic_cast<cawk::fn_decl *>(x.get()) != nullptr ||
@@ -37,7 +39,7 @@ int main(int argc, char **argv) {
 
   out << std::endl << std::endl;
 
-  out << "inline void cawk::init__() noexcept {";
+  out << "inline void init__() noexcept {";
 
   out << "run_begin__ = [&]() noexcept -> void {";
   for (auto &&x : tree)
@@ -62,6 +64,8 @@ int main(int argc, char **argv) {
             cawk::pattern_action_decl::type::end)
       x->operator()(out);
   out << "};";
+
+  out << '}';
 
   out << '}';
 
