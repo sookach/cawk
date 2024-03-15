@@ -193,26 +193,42 @@ struct atom_expr final : public expr {
   }
 };
 
+struct templ final {
+  struct templ_type final {
+    token iden_{};
+    std::unique_ptr<templ> t_{};
+
+    templ_type(token iden = {}, std::unique_ptr<templ> t = nullptr)
+        : iden_{iden}, t_{std::move(t)} {}
+
+    constexpr void operator()(std::ostream &os) const {
+      if (os << iden_.lexeme_; t_ != nullptr)
+        t_->operator()(os);
+    }
+  };
+
+  std::vector<std::unique_ptr<templ_type>> types_{};
+  constexpr void operator()(std::ostream &os) const {
+    os << '<';
+    if (!std::empty(types_)) [[likely]] {
+      types_.front()->operator()(os);
+      for (auto &&x : types_ | std::views::drop(1)) {
+        os << ',';
+        x->operator()(os);
+      }
+    }
+    os << '>';
+  }
+};
+
 struct stmt {
   constexpr virtual void operator()(std::ostream &) const {};
 };
 
-// struct pattern_action final : public stmt {
-//   std::unique_ptr<expr> pattern_{};
-//   std::unique_ptr<stmt> action_{};
-
-//   pattern_action(std::unique_ptr<expr> pattern, std::unique_ptr<stmt> action)
-//       : pattern_{std::move(pattern)}, action_{std::move(action)} {}
-
-//   virtual void operator()(std::ostream &os) const override final {
-
-//   }
-// };
-
 struct var_decl final : public stmt {
   const bool is_static_{};
   const token type_{};
-  const std::vector<token> templ_{};
+  const std::unique_ptr<templ> temp_{};
   const token iden_{};
   const std::unique_ptr<expr> init_{};
 
@@ -220,30 +236,24 @@ struct var_decl final : public stmt {
                      std::unique_ptr<expr> init = nullptr)
       : type_{type}, iden_{iden}, init_{std::move(init)} {}
 
-  constexpr var_decl(token type, std::vector<token> templ, token iden,
+  constexpr var_decl(token type, std::unique_ptr<templ> temp, token iden,
                      std::unique_ptr<expr> init = nullptr)
-      : type_{type}, templ_{templ}, iden_{iden}, init_{std::move(init)} {}
+      : type_{type}, temp_{std::move(temp)}, iden_{iden},
+        init_{std::move(init)} {}
 
-  constexpr var_decl(bool is_static, token type, std::vector<token> templ,
+  constexpr var_decl(bool is_static, token type, std::unique_ptr<templ> temp,
                      token iden, std::unique_ptr<expr> init = nullptr)
-      : is_static_{is_static}, type_{type}, templ_{templ}, iden_{iden},
+      : is_static_{is_static}, type_{type}, temp_{std::move(temp)}, iden_{iden},
         init_{std::move(init)} {}
 
   constexpr virtual void operator()(std::ostream &os) const override final {
     if (is_static_)
       os << "static ";
     os << type_.lexeme_;
-    switch (std::size(templ_)) {
-    default:
-      os << '<' << templ_.front().lexeme_;
-      for (auto &&x : templ_ | std::views::drop(1))
-        os << ',' << x.lexeme_;
-      os << '>';
-    case 0:
-      break;
-    case 1:
-      os << '<' << templ_.front().lexeme_ << '>';
-    }
+
+    if (temp_ != nullptr)
+      temp_->operator()(os);
+
     os << ' ' << iden_.lexeme_;
     if (init_ != nullptr) {
       os << '=';

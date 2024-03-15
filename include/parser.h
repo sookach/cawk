@@ -371,6 +371,70 @@ class parser final {
     return std::move(lhs);
   }
 
+  [[nodiscard]] std::unique_ptr<templ> parse_template() noexcept {
+    expect(token_type::exclaiml_square);
+    std::unique_ptr<templ> t{new templ{}};
+
+    auto parse_type{[this]() noexcept -> std::unique_ptr<templ::templ_type> {
+      switch (auto type{next()}; type.type_) {
+      default:
+        if (!panic_)
+          std::cerr << "error on line " << type.line_ << ": "
+                    << "invalid template argument " << type.lexeme_
+                    << std::endl;
+        panic_ = true;
+        return nullptr;
+      case token_type::kw_i8:
+        [[fallthrough]];
+      case token_type::kw_i16:
+        [[fallthrough]];
+      case token_type::kw_i32:
+        [[fallthrough]];
+      case token_type::kw_i64:
+        [[fallthrough]];
+      case token_type::kw_i128:
+        [[fallthrough]];
+      case token_type::kw_u8:
+        [[fallthrough]];
+      case token_type::kw_u16:
+        [[fallthrough]];
+      case token_type::kw_u32:
+        [[fallthrough]];
+      case token_type::kw_u64:
+        [[fallthrough]];
+      case token_type::kw_u128:
+        [[fallthrough]];
+      case token_type::kw_f32:
+        [[fallthrough]];
+      case token_type::kw_f64:
+        [[fallthrough]];
+      case token_type::kw_char:
+        [[fallthrough]];
+      case token_type::kw_bool:
+        [[fallthrough]];
+      case token_type::kw_string:
+        return std::make_unique<templ::templ_type>(type);
+      case token_type::kw_hset:
+        [[fallthrough]];
+      case token_type::kw_hmap:
+        [[fallthrough]];
+      case token_type::kw_map:
+        [[fallthrough]];
+      case token_type::kw_set:
+        [[fallthrough]];
+      case token_type::kw_slice:
+        return std::make_unique<templ::templ_type>(type, parse_template());
+      }
+    }};
+
+    for (t->types_.push_back(parse_type()); match(token_type::comma);)
+      t->types_.push_back(parse_type());
+
+    expect(token_type::r_square);
+
+    return std::move(t);
+  }
+
   /// @brief parse_var_decl - Parse a variable declaration.
   /// @param expect_semi Whether to expect a semicolon at the end (defaults to
   /// true).
@@ -381,7 +445,7 @@ class parser final {
     const auto type{next()};
 
     /// TODO: need to figure out nested template parsing.
-    std::vector<token> templ{};
+    std::unique_ptr<templ> temp{};
     switch (type.type_) {
     default:
       break;
@@ -394,11 +458,7 @@ class parser final {
     case token_type::kw_set:
       [[fallthrough]];
     case token_type::kw_slice:
-      expect(token_type::exclaiml_square);
-      templ = {next()};
-      for (; match(token_type::comma);)
-        templ.push_back(next());
-      expect(token_type::r_square);
+      temp = parse_template();
     }
 
     const auto iden{next()};
@@ -407,7 +467,7 @@ class parser final {
     if (expect_semi)
       expect(token_type::semi);
 
-    return std::make_unique<var_decl>(is_static, type, templ, iden,
+    return std::make_unique<var_decl>(is_static, type, std::move(temp), iden,
                                       std::move(init));
   }
 
