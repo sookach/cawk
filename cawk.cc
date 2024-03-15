@@ -1,13 +1,24 @@
 #include "lexer.h"
 #include "parser.h"
+#include "llvm/Support/CommandLine.h"
 
 #include <concepts>
 #include <functional>
+#include <sysexits.h>
 
-int main() {
-  // // g(f, 4);
-  cawk::lexer l{"main.cawk"};
-  std::ofstream out{"main.cc"};
+llvm::cl::opt<std::string> input_filename{
+    llvm::cl::Positional, llvm::cl::desc{"<file>"}, llvm::cl::Required};
+
+llvm::cl::opt<std::string> output_filename{
+    "o", llvm::cl::desc{"Write output to <file>"},
+    llvm::cl::value_desc{"file"}};
+
+int main(int argc, char **argv) {
+  llvm::cl::ParseCommandLineOptions(argc, argv);
+
+  cawk::lexer l{input_filename};
+  std::ofstream out{std::empty(output_filename) ? "main.cc"
+                                                : output_filename.c_str()};
   out << std::ifstream{"cawk.h"}.rdbuf();
 
   out << std::endl << std::endl;
