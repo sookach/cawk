@@ -10,6 +10,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <random>
 #include <ranges>
 #include <regex>
 #include <set>
@@ -483,14 +484,88 @@ operator==(std::span<char> s1__, std::span<char> s2__) noexcept {
   return std::ranges::equal(s1__, s2__);
 }
 
-using std::cos;
-using std::exp;
-using std::log;
-using std::rand;
-using std::sin;
-using std::sqrt;
-using std::srand;
-using std::system;
+/// Built-in Functions
+
+/// Numeric Functions
+
+inline static constexpr struct {
+  template <typename T__>
+    requires std::is_arithmetic_v<T__>
+  __attribute__((pure)) inline constexpr decltype(auto)
+  operator()(T__ &&x__) const noexcept {
+    return std::forward<decltype(x__)>(x__);
+  }
+
+  __attribute__((pure)) inline constexpr decltype(auto)
+  operator()(auto &&x__) const noexcept {
+    return cast__.operator()<f64>(std::forward<decltype(x__)>(x__));
+  }
+
+} as_numeric_arg__{};
+
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__, auto &&y__) const noexcept {
+    return std::atan2(as_numeric_arg__(std::forward<decltype(x__)>(x__)),
+                      as_numeric_arg__(std::forward<decltype(y__)>(y__)));
+  }
+} atan2_{};
+
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__) const noexcept {
+    return std::cos(as_numeric_arg__(std::forward<decltype(x__)>(x__)));
+  }
+} cos_{};
+
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__) const noexcept {
+    return std::exp(as_numeric_arg__(std::forward<decltype(x__)>(x__)));
+  }
+} exp_{};
+
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__) const noexcept {
+    return cast__.operator()<i32>(std::forward<decltype(x__)>(x__));
+  }
+} int_{};
+
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__) const noexcept {
+    return std::log(as_numeric_arg__(std::forward<decltype(x__)>(x__)));
+  }
+} log_{};
+
+inline static struct {
+  std::mt19937_64 gen__{};
+
+  __attribute__((pure)) inline auto operator()() noexcept {
+    return std::uniform_real_distribution<>{0, 1}(gen__);
+  }
+} rand_{};
+
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__) const noexcept {
+    return std::sin(as_numeric_arg__(std::forward<decltype(x__)>(x__)));
+  }
+} sin_{};
+
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__) const noexcept {
+    return std::sqrt(as_numeric_arg__(std::forward<decltype(x__)>(x__)));
+  }
+} sqrt_{};
+
+inline static constexpr struct {
+  inline void operator()() const noexcept {
+    rand_.gen__.seed(std::random_device{}());
+  }
+} srand_{};
 
 inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline constexpr std::string::size_type
