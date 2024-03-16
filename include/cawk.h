@@ -65,10 +65,15 @@ template <typename T__>
 concept regex__ =
     requires(T__ t__) { requires std::is_convertible_v<T__, string>; };
 
-uint64_t NR_{}, NF_{};
+/// Predefined Variables
+
+u64 NR_{}, NF_{};
 char FS_{'1'}, RS_{'\n'};
-bool BEGIN{true}, END{}, mid__{false};
 std::string_view FILENAME_{};
+
+i64 RSTART_{}, RLENGTH_{};
+
+bool BEGIN{true}, END{}, mid__{false};
 std::vector<std::span<char>> fields__{};
 
 std::unordered_map<std::string, triple<char *>> file_table__{}, cmd_table__{};
@@ -484,9 +489,13 @@ operator==(std::span<char> s1__, std::span<char> s2__) noexcept {
   return std::ranges::equal(s1__, s2__);
 }
 
+///
 /// Built-in Functions
+///
 
+///
 /// Numeric Functions
+///
 
 inline static constexpr struct {
   template <typename T__>
@@ -567,9 +576,42 @@ inline static constexpr struct {
   }
 } srand_{};
 
+///
+/// String Functions
+///
+
 inline static constexpr struct {
-  [[nodiscard]] __attribute__((const)) inline constexpr std::string::size_type
-  operator()(auto &&in__, auto &&find__) const
+  constexpr void operator()(auto &&regexp__,
+                            auto &&replacement__) const noexcept {
+    std::string s__{};
+
+    std::regex_replace(std::back_inserter(s__), std::cbegin(fields__.front()),
+                       std::cend(fields__.front()), regexp__, replacement__);
+    const auto n__{std::size(s__)};
+    char *ptr__{(char *)malloc(sizeof(char) * n__)};
+    ranges::move(s__, ptr__);
+
+    read_line__(ptr__, ptr__ + n__);
+
+    // Bit of a hack. I need the call to read_line__ to update the fields and
+    // NF, and since I don't want to add extra overloads/new template
+    // parameters, I'll keep the default where it also updates NR, and then
+    // manually move it back since it didn't actually read a new record.
+    --NR__;
+  }
+
+  constexpr void operator()(auto &&regexp__, auto &&replacement__,
+                            auto &&target__) const noexcept {
+    target__.clear();
+    std::regex_replace(std::back_inserter(target__),
+                       std::cbegin(fields__.front()),
+                       std::cend(fields__.front()), regexp__, replacement__);
+  }
+} gsub_{};
+
+inline static constexpr struct {
+  [[nodiscard]] __attribute__((pure)) inline constexpr std::string::size_type
+  operator()(auto &&in__, auto &&find__) const noexcept
     requires(std::is_same_v<std::remove_cvref_t<decltype(in__)>, string> ||
              std::is_same_v<std::remove_cvref_t<decltype(in__)>,
                             std::string_view>) &&
@@ -577,31 +619,52 @@ inline static constexpr struct {
              std::is_same_v<std::remove_cvref_t<decltype(find__)>,
                             std::string_view>)
   {
-    return std::cbegin(std::search(std::cbegin(in__), std::cbegin(find__))) -
-           std::cbegin(in__);
+    return std::ranges::search(in__, find__) - std::cbegin(in__);
   }
 
-  [[nodiscard]] __attribute__((const)) inline constexpr std::string::size_type
-  operator()(auto &&in__, auto &&find__) const
+  [[nodiscard]] __attribute__((pure)) inline constexpr std::string::size_type
+  operator()(auto &&in__, auto &&find__) const noexcept
     requires(std::is_same_v<std::remove_cvref_t<decltype(in__)>, string> ||
              std::is_same_v<std::remove_cvref_t<decltype(in__)>,
                             std::string_view>) &&
             std::is_same_v<std::remove_cvref_t<decltype(find__)>, char>
   {
-    return std::cbegin(std::find(in__, find__)) - std::cbegin(in__);
+    return std::ranges::find(in__, find__) - std::cbegin(in__);
   }
 } index_{};
 
 inline static constexpr struct {
-  [[nodiscard]] __attribute__((const)) inline constexpr auto
+  [[nodiscard]] __attribute__((pure)) inline constexpr auto
   operator()(auto &&c__) const noexcept {
     return std::size(c__);
   }
 } length_{};
 
 inline static constexpr struct {
-  __attribute__((const)) inline constexpr void
-  operator()(auto &&string__, auto &&array__, auto &&fieldsep__) const noexcept
+  [[nodiscard]] inline constexpr auto
+  operator()(auto &&string__, auto &&regexp__) const noexcept {
+    std::sregex_iterator first__{std::cbegin(string__), std::cend(string__),
+                                 regexp__};
+    if (first__ == std::sregex_iterator{})
+      return RSTART_ = RLENGTH_ = -1;
+
+    RSTART_ = first__->position();
+    RLENGTH_ = std::size(first__->str());
+
+    return RSTART_;
+  }
+
+  /*
+    Not yet implemented.
+
+    [[nodiscard]] inline constexpr auto
+    operator()(auto &&string__, auto &&regexp__, auto &&array__) const noexcept;
+  */
+} match_{};
+
+inline static constexpr struct {
+  constexpr void operator()(auto &&string__, auto &&array__,
+                            auto &&fieldsep__) const noexcept
     requires std::__is_same_uncvref<decltype(string__), string>::value
              && std::__is_same_uncvref<decltype(array__), slice<string>>::value
              && std::__is_same_uncvref<decltype(fieldsep__), char>::value
@@ -622,7 +685,40 @@ inline static constexpr struct {
       first__ = next__;
     }
   }
+
+  constexpr void operator()(auto &&string__, auto &&array__) const noexcept
+    requires std::__is_same_uncvref<decltype(string__), string>::value
+             && std::__is_same_uncvref<decltype(array__), slice<string>>::value
+  {
+    auto first__{std::cbegin(string__)}, next__{std::cbegin(string__)};
+    for (; first__ != std::cend(string__);) {
+      first__ = std::find_if(
+          first__, std::cend(string__),
+          [fieldsep__ = FS_](auto &&x__) constexpr noexcept -> bool {
+            return x__ != fieldsep__;
+          });
+
+      if (first__ == std::cend(string__)) [[unlikely]]
+        break;
+
+      next__ = std::find(first__, std::cend(string__), fieldsep__);
+      array__.emplace_back(first__, next__);
+      first__ = next__;
+    }
+  }
 } split_{};
+
+inline static constexpr struct {
+  template <size_t Size__ = 256>
+  __attribute__((pure)) string
+  operator()(auto &&format__, auto &&...expressions__) const noexcept {
+    std::string s__(Size__);
+    s__.resize(
+        std::sprintf(s__.data(), std::forward<decltype(format__)>(format__),
+                     std::forward<decltype(expressions__)>(expressions__)...));
+    return s__;
+  }
+} sprintf_{};
 
 inline static constexpr struct {
   inline constexpr void operator()(auto &&r__) const noexcept {
