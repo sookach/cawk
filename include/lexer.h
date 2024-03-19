@@ -32,14 +32,14 @@ class lexer final {
   uint16_t line_{1};
 
   inline static constexpr struct {
-    [[nodiscard]] __attribute__((const)) inline constexpr bool
+    [[nodiscard]] __attribute__((__const__)) inline constexpr bool
     operator()(char x) const {
       return std::isalpha(x) || x == '_';
     }
   } isalpha{};
 
   inline static constexpr struct {
-    [[nodiscard]] __attribute__((const)) inline constexpr bool
+    [[nodiscard]] __attribute__((__const__)) inline constexpr bool
     operator()(char x) const {
       return isalpha(x) || std::isdigit(x);
     }
@@ -47,7 +47,7 @@ class lexer final {
 
   /// @brief end - Check if entire source was lexed.
   /// @return true if end of input, false otherwise.
-  [[nodiscard]] __attribute__((const)) constexpr bool end() const noexcept {
+  [[nodiscard]] __attribute__((__const__)) constexpr bool end() const noexcept {
     return next_ == std::size(source_);
   }
 
@@ -55,14 +55,14 @@ class lexer final {
   /// stream.
   /// @param i The lookahed amount (default is 0).
   /// @return The character at source_[next_ + i];
-  [[nodiscard]] __attribute__((const)) constexpr char
+  [[nodiscard]] __attribute__((__pure__)) constexpr char
   peek(std::string::size_type i = 0) const noexcept {
     return next_ + i < std::size(source_) ? source_[next_ + i] : '\0';
   }
 
   /// @brief prev - Get starting character of lexeme.
   /// @return value at source_[prev_].
-  [[nodiscard]] __attribute__((const)) constexpr char prev() const noexcept {
+  [[nodiscard]] __attribute__((__pure__)) constexpr char prev() const noexcept {
     return source_[prev_];
   }
 
