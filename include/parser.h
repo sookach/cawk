@@ -226,8 +226,6 @@ class parser final {
     case token_type::kw_true:
       [[fallthrough]];
     case token_type::kw_false:
-      [[fallthrough]];
-    case token_type::regex_literal:
       return std::make_unique<atom_expr>(next());
     case token_type::l_paren: {
       next();
@@ -515,7 +513,7 @@ class parser final {
       next();
       pos = pattern_action_decl::type::end;
       break;
-    case token_type::regex_literal:
+    case token_type::string_literal:
       pattern = std::make_unique<binary_expr>(
           token{.type_ = token_type::tilde},
           std::make_unique<atom_expr>(token{.lexeme_ = "fields__.front()"}),

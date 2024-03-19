@@ -92,10 +92,9 @@ class lexer final {
       case '\t':
       case '\r':
         break;
-      case '/':
-        if (peek(1) == '/')
-          for (; !end() && peek(1) != '/'; next())
-            ;
+      case '#':
+        for (; next() != '\n';)
+          ;
         return;
       }
     }
@@ -184,28 +183,6 @@ class lexer final {
       next();
     }
     return isalnum(peek()) ? lex_identifier() : make_token(type);
-  }
-
-  /// @brief lex_regex - Lexes a regular expression literal.
-  /// @return A token with the regex as the lexeme (excluding the delimiters).
-  [[nodiscard]] constexpr token lex_regex() noexcept {
-    std::string raw{};
-
-    for (prev_ = next_; !end(); next()) {
-      if (peek() == '/') [[unlikely]] {
-        if (source_[next_ - 1] != '\\')
-          break;
-        raw.back() = '/';
-      } else
-        raw.push_back(peek());
-    }
-
-    if (end()) [[unlikely]]
-      return make_token(token_type::unknown);
-
-    next();
-
-    return token{token_type::regex_literal, std::move(raw), line_};
   }
 
   /// @brief lex_token - Lexes the next token from the input.
@@ -350,20 +327,6 @@ class lexer final {
                                    : token_type::equal);
     case ',':
       return make_token(token_type::comma);
-    case '#':
-      switch (peek()) {
-      default:
-        return make_token(token_type::hash);
-      case '#':
-        next();
-        return make_token(token_type::hashhash);
-      case '/':
-        next();
-        return lex_regex();
-      case '@':
-        next();
-        return make_token(token_type::hashat);
-      }
     case '$':
       return make_token(token_type::dollar);
     // Keywords.
@@ -539,7 +502,7 @@ class lexer final {
   }
 
 public:
-  lexer(std::string_view filename) {
+  constexpr lexer(std::string_view filename) {
     std::ifstream file{filename};
     if (!file.good())
       exit(EXIT_FAILURE);
@@ -548,7 +511,7 @@ public:
                std::istreambuf_iterator<char>{}};
   }
 
-  [[nodiscard]] std::vector<token> operator()() {
+  [[nodiscard]] constexpr std::vector<token> operator()() noexcept {
     std::vector<token> tokens{};
 
     for (;;) {

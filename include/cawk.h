@@ -589,15 +589,18 @@ inline static constexpr struct {
                        std::cend(fields__.front()), regexp__, replacement__);
     const auto n__{std::size(s__)};
     char *ptr__{(char *)malloc(sizeof(char) * n__)};
-    ranges::move(s__, ptr__);
+    std::ranges::move(s__, ptr__);
 
-    read_line__(ptr__, ptr__ + n__);
+    if (!read_line__(ptr__, ptr__ + n__)) {
+      fprintf(stderr, "error in gsub\n");
+      exit(EXIT_FAILURE);
+    };
 
     // Bit of a hack. I need the call to read_line__ to update the fields and
     // NF, and since I don't want to add extra overloads/new template
     // parameters, I'll keep the default where it also updates NR, and then
     // manually move it back since it didn't actually read a new record.
-    --NR__;
+    --NR_;
   }
 
   constexpr void operator()(auto &&regexp__, auto &&replacement__,
@@ -701,7 +704,7 @@ inline static constexpr struct {
       if (first__ == std::cend(string__)) [[unlikely]]
         break;
 
-      next__ = std::find(first__, std::cend(string__), fieldsep__);
+      next__ = std::find(first__, std::cend(string__), FS_);
       array__.emplace_back(first__, next__);
       first__ = next__;
     }
@@ -712,10 +715,10 @@ inline static constexpr struct {
   template <size_t Size__ = 256>
   __attribute__((pure)) string
   operator()(auto &&format__, auto &&...expressions__) const noexcept {
-    std::string s__(Size__);
-    s__.resize(
-        std::sprintf(s__.data(), std::forward<decltype(format__)>(format__),
-                     std::forward<decltype(expressions__)>(expressions__)...));
+    std::string s__(Size__, ' ');
+    s__.resize(std::snprintf(
+        s__.data(), Size__, std::forward<decltype(format__)>(format__),
+        std::forward<decltype(expressions__)>(expressions__)...));
     return s__;
   }
 } sprintf_{};

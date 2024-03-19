@@ -172,8 +172,6 @@ struct atom_expr final : public expr {
       os << '\'';
       break;
     case token_type::string_literal:
-      [[fallthrough]];
-    case token_type::regex_literal:
       os << '"';
     }
 
@@ -186,8 +184,6 @@ struct atom_expr final : public expr {
       os << '\'';
       break;
     case token_type::string_literal:
-      [[fallthrough]];
-    case token_type::regex_literal:
       os << '"';
     }
   }
