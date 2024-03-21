@@ -504,6 +504,14 @@ class parser final {
     switch (peek().type_) {
     default:
       pattern = parse_expr();
+      // probably not the cleanest way to handle regexes but it suffices.
+      if (dynamic_cast<atom_expr *>(pattern.get()) != nullptr &&
+          dynamic_cast<atom_expr *>(pattern.get())->atom_.type_ ==
+              token_type::string_literal)
+        pattern = std::make_unique<binary_expr>(
+            token{.type_ = token_type::tilde},
+            std::make_unique<atom_expr>(token{.lexeme_ = "fields__.front()"}),
+            std::move(pattern));
       break;
     case token_type::kw_begin:
       next();
@@ -512,12 +520,6 @@ class parser final {
     case token_type::kw_end:
       next();
       pos = pattern_action_decl::type::end;
-      break;
-    case token_type::string_literal:
-      pattern = std::make_unique<binary_expr>(
-          token{.type_ = token_type::tilde},
-          std::make_unique<atom_expr>(token{.lexeme_ = "fields__.front()"}),
-          std::make_unique<atom_expr>(next()));
       [[fallthrough]];
     case token_type::l_brace:;
     }
