@@ -731,11 +731,44 @@ inline static constexpr struct {
   }
 } sprintf_{};
 
+///
+/// CAWK-specific functions
+///
+
 inline static constexpr struct {
   inline constexpr void operator()(auto &&r__) const noexcept {
-    std::sort(std::begin(r__), std::end(r__));
+    std::ranges::sort(std::forward<decltype(r__)>(r__));
   }
-} sort_{};
+
+  inline constexpr void operator()(auto &&r__, auto &&f__) const noexcept {
+    std::ranges::sort(std::forward<decltype(r__)>(r__),
+                      std::forward<decltype(f__)>(f__));
+  }
+
+  inline constexpr void operator()(auto &&r__, auto &&first__,
+                                   auto &&last__) const noexcept {
+    std::sort(std::begin(std::forward<decltype(r__)>(r__)) +
+                  std::forward<decltype(first__)>(first__),
+              std::begin(std::forward<decltype(r__)>(r__)) +
+                  std::forward<decltype(last__)>(last__));
+  }
+
+  inline constexpr void operator()(auto &&r__, auto &&first__, auto &&last__,
+                                   auto &&f__) const noexcept {
+    std::sort(std::begin(std::forward<decltype(r__)>(r__)) +
+                  std::forward<decltype(first__)>(first__),
+              std::begin(std::forward<decltype(r__)>(r__)) +
+                  std::forward<decltype(last__)>(last__),
+              std::forward<decltype(f__)>(f__));
+  }
+} sort__{};
+
+inline static constexpr struct {
+  inline constexpr void operator()(auto &&x__, auto &&y__) const noexcept {
+    std::swap(std::forward<decltype(x__)>(x__),
+              std::forward<decltype(y__)>(y__));
+  }
+} swap__{};
 
 inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline constexpr auto
