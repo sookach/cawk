@@ -232,7 +232,17 @@ class lexer final {
         return make_token(token_type::ampequal);
       }
     case '*':
-      return make_token(match('=') ? token_type::starequal : token_type::star);
+      switch (peek()) {
+      default:
+        return make_token(token_type::star);
+      case '*':
+        next();
+        return make_token(match('=') ? token_type::starstarequal
+                                     : token_type::starstar);
+      case '=':
+        next();
+        return make_token(token_type::starequal);
+      }
     case '+':
       switch (peek()) {
       default:
@@ -272,8 +282,17 @@ class lexer final {
         return make_token(token_type::exclaiml_square);
       }
     case '/':
-      return make_token(match('=') ? token_type::slashequal
-                                   : token_type::slash);
+      switch (peek()) {
+      default:
+        return make_token(token_type::slash);
+      case '/':
+        next();
+        return make_token(match('=') ? token_type::slashslashequal
+                                     : token_type::slashslash);
+      case '=':
+        next();
+        return make_token(token_type::slashequal);
+      }
     case '%':
       return make_token(match('=') ? token_type::percentequal
                                    : token_type::percent);

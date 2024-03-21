@@ -137,8 +137,8 @@ class parser final {
   /// @brief lbp - The left binding power of an operator.
   /// @param type The type of the token (a.k.a the operator type)
   /// @return an unsigned byte >= 0 representing the binding power.
-  [[nodiscard]] __attribute__((const)) constexpr uint8_t
-  lbp(token_type type) const noexcept {
+  [[nodiscard]] __attribute__((const)) static constexpr uint8_t
+  lbp(token_type type) noexcept {
     switch (type) {
     default:
       return 0;
@@ -202,6 +202,10 @@ class parser final {
       [[fallthrough]];
     case token_type::percent:
       return 12;
+    case token_type::starstar:
+      [[fallthrough]];
+    case token_type::slashslash:
+      return 13;
     }
   }
 
@@ -361,9 +365,19 @@ class parser final {
 
     for (; lbp(peek().type_) > rbp;) {
       auto op{peek()};
+      auto bp{[](token_type type) constexpr noexcept -> uint8_t {
+        // need to discriminate between left/right associativity.
+        switch (type) {
+        default:
+          return lbp(type);
+        case token_type::starstar:
+          [[fallthrough]];
+        case token_type::slashslash:
+          return lbp(type) - 1;
+        }
+      }(op.type_)};
       next();
-      lhs = std::make_unique<binary_expr>(op, std::move(lhs),
-                                          parse_expr(lbp(op.type_)));
+      lhs = std::make_unique<binary_expr>(op, std::move(lhs), parse_expr(bp));
     }
 
     return std::move(lhs);

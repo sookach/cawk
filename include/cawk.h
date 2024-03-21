@@ -548,6 +548,14 @@ inline static constexpr struct {
   }
 } log_{};
 
+inline static constexpr struct {
+  __attribute__((pure)) inline constexpr auto
+  operator()(auto &&x__, auto &&y__) const noexcept {
+    return std::pow(as_numeric_arg__(std::forward<decltype(x__)>(x__)),
+                    as_numeric_arg__(std::forward<decltype(y__)>(y__)));
+  }
+} pow_{};
+
 inline static struct {
   std::mt19937_64 gen__{};
 

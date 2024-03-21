@@ -31,7 +31,9 @@ enum struct token_type {
   ampamp,
   ampequal,
   star,
+  starstar,
   starequal,
+  starstarequal,
   plus,
   plusplus,
   plusequal,
@@ -44,7 +46,9 @@ enum struct token_type {
   exclaimequal,
   exclaiml_square,
   slash,
+  slashslash,
   slashequal,
+  slashslashequal,
   percent,
   percentequal,
   less,
@@ -181,8 +185,14 @@ std::ostream &operator<<(std::ostream &os, token_type t) {
   case token_type::star:
     os << "star";
     break;
+  case token_type::starstar:
+    os << "starstar";
+    break;
   case token_type::starequal:
     os << "starequal";
+    break;
+  case token_type::starstarequal:
+    os << "starstarequal";
     break;
   case token_type::plus:
     os << "plus";
@@ -220,8 +230,14 @@ std::ostream &operator<<(std::ostream &os, token_type t) {
   case token_type::slash:
     os << "slash";
     break;
+  case token_type::slashslash:
+    os << "slashslash";
+    break;
   case token_type::slashequal:
     os << "slashequal";
+    break;
+  case token_type::slashslashequal:
+    os << "slashslashequal";
     break;
   case token_type::percent:
     os << "percent";

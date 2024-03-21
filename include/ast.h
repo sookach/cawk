@@ -26,16 +26,49 @@ struct binary_expr final : public expr {
       : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
   constexpr virtual void operator()(std::ostream &os) const override final {
-    if (op_.type_ == token_type::tilde) {
+    switch (op_.type_) {
+    default:
+      lhs_->operator()(os);
+      os << op_.lexeme_;
+      rhs_->operator()(os);
+      break;
+    case token_type::tilde:
       os << "match__(";
       lhs_->operator()(os);
       os << ',';
       rhs_->operator()(os);
       os << ')';
-    } else {
+      break;
+    case token_type::starstar:
+      os << "pow_(";
       lhs_->operator()(os);
-      os << op_.lexeme_;
+      os << ',';
       rhs_->operator()(os);
+      os << ')';
+      break;
+    case token_type::slashslash:
+      os << "pow_(";
+      lhs_->operator()(os);
+      os << ", 1.0 / (";
+      rhs_->operator()(os);
+      os << "))";
+      break;
+    case token_type::starstarequal:
+      lhs_->operator()(os);
+      os << "= pow_(";
+      lhs_->operator()(os);
+      os << ',';
+      rhs_->operator()(os);
+      os << ')';
+      break;
+    case token_type::slashslashequal:
+      lhs_->operator()(os);
+      os << "= pow_(";
+      lhs_->operator()(os);
+      os << ", 1.0 / (";
+      rhs_->operator()(os);
+      os << "))";
+      break;
     }
   }
 };
