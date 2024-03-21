@@ -180,12 +180,28 @@ struct cast_expr final : public expr {
   constexpr cast_expr(token type, std::unique_ptr<expr> e)
       : type_{type}, e_{std::move(e)} {}
 
-  virtual void operator()(std::ostream &os) const override final {
+  constexpr virtual void operator()(std::ostream &os) const override final {
     os << "cast__.operator()<";
     os << type_.lexeme_;
     os << ">(";
     e_->operator()(os);
     os << ')';
+  }
+};
+
+struct init_list_expr final : public expr {
+  std::vector<std::unique_ptr<expr>> init_list_{};
+
+  constexpr virtual void operator()(std::ostream &os) const override final {
+    os << '{';
+    if (!std::empty(init_list_)) {
+      init_list_.front()->operator()(os);
+      for (auto &&x : init_list_ | std::views::drop(1)) {
+        os << ',';
+        x->operator()(os);
+      }
+    }
+    os << '}';
   }
 };
 

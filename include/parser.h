@@ -77,58 +77,58 @@ class parser final {
         next();
         return;
       case token_type::eof:
-        [[fallthrough]];
-      case token_type::l_brace:
-        [[fallthrough]];
-      case token_type::kw_for:
-        [[fallthrough]];
-      case token_type::kw_begin:
-        [[fallthrough]];
-      case token_type::kw_end:
-        [[fallthrough]];
-      case token_type::kw_static:
-        [[fallthrough]];
-      case token_type::kw_auto:
-        [[fallthrough]];
-      case token_type::kw_i8:
-        [[fallthrough]];
-      case token_type::kw_i16:
-        [[fallthrough]];
-      case token_type::kw_i32:
-        [[fallthrough]];
-      case token_type::kw_i64:
-        [[fallthrough]];
-      case token_type::kw_i128:
-        [[fallthrough]];
-      case token_type::kw_u8:
-        [[fallthrough]];
-      case token_type::kw_u16:
-        [[fallthrough]];
-      case token_type::kw_u32:
-        [[fallthrough]];
-      case token_type::kw_u64:
-        [[fallthrough]];
-      case token_type::kw_u128:
-        [[fallthrough]];
-      case token_type::kw_f32:
-        [[fallthrough]];
-      case token_type::kw_f64:
-        [[fallthrough]];
-      case token_type::kw_char:
-        [[fallthrough]];
-      case token_type::kw_bool:
-        [[fallthrough]];
-      case token_type::kw_hmap:
-        [[fallthrough]];
-      case token_type::kw_hset:
-        [[fallthrough]];
-      case token_type::kw_map:
-        [[fallthrough]];
-      case token_type::kw_set:
-        [[fallthrough]];
-      case token_type::kw_slice:
-        [[fallthrough]];
-      case token_type::kw_string:
+        //     [[fallthrough]];
+        //   case token_type::l_brace:
+        //     [[fallthrough]];
+        //   case token_type::kw_for:
+        //     [[fallthrough]];
+        //   case token_type::kw_begin:
+        //     [[fallthrough]];
+        //   case token_type::kw_end:
+        //     [[fallthrough]];
+        //   case token_type::kw_static:
+        //     [[fallthrough]];
+        //   case token_type::kw_auto:
+        //     [[fallthrough]];
+        //   case token_type::kw_i8:
+        //     [[fallthrough]];
+        //   case token_type::kw_i16:
+        //     [[fallthrough]];
+        //   case token_type::kw_i32:
+        //     [[fallthrough]];
+        //   case token_type::kw_i64:
+        //     [[fallthrough]];
+        //   case token_type::kw_i128:
+        //     [[fallthrough]];
+        //   case token_type::kw_u8:
+        //     [[fallthrough]];
+        //   case token_type::kw_u16:
+        //     [[fallthrough]];
+        //   case token_type::kw_u32:
+        //     [[fallthrough]];
+        //   case token_type::kw_u64:
+        //     [[fallthrough]];
+        //   case token_type::kw_u128:
+        //     [[fallthrough]];
+        //   case token_type::kw_f32:
+        //     [[fallthrough]];
+        //   case token_type::kw_f64:
+        //     [[fallthrough]];
+        //   case token_type::kw_char:
+        //     [[fallthrough]];
+        //   case token_type::kw_bool:
+        //     [[fallthrough]];
+        //   case token_type::kw_hmap:
+        //     [[fallthrough]];
+        //   case token_type::kw_hset:
+        //     [[fallthrough]];
+        //   case token_type::kw_map:
+        //     [[fallthrough]];
+        //   case token_type::kw_set:
+        //     [[fallthrough]];
+        //   case token_type::kw_slice:
+        //     [[fallthrough]];
+        //   case token_type::kw_string:
         return;
       }
     }
@@ -211,14 +211,24 @@ class parser final {
 
   /// @brief nud - Null denomination handler.
   /// @return The resulting expr ast node of the handler call.
-  [[nodiscard]] constexpr std::unique_ptr<expr> nud() {
+  [[nodiscard]] constexpr std::unique_ptr<expr> nud() noexcept {
     switch (peek().type_) {
     default:
-      std::cerr << "undefined nud" << std::endl;
-      exit(EXIT_FAILURE);
-    case token_type::semi:
-      /// TODO: is this the right way to handle empty expressions?
+      if (!panic_) {
+        std::cerr << "line " << peek().line_ << ": expected expression."
+                  << std::endl;
+        std::cerr << "\tnote: undefined nud for " << peek().type_ << std::endl;
+        error_ = panic_ = true;
+      }
       return nullptr;
+    // case token_type::semi:
+    /// TODO: is this the right way to handle empty expressions?
+    /// Edit from the future: Nah yeah nah, consider this code
+    /// var![i32] = {};
+    /// It will try to parse this as a rule, panic (rightfully so), but will
+    /// stay in an infinite loop since a rule never consumes semis (panic is
+    /// stopped upon reaching the '}').
+    //   return nullptr;
     case token_type::identifier:
       [[fallthrough]];
     case token_type::numeric_constant:
@@ -250,6 +260,22 @@ class parser final {
     case token_type::dollar:
       next();
       return std::make_unique<field_expr>(parse_expr(12));
+    case token_type::l_brace: {
+      next();
+
+      if (match(token_type::r_brace))
+        return std::make_unique<init_list_expr>();
+
+      auto init_list{std::make_unique<init_list_expr>()};
+      init_list->init_list_.push_back(parse_expr());
+
+      for (; match(token_type::comma);)
+        init_list->init_list_.push_back(parse_expr());
+
+      expect(token_type::r_brace);
+
+      return std::move(init_list);
+    }
     case token_type::exclaiml_square:
       next();
       switch (peek().type_) {
@@ -548,6 +574,8 @@ class parser final {
   /// @brief parse_expr_stmt - Parse an expression statement.
   /// @return An expr_stmt ast node representing the expression statement.
   [[nodiscard]] constexpr std::unique_ptr<stmt> parse_expr_stmt() noexcept {
+    if (!match(token_type::semi))
+      return nullptr;
     auto e{parse_expr()};
     expect(token_type::semi);
     return std::make_unique<expr_stmt>(std::move(e));
@@ -843,8 +871,9 @@ class parser final {
       break;
     }
 
-    if (panic_) [[unlikely]]
+    if (panic_) [[unlikely]] {
       panic();
+    }
 
     return s;
   }
@@ -857,8 +886,8 @@ public:
     for (; !match(token_type::eof);)
       ast.push_back(parse_outer_decl());
 
-    if (error_)
-      ast.clear();
+    if (error_) [[unlikely]]
+      exit(EXIT_FAILURE);
 
     return ast;
   }
