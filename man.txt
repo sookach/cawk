@@ -70,8 +70,8 @@ function add(x, y) -> { return x + y; }
 Although, CAWK is statically scoped, neither the types of the parameters nor the
 return type must be specified.
 
-Arguments in CAWK are passed by reference, meaning the callee can modify the
-original values.
+Arguments in CAWK are passed by value by default. To pass by reference, the
+parameter must be preface with an ampersand in the function signature.
 
 Tying the last several points together, here is an example of a valid CAWK
 program.
@@ -155,40 +155,31 @@ function fib(n) -> {
 
 # Heapsort
 
-function heap_sort(a) {
-	build_heap(a);
-	for (i32 n = size(a) - 1; n > 0; --n) {
-		swap(a[0], a[n]);
-		sift_down(a, n, 0);
+# note the array is passed by reference
+function heap_sort(&a) {
+	for (i32 i = length(a) / 2; i >= 0; --i)
+		heapify(a, length(a), i);
+	
+	for (i32 i = length(a) - 1; i > 0; --i) {
+		swap_(a[0], a[i]);
+		heapify(a, i, 0);
 	}
 }
 
-function build_heap(a) {
-	for (i32 i = size(a) / 2; i >= 0; --i)
-		sift_down(a, n, i);
-}
-
-function sift_down(a, n, i) {
+function heapify(&a, n, i) {
 	for (; i * 2 + 1 < n;) {
-		# j will store the max index among i and its two children.
 		i32 j = i;
 
-		if (a[i * 2 + 1] > a[j])
+		if (a[i * 2 + 1] > a[i])
 			j = i * 2 + 1;
-		
+
 		if (i * 2 + 2 < n && a[i * 2 + 2] > a[j])
 			j = i * 2 + 2;
 
 		if (i == j)
 			break;
 
-		swap(a[i], a[j]);
+		swap_(a[i], a[j]);
 		i = j;
 	}
-}
-
-function swap(x, y) {
-	i32 z = x;
-	x = y;
-	y = z;
 }

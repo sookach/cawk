@@ -516,11 +516,12 @@ class parser final {
     expect(token_type::kw_function);
     const auto iden{next().lexeme_};
     expect(token_type::l_paren);
-    std::vector<std::string> params{};
+    std::vector<std::pair<bool, std::string>> params{};
 
     if (!match(token_type::r_paren)) {
-      for (params.push_back(next().lexeme_); match(token_type::comma);)
-        params.push_back(next().lexeme_);
+      params.emplace_back(match(token_type::amp), next().lexeme_);
+      for (; match(token_type::comma);)
+        params.emplace_back(match(token_type::amp), next().lexeme_);
       expect(token_type::r_paren);
     }
 
@@ -574,7 +575,7 @@ class parser final {
   /// @brief parse_expr_stmt - Parse an expression statement.
   /// @return An expr_stmt ast node representing the expression statement.
   [[nodiscard]] constexpr std::unique_ptr<stmt> parse_expr_stmt() noexcept {
-    if (!match(token_type::semi))
+    if (match(token_type::semi))
       return nullptr;
     auto e{parse_expr()};
     expect(token_type::semi);
@@ -749,6 +750,10 @@ class parser final {
       return parse_print_stmt();
     case token_type::kw_return:
       return parse_return_stmt();
+    case token_type::kw_break:
+      next();
+      expect(token_type::semi);
+      return std::make_unique<break_stmt>();
     }
   }
 

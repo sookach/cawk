@@ -312,12 +312,13 @@ struct var_decl final : public stmt {
 struct fn_decl final : public stmt {
   const std::string iden_{};
   const std::unique_ptr<stmt> body_{};
-  const std::vector<std::string> params_{};
+  const std::vector<std::pair<bool, std::string>> params_{};
   const bool ret_{};
   mutable bool proto_{true};
 
   constexpr fn_decl(std::string iden, std::unique_ptr<stmt> body,
-                    std::vector<std::string> params = {}, bool ret = false)
+                    std::vector<std::pair<bool, std::string>> params = {},
+                    bool ret = false)
       : iden_{iden}, body_{std::move(body)}, params_{params}, ret_{ret} {}
 
   constexpr virtual void operator()(std::ostream &os) const override final {
@@ -327,16 +328,20 @@ struct fn_decl final : public stmt {
     if (std::empty(params_))
       os << "()";
     else {
-      for (os << '('; auto &&x : params_)
-        os << "auto " << (proto_ ? "" : x) << ',';
-      os.seekp(os.tellp() - std::streampos{1});
+      os << '(';
+      os << "auto " << (params_.front().first ? "&&" : "")
+         << (proto_ ? "" : params_.front().second);
+      for (auto &&x : params_ | std::views::drop(1))
+        os << ", auto " << (proto_ ? "" : (x.first ? "&&" : "") + x.second);
       os << ")";
     }
 
     if (proto_)
       os << ';';
-    else
+    else {
       body_->operator()(os);
+      os << "\n\n";
+    }
 
     proto_ = false;
   }
@@ -475,6 +480,12 @@ struct range_stmt final : public stmt {
       body_->operator()(os);
     else
       os << ';';
+  }
+};
+
+struct break_stmt final : public stmt {
+  constexpr virtual void operator()(std::ostream &os) const override final {
+    os << "break;";
   }
 };
 
