@@ -489,6 +489,27 @@ struct break_stmt final : public stmt {
   }
 };
 
+struct switch_stmt final : public stmt {
+  std::unique_ptr<expr> e_{};
+  std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases_{};
+
+  constexpr switch_stmt(std::unique_ptr<expr> e, decltype(cases_) cases)
+      : e_{std::move(e)}, cases_{std::move(cases)} {}
+
+  constexpr virtual void operator()(std::ostream &os) const override final {
+    os << "switch (";
+    e_->operator()(os);
+    os << ") {";
+    for (auto &&x : cases_) {
+      if (x.first.type_ != token_type::kw_default)
+        os << "case ";
+      os << x.first.lexeme_ << ":";
+      x.second->operator()(os);
+    }
+    os << '}';
+  }
+};
+
 struct pattern_action_decl final : public stmt {
   const std::unique_ptr<expr> pattern_{};
   const std::unique_ptr<stmt> action_{};

@@ -731,6 +731,63 @@ class parser final {
     return std::make_unique<return_stmt>(std::move(value));
   }
 
+  /// @brief parse_break_stmt - Parse a break statement.
+  /// @return A break_stmt AST node.
+  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_break_stmt() noexcept {
+    expect(token_type::kw_break);
+    expect(token_type::semi);
+    return std::make_unique<break_stmt>();
+  }
+
+  /// @brief parse_switch_stmt - Parse a switch statement.
+  /// @return A switch_stmt AST node.
+  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_switch_stmt() noexcept {
+    expect(token_type::kw_switch);
+    expect(token_type::l_paren);
+    auto e{parse_expr()};
+    expect(token_type::r_paren);
+    expect(token_type::l_brace);
+
+    std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases{};
+
+    for (bool done{}; !done;) {
+      switch (peek().type_) {
+      default:
+        done = true;
+        continue;
+      case token_type::kw_case:
+        next();
+        [[fallthrough]];
+      case token_type::kw_default:
+      }
+
+      cases.push_back(
+          [this]() constexpr noexcept -> decltype(cases)::value_type {
+            std::vector<std::unique_ptr<stmt>> v{};
+            auto label{next()};
+            expect(token_type::colon);
+            for (;;) {
+              switch (peek().type_) {
+              default:
+                v.push_back(parse_inner_decl());
+                break;
+              case token_type::eof:
+                [[fallthrough]];
+              case token_type::kw_case:
+                [[fallthrough]];
+              case token_type::r_brace:
+                return std::make_pair(
+                    label, std::make_unique<block_stmt>(std::move(v)));
+              }
+            }
+          }());
+    }
+
+    expect(token_type::r_brace);
+
+    return std::make_unique<switch_stmt>(std::move(e), std::move(cases));
+  }
+
   /// @brief parse_stmt - Parse a statement. Switches on the lookahead token to
   /// determine the subtype.
   /// @return A stmt AST node.
@@ -751,14 +808,14 @@ class parser final {
     case token_type::kw_return:
       return parse_return_stmt();
     case token_type::kw_break:
-      next();
-      expect(token_type::semi);
-      return std::make_unique<break_stmt>();
+      return parse_break_stmt();
+    case token_type::kw_switch:
+      return parse_switch_stmt();
     }
   }
 
-  /// @brief parse_inner_decl - Parse a declaration that can only appear in a
-  /// local scope.
+  /// @brief parse_inner_decl - Parse a declaration that can only appear
+  /// in a local scope.
   /// @return A stmt AST node.
   [[nodiscard]] constexpr std::unique_ptr<stmt> parse_inner_decl() noexcept {
     std::unique_ptr<stmt> s{};
