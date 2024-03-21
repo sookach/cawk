@@ -45,7 +45,7 @@ i32 x = 1;
 f32 y = 1.5;
 string z = "cawk";
 slice![i32] w = {1, 2, 3, 4, 5};
-hmap[string, u64] u;
+hmap![string, u64] u;
 
 These examples bring up another important point - statements in CAWK must end
 with a semicolon (whereas in AWK either a semicolon or newline was appropriate).
@@ -76,7 +76,7 @@ original values.
 Tying the last several points together, here is an example of a valid CAWK
 program.
 
-# Function prints "hello, Andrew" and exits.
+# Function prints "hello Andrew" and exits.
 
 string name = "Andrew";
 
@@ -95,3 +95,100 @@ BEGIN { greet(); }
 function greet() { print "hello", name; }
 
 string name = "Andrew";
+
+Operators
+
+CAWK has most of the same arithmetic operators as POSIX AWK, with a few notable
+exceptions:
+
+&  |  ^  ~ >> <<
+
+are bitwise and, or, xor, complement, right/left shift respectively. As well as
+the equivalent assignment operators:
+
+&= |= ^= ~= >>= <<=
+
+** - exponentation operator
+
+x ** y is equivalent to x ^ y in POSIX AWK (note that GNU AWK also has ** as an
+exponentiation operator)
+
+// - exponentation (root) operator
+
+x // y is equivalent to x ** (1 / y), just provides a more concise syntax.
+
+Some Example Programs (Just to give a taste of CAWK)
+
+# Return a string representation of some decimal number x, converted to base y
+function base(x, y) -> {
+	string s = ![string](x % y);
+	if (x / y != 0)
+		s += base(x / y, y);
+	return s;
+}
+
+# Calculates the nth element in the fibonacci sequence.
+function fib(n) -> {
+	# Will update once I implement switch statements.
+	if (n == 0)
+		return 0;
+	if (n == 1 || n == 2)
+		return 1;
+	return fib(n - 1) + fib(n - 2);
+}
+
+# Using memoization
+hmap![i32, i32] h;
+
+function fib(n) -> {
+	if (n == 0)
+		return 0;
+	if (n == 1 || n == 2)
+		return 1;
+	return fib(n - 1) + fib(n - 2);
+
+	if (h[n] == 0)
+		h[n] = fib(n - 1) + fib(n - 2);
+
+	return h[n];
+}
+
+# Heapsort
+
+function heap_sort(a) {
+	build_heap(a);
+	for (i32 n = size(a) - 1; n > 0; --n) {
+		swap(a[0], a[n]);
+		sift_down(a, n, 0);
+	}
+}
+
+function build_heap(a) {
+	for (i32 i = size(a) / 2; i >= 0; --i)
+		sift_down(a, n, i);
+}
+
+function sift_down(a, n, i) {
+	for (; i * 2 + 1 < n;) {
+		# j will store the max index among i and its two children.
+		i32 j = i;
+
+		if (a[i * 2 + 1] > a[j])
+			j = i * 2 + 1;
+		
+		if (i * 2 + 2 < n && a[i * 2 + 2] > a[j])
+			j = i * 2 + 2;
+
+		if (i == j)
+			break;
+
+		swap(a[i], a[j]);
+		i = j;
+	}
+}
+
+function swap(x, y) {
+	i32 z = x;
+	x = y;
+	y = z;
+}
