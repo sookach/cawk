@@ -453,7 +453,7 @@ struct for_stmt final : public stmt {
 struct print_stmt final : public stmt {
   const std::vector<std::unique_ptr<expr>> args_{};
 
-  constexpr print_stmt(std::vector<std::unique_ptr<expr>> args)
+  constexpr print_stmt(std::vector<std::unique_ptr<expr>> args = {})
       : args_{std::move(args)} {}
 
   constexpr virtual void operator()(std::ostream &os) const override final {
@@ -461,8 +461,10 @@ struct print_stmt final : public stmt {
     if (std::empty(args_))
       os << "<<fields__.front()";
     else {
-      for (auto &&x : args_) {
-        os << "<<";
+      os << "<<";
+      args_.front()->operator()(os);
+      for (auto &&x : args_ | std::views::drop(1)) {
+        os << "<< ' ' <<";
         x->operator()(os);
       }
     }
@@ -532,7 +534,11 @@ struct switch_stmt final : public stmt {
     for (auto &&x : cases_) {
       if (x.first.type_ != token_type::kw_default)
         os << "case ";
-      os << x.first.lexeme_ << ":";
+      if (x.first.type_ == token_type::string_literal)
+        os << std::hash<std::string_view>{}(x.first.lexeme_) << "ul";
+      else
+        os << x.first.lexeme_;
+      os << ":";
       x.second->operator()(os);
     }
     os << '}';

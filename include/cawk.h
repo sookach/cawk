@@ -771,6 +771,14 @@ inline static constexpr struct {
 } swap__{};
 
 inline static constexpr struct {
+  [[nodiscard]] __attribute__((__const__)) inline auto
+  operator()(auto &&x__) const noexcept {
+    return std::hash<std::decay_t<decltype(x__)>>{}(
+        std::forward<std::decay_t<decltype(x__)>>(x__));
+  }
+} hash__{};
+
+inline static constexpr struct {
   [[nodiscard]] __attribute__((const)) inline constexpr auto
   operator()(auto &&r__) const noexcept {
     auto x__{std::forward<decltype(r__)>(r__)};

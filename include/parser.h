@@ -708,14 +708,15 @@ class parser final {
   /// @return A print_stmt AST node.
   [[nodiscard]] constexpr std::unique_ptr<stmt> parse_print_stmt() noexcept {
     expect(token_type::kw_print);
-    std::vector<std::unique_ptr<expr>> args{};
 
-    for (; peek().type_ != token_type::eof && peek().type_ != token_type::semi;)
-      args.push_back(
-          match(token_type::comma)
-              ? std::make_unique<atom_expr>(
-                    token{.type_ = token_type::string_literal, .lexeme_ = " "})
-              : parse_expr());
+    if (match(token_type::semi))
+      return std::make_unique<print_stmt>();
+
+    std::vector<std::unique_ptr<expr>> args{};
+    args.push_back(parse_expr());
+
+    for (; match(token_type::comma);)
+      args.push_back(parse_expr());
 
     expect(token_type::semi);
 
@@ -770,6 +771,11 @@ class parser final {
               switch (peek().type_) {
               default:
                 v.push_back(parse_inner_decl());
+                break;
+              case token_type::kw_break:
+                next();
+                expect(token_type::semi);
+                v.push_back(std::make_unique<break_stmt>());
                 break;
               case token_type::eof:
                 [[fallthrough]];
@@ -872,7 +878,7 @@ class parser final {
     if (panic_) [[unlikely]]
       panic();
 
-    return s;
+    return std::move(s);
   }
 
   /// @brief parse_outer_decl - Parse a declaration that can appear in the
@@ -937,7 +943,7 @@ class parser final {
       panic();
     }
 
-    return s;
+    return std::move(s);
   }
 
 public:
