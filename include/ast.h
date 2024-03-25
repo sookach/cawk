@@ -13,10 +13,13 @@
 #include <ranges>
 
 namespace cawk {
+/// expr - The base struct from which all expressions derive.
 struct expr {
   constexpr virtual void operator()(std::ostream &) const {};
 };
 
+/// binary_expr - A binary expression.
+/// TODO: Maybe op_ should just be a token_type instead of a full token?
 struct binary_expr final : public expr {
   const token op_{};
   const std::unique_ptr<expr> lhs_{}, rhs_{};
@@ -73,6 +76,8 @@ struct binary_expr final : public expr {
   }
 };
 
+/// grouping_expr - An expression enclosed in parentheses. Ensures that grouping
+/// levels are properly maintained.
 struct grouping_expr final : public expr {
   const std::unique_ptr<expr> e_{};
 
@@ -85,6 +90,7 @@ struct grouping_expr final : public expr {
   }
 };
 
+/// prefix_expr - A standard prefix expression (!, ~, -, ++, --).
 struct prefix_expr final : public expr {
   const token op_{};
   const std::unique_ptr<expr> rhs_{};
@@ -98,20 +104,21 @@ struct prefix_expr final : public expr {
   }
 };
 
+/// postfix_expr - A standard postfix expression (++, --).
 struct postfix_expr final : public expr {
   const token op_{};
   const std::unique_ptr<expr> lhs_{};
-  const std::vector<std::unique_ptr<expr>> args_{};
 
-  constexpr postfix_expr(token op, std::unique_ptr<expr> lhs,
-                         std::vector<std::unique_ptr<expr>> args = {})
-      : op_{op}, lhs_{std::move(lhs)}, args_{std::move(args)} {}
+  constexpr postfix_expr(token op, std::unique_ptr<expr> lhs)
+      : op_{op}, lhs_{std::move(lhs)} {}
 
   constexpr virtual void operator()(std::ostream &os) const override final {
     lhs_->operator()(os);
+    os << op_.lexeme_;
   }
 };
 
+/// index_expr - A indexing expression '[]'.
 struct index_expr final : public expr {
   const std::unique_ptr<expr> lhs_{};
   const std::unique_ptr<expr> rhs_{};
@@ -127,6 +134,7 @@ struct index_expr final : public expr {
   }
 };
 
+/// call_expr - A function call expression.
 struct call_expr final : public expr {
   std::unique_ptr<expr> callee_{};
   std::vector<std::unique_ptr<expr>> args_{};
@@ -161,6 +169,8 @@ struct call_expr final : public expr {
   }
 };
 
+/// field_expr - A field reference expression (i.e. $<expr>). Maybe can combined
+/// this with prefix expression in the future.
 struct field_expr final : public expr {
   std::unique_ptr<expr> e_{};
 
@@ -173,6 +183,8 @@ struct field_expr final : public expr {
   }
 };
 
+/// cast_expr - A cast expression (i.e. ![<type>]). Just like field expressions,
+/// maybe this too can be combined into prefix expressions.
 struct cast_expr final : public expr {
   const token type_{};
   const std::unique_ptr<expr> e_{};
@@ -189,6 +201,7 @@ struct cast_expr final : public expr {
   }
 };
 
+/// init_list_expr - An initializer list '{expr1, expr2, expr3}'.
 struct init_list_expr final : public expr {
   std::vector<std::unique_ptr<expr>> init_list_{};
 
@@ -205,6 +218,7 @@ struct init_list_expr final : public expr {
   }
 };
 
+/// atom_expr - Either a literal or symbol name.
 struct atom_expr final : public expr {
   const token atom_{};
 
@@ -238,6 +252,7 @@ struct atom_expr final : public expr {
   }
 };
 
+/// templ - Template portion of a declaration.
 struct templ final {
   struct templ_type final {
     token iden_{};
@@ -266,10 +281,12 @@ struct templ final {
   }
 };
 
+/// stmt - The base struct from which all statements and declarations derive.
 struct stmt {
   constexpr virtual void operator()(std::ostream &) const {};
 };
 
+/// var_decl - A variable declaration.
 struct var_decl final : public stmt {
   const bool is_static_{};
   const token type_{};
@@ -309,6 +326,8 @@ struct var_decl final : public stmt {
   }
 };
 
+/// fn_decl - A function declaration (really a definition since CAWK doesn't
+/// have function declarations).
 struct fn_decl final : public stmt {
   const std::string iden_{};
   const std::unique_ptr<stmt> body_{};
@@ -347,6 +366,7 @@ struct fn_decl final : public stmt {
   }
 };
 
+/// block_stmt - A block statement.
 struct block_stmt final : public stmt {
   const std::vector<std::unique_ptr<stmt>> body_{};
 
@@ -361,6 +381,8 @@ struct block_stmt final : public stmt {
   }
 };
 
+/// expr_stmt - An expression statement (i.e. an expression which a semi at the
+/// end).
 struct expr_stmt final : public stmt {
   const std::unique_ptr<expr> e_{};
 
@@ -373,6 +395,7 @@ struct expr_stmt final : public stmt {
   }
 };
 
+/// if_stmt - An if statement.
 struct if_stmt final : public stmt {
   const std::unique_ptr<expr> cond_{};
   const std::unique_ptr<stmt> then_{};
@@ -395,6 +418,7 @@ struct if_stmt final : public stmt {
   }
 };
 
+/// for_stmt - A traditional C-style for loop.
 struct for_stmt final : public stmt {
   const std::unique_ptr<stmt> init_{};
   const std::unique_ptr<expr> cond_{};
@@ -425,6 +449,7 @@ struct for_stmt final : public stmt {
   }
 };
 
+/// print_stmt - 'print' followed by an expression statement.
 struct print_stmt final : public stmt {
   const std::vector<std::unique_ptr<expr>> args_{};
 
@@ -445,6 +470,7 @@ struct print_stmt final : public stmt {
   }
 };
 
+/// return_stmt - A return stmt.
 struct return_stmt final : public stmt {
   const std::unique_ptr<expr> value_{};
 
@@ -463,6 +489,7 @@ struct return_stmt final : public stmt {
   }
 };
 
+/// range_stmt - A range for loop 'for (x in range)'.
 struct range_stmt final : public stmt {
   const token var_{};
   const std::unique_ptr<expr> range_{};
@@ -483,12 +510,14 @@ struct range_stmt final : public stmt {
   }
 };
 
+/// break_stmt - A break statement.
 struct break_stmt final : public stmt {
   constexpr virtual void operator()(std::ostream &os) const override final {
     os << "break;";
   }
 };
 
+/// switch_stmt - A switch statement.
 struct switch_stmt final : public stmt {
   std::unique_ptr<expr> e_{};
   std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases_{};
@@ -510,6 +539,7 @@ struct switch_stmt final : public stmt {
   }
 };
 
+/// pattern_action_decl - A rule definition.
 struct pattern_action_decl final : public stmt {
   const std::unique_ptr<expr> pattern_{};
   const std::unique_ptr<stmt> action_{};
