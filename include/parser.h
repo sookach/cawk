@@ -411,9 +411,9 @@ class parser final {
 
   [[nodiscard]] constexpr std::unique_ptr<templ> parse_template() noexcept {
     expect(token_type::exclaiml_square);
-    std::unique_ptr<templ> t{new templ{}};
+    auto t{std::make_unique<templ>()};
 
-    auto parse_type{[this]() noexcept -> std::unique_ptr<templ::templ_type> {
+    auto parse_type{[this]() noexcept -> std::unique_ptr<templ_type> {
       switch (auto type{next()}; type.type_) {
       default:
         if (!panic_)
@@ -451,7 +451,7 @@ class parser final {
       case token_type::kw_bool:
         [[fallthrough]];
       case token_type::kw_string:
-        return std::make_unique<templ::templ_type>(type);
+        return std::make_unique<templ_type>(type);
       case token_type::kw_hset:
         [[fallthrough]];
       case token_type::kw_hmap:
@@ -461,7 +461,7 @@ class parser final {
       case token_type::kw_set:
         [[fallthrough]];
       case token_type::kw_slice:
-        return std::make_unique<templ::templ_type>(type, parse_template());
+        return std::make_unique<templ_type>(type, parse_template());
       }
     }};
 
@@ -477,7 +477,7 @@ class parser final {
   /// @param expect_semi Whether to expect a semicolon at the end (defaults to
   /// true).
   /// @return A var_decl ast node representing the declaration.
-  [[nodiscard]] constexpr std::unique_ptr<stmt>
+  [[nodiscard]] constexpr std::unique_ptr<var_decl>
   parse_var_decl(bool expect_semi = true) noexcept {
     const auto is_static{match(token_type::kw_static)};
     const auto type{next()};
@@ -512,7 +512,7 @@ class parser final {
   /// @brief parse_fn_decl - Parse a function declaration (really definition
   /// since cawk does not have function declarations).
   /// @return A fn_decl ast node representing the function definition.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_fn_decl() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<fn_decl> parse_fn_decl() noexcept {
     expect(token_type::kw_function);
     const auto iden{next().lexeme_};
     expect(token_type::l_paren);
@@ -529,18 +529,17 @@ class parser final {
       exit(EXIT_FAILURE);
 
     bool ret{match(token_type::arrow)};
-    auto body{parse_block_stmt()};
+    auto body{parse_block_decl()};
 
     return std::make_unique<fn_decl>(iden, std::move(body), params, ret);
   }
 
-  /// @brief parse_pattern_action - Parse a pattern action rule
-  /// @return A pattern_action_decl ast node represetning the pattern action
+  /// @brief rule_decl - Parse a rule declaration.
+  /// @return A rule_decl ast node representing the rule declaration.
   /// rule.
-  [[nodiscard]] constexpr std::unique_ptr<stmt>
-  parse_pattern_action() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<rule_decl> parse_rule() noexcept {
     std::unique_ptr<expr> pattern{};
-    pattern_action_decl::type pos{pattern_action_decl::type::mid};
+    rule_decl::type pos{rule_decl::type::mid};
 
     switch (peek().type_) {
     default:
@@ -556,25 +555,25 @@ class parser final {
       break;
     case token_type::kw_begin:
       next();
-      pos = pattern_action_decl::type::begin;
+      pos = rule_decl::type::begin;
       break;
     case token_type::kw_end:
       next();
-      pos = pattern_action_decl::type::end;
+      pos = rule_decl::type::end;
       [[fallthrough]];
     case token_type::l_brace:;
     }
 
-    auto action{peek().type_ == token_type::l_brace ? parse_block_stmt()
-                                                    : nullptr};
-
-    return std::make_unique<pattern_action_decl>(std::move(pattern),
-                                                 std::move(action), pos);
+    return std::make_unique<rule_decl>(
+        std::move(pattern),
+        peek().type_ == token_type::l_brace ? parse_block_decl() : nullptr,
+        pos);
   }
 
   /// @brief parse_expr_stmt - Parse an expression statement.
   /// @return An expr_stmt ast node representing the expression statement.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_expr_stmt() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<expr_stmt>
+  parse_expr_stmt() noexcept {
     if (match(token_type::semi))
       return nullptr;
     auto e{parse_expr()};
@@ -582,22 +581,20 @@ class parser final {
     return std::make_unique<expr_stmt>(std::move(e));
   }
 
-  /// @brief parse_block_stmt - Parse a code block.
-  /// @return A block_stmt ast node representing the block.
-  [[nodiscard]] std::unique_ptr<stmt> parse_block_stmt() noexcept {
-    std::vector<std::unique_ptr<stmt>> block{};
+  /// @brief parse_block_decl - Parse a code block.
+  /// @return A block_decl ast node representing the block.
+  [[nodiscard]] std::unique_ptr<block_decl> parse_block_decl() noexcept {
+    std::vector<std::unique_ptr<decl>> block{};
     expect(token_type::l_brace);
     for (; peek().type_ != token_type::eof &&
            peek().type_ != token_type::r_brace;)
       block.push_back(parse_inner_decl());
     expect(token_type::r_brace);
-    return std::make_unique<block_stmt>(std::move(block));
+    return std::make_unique<block_decl>(std::move(block));
   }
 
   /// @brief parse_exit_stmt - Parse an exit statement.
   /// @return An expr_stmt with a call to the exit() function.
-  /// NB: I could create a seperate ast node for exit statements, but it is
-  /// simple enough to just reuse code.
   [[nodiscard]] constexpr std::unique_ptr<stmt> parse_exit_stmt() noexcept {
     expect(token_type::kw_exit);
     auto exit_code{
@@ -605,14 +602,12 @@ class parser final {
             ? std::make_unique<atom_expr>(token{.lexeme_ = "EXIT_SUCCESS"})
             : parse_expr()};
     expect(token_type::semi);
-    return std::make_unique<expr_stmt>(std::make_unique<call_expr>(
-        std::make_unique<atom_expr>(token{.lexeme_ = "exit"}),
-        std::move(exit_code)));
+    return std::make_unique<exit_stmt>(std::move(exit_code));
   }
 
   /// @brief parse_if_stmt - Parse an if statement.
   /// @return An if_stmt ast node representing the if statement.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_if_stmt() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<if_stmt> parse_if_stmt() noexcept {
     expect(token_type::kw_if);
     expect(token_type::l_paren);
     auto cond{parse_expr()};
@@ -640,10 +635,10 @@ class parser final {
                                           std::move(body));
     }
 
-    std::unique_ptr<stmt> init{};
+    std::unique_ptr<decl> init{};
     switch (peek().type_) {
     default:
-      init = parse_expr_stmt();
+      init = std::make_unique<decl_stmt>(parse_expr_stmt());
       break;
     case token_type::semi:
       next();
@@ -706,7 +701,8 @@ class parser final {
 
   /// @brief parse_print_stmt - Parse a print statement.
   /// @return A print_stmt AST node.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_print_stmt() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<print_stmt>
+  parse_print_stmt() noexcept {
     expect(token_type::kw_print);
 
     if (match(token_type::semi))
@@ -725,7 +721,8 @@ class parser final {
 
   /// @brief parse_return_stmt - Parse a return statement.
   /// @return A return_stmt AST node.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_return_stmt() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<return_stmt>
+  parse_return_stmt() noexcept {
     expect(token_type::kw_return);
     auto value{parse_expr()};
     expect(token_type::semi);
@@ -734,7 +731,8 @@ class parser final {
 
   /// @brief parse_break_stmt - Parse a break statement.
   /// @return A break_stmt AST node.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_break_stmt() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<break_stmt>
+  parse_break_stmt() noexcept {
     expect(token_type::kw_break);
     expect(token_type::semi);
     return std::make_unique<break_stmt>();
@@ -742,14 +740,15 @@ class parser final {
 
   /// @brief parse_switch_stmt - Parse a switch statement.
   /// @return A switch_stmt AST node.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_switch_stmt() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<switch_stmt>
+  parse_switch_stmt() noexcept {
     expect(token_type::kw_switch);
     expect(token_type::l_paren);
     auto e{parse_expr()};
     expect(token_type::r_paren);
     expect(token_type::l_brace);
 
-    std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases{};
+    std::vector<std::pair<token, std::unique_ptr<block_decl>>> cases{};
 
     for (bool done{}; !done;) {
       switch (peek().type_) {
@@ -764,7 +763,7 @@ class parser final {
 
       cases.push_back(
           [this]() constexpr noexcept -> decltype(cases)::value_type {
-            std::vector<std::unique_ptr<stmt>> v{};
+            std::vector<std::unique_ptr<decl>> v{};
             auto label{next()};
             expect(token_type::colon);
             for (;;) {
@@ -775,7 +774,8 @@ class parser final {
               case token_type::kw_break:
                 next();
                 expect(token_type::semi);
-                v.push_back(std::make_unique<break_stmt>());
+                v.push_back(std::make_unique<decl_stmt>(
+                    std::make_unique<break_stmt>()));
                 break;
               case token_type::eof:
                 [[fallthrough]];
@@ -783,7 +783,7 @@ class parser final {
                 [[fallthrough]];
               case token_type::r_brace:
                 return std::make_pair(
-                    label, std::make_unique<block_stmt>(std::move(v)));
+                    label, std::make_unique<block_decl>(std::move(v)));
               }
             }
           }());
@@ -801,8 +801,6 @@ class parser final {
     switch (peek().type_) {
     default:
       return parse_expr_stmt();
-    case token_type::l_brace:
-      return parse_block_stmt();
     case token_type::kw_if:
       return parse_if_stmt();
     case token_type::kw_exit:
@@ -820,14 +818,25 @@ class parser final {
     }
   }
 
+  /// @brief parse_stmt_block - Parses both statemetns and block declarations.
+  /// @return A decl AST node.
+  [[nodiscard]] constexpr std::unique_ptr<decl> parse_stmt_block() noexcept {
+    switch (peek().type_) {
+    default:
+      return std::make_unique<decl_stmt>(parse_stmt());
+    case token_type::l_brace:
+      return parse_block_decl();
+    }
+  }
+
   /// @brief parse_inner_decl - Parse a declaration that can only appear
   /// in a local scope.
   /// @return A stmt AST node.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_inner_decl() noexcept {
-    std::unique_ptr<stmt> s{};
+  [[nodiscard]] constexpr std::unique_ptr<decl> parse_inner_decl() noexcept {
+    std::unique_ptr<decl> d{};
     switch (peek().type_) {
     default:
-      s = parse_stmt();
+      d = std::make_unique<decl_stmt>(parse_stmt());
       break;
     case token_type::kw_static:
       [[fallthrough]];
@@ -872,24 +881,24 @@ class parser final {
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
-      s = parse_var_decl();
+      d = parse_var_decl();
     }
 
     if (panic_) [[unlikely]]
       panic();
 
-    return std::move(s);
+    return std::move(d);
   }
 
   /// @brief parse_outer_decl - Parse a declaration that can appear in the
   /// global scope.
   /// @return A stmt AST node.
-  [[nodiscard]] constexpr std::unique_ptr<stmt> parse_outer_decl() noexcept {
-    std::unique_ptr<stmt> s;
+  [[nodiscard]] constexpr std::unique_ptr<decl> parse_outer_decl() noexcept {
+    std::unique_ptr<decl> d{};
 
     switch (peek().type_) {
     default:
-      s = parse_pattern_action();
+      d = parse_rule();
       break;
     case token_type::kw_auto:
       [[fallthrough]];
@@ -932,10 +941,10 @@ class parser final {
     case token_type::kw_slice:
       [[fallthrough]];
     case token_type::kw_string:
-      s = parse_var_decl();
+      d = parse_var_decl();
       break;
     case token_type::kw_function:
-      s = parse_fn_decl();
+      d = parse_fn_decl();
       break;
     }
 
@@ -943,14 +952,15 @@ class parser final {
       panic();
     }
 
-    return std::move(s);
+    return std::move(d);
   }
 
 public:
   constexpr parser(std::vector<token> tokens) : tokens_{tokens} {}
 
-  [[nodiscard]] constexpr std::vector<std::unique_ptr<stmt>> operator()() {
-    std::vector<std::unique_ptr<stmt>> ast{};
+  [[nodiscard]] constexpr std::vector<std::unique_ptr<decl>> operator()() {
+    std::vector<std::unique_ptr<decl>> ast{};
+
     for (; !match(token_type::eof);)
       ast.push_back(parse_outer_decl());
 

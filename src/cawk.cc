@@ -1,9 +1,12 @@
+#include "code_gen.h"
 #include "lexer.h"
 #include "parser.h"
+
 #include "llvm/Support/CommandLine.h"
 
 #include <concepts>
 #include <functional>
+#include <iostream>
 #include <sysexits.h>
 
 llvm::cl::opt<std::string> input_filename{
@@ -16,60 +19,13 @@ llvm::cl::opt<std::string> output_filename{
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
-  cawk::lexer l{input_filename};
-  std::ofstream out{std::empty(output_filename) ? "main.cc"
-                                                : output_filename.c_str()};
-  out << std::ifstream{"include/cawk.h"}.rdbuf();
+  std::ofstream os{std::empty(output_filename) ? "main.cc"
+                                               : output_filename.c_str()};
 
-  out << std::endl << std::endl;
+  cawk::code_gen(cawk::parser{cawk::lexer{input_filename}()}());
+  cawk::code_gen(os);
 
-  out << "namespace cawk {";
-
-  auto tree{cawk::parser{l()}()};
-  for (auto &&x : tree)
-    if (dynamic_cast<cawk::fn_decl *>(x.get()) != nullptr ||
-        dynamic_cast<cawk::var_decl *>(x.get()) != nullptr)
-      x->operator()(out);
-
-  out << std::endl << std::endl;
-
-  for (auto &&x : tree)
-    if (dynamic_cast<cawk::fn_decl *>(x.get()) != nullptr)
-      x->operator()(out);
-
-  out << std::endl << std::endl;
-
-  out << "inline void init__() noexcept {";
-
-  out << "run_begin__ = [&]() noexcept -> void {";
-  for (auto &&x : tree)
-    if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
-        dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
-            cawk::pattern_action_decl::type::begin)
-      x->operator()(out);
-  out << "};";
-
-  out << "run_mid__ = [&]() noexcept -> void {";
-  for (auto &&x : tree)
-    if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
-        dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
-            cawk::pattern_action_decl::type::mid)
-      x->operator()(out);
-  out << "};";
-
-  out << "run_end__ = [&]() noexcept -> void {";
-  for (auto &&x : tree)
-    if (dynamic_cast<cawk::pattern_action_decl *>(x.get()) != nullptr &&
-        dynamic_cast<cawk::pattern_action_decl *>(x.get())->pos_ ==
-            cawk::pattern_action_decl::type::end)
-      x->operator()(out);
-  out << "};";
-
-  out << '}';
-
-  out << '}';
-
-  out.close();
+  os.close();
 
   std::system("clang-format -style=llvm -i main.cc");
 }

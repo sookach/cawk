@@ -1041,7 +1041,6 @@ inline static constexpr struct {
 } // namespace cawk
 
 int main(int argc, char **argv) {
-  cawk::init__();
   if (argc == 2) {
     cawk::open__(argv[1]);
     cawk::run__();
