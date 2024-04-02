@@ -95,6 +95,7 @@ struct ast {
 
 /// expr - The base struct from which all expressions derive.
 struct expr : public ast {
+  enum struct type { unknown_t, numeric_t, string_t, char_t, bool_t } type_{};
   virtual ~expr() {}
 };
 

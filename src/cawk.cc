@@ -1,6 +1,7 @@
 #include "code_gen.h"
 #include "lexer.h"
 #include "parser.h"
+#include "sema.h"
 
 #include "llvm/Support/CommandLine.h"
 
