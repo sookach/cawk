@@ -68,7 +68,7 @@ concept regex__ =
 /// Predefined Variables
 
 u64 NR_{}, NF_{};
-char FS_{'1'}, RS_{'\n'};
+char FS_{' '}, RS_{'\n'};
 std::string_view FILENAME_{};
 
 i64 RSTART_{}, RLENGTH_{};
@@ -81,6 +81,49 @@ std::unordered_map<std::string, triple<char *>> file_table__{}, cmd_table__{};
 enum struct input_type__ { main__, file__, cmd__ };
 triple<char *> bytes__{};
 off_t size__{};
+
+auto positional__{[]() constexpr -> std::array<u8, 5> {
+  std::array<u8, 5> a{};
+  std::ranges::fill(a, -1);
+  return a;
+}()};
+
+inline static constexpr struct {
+  inline constexpr void operator()(int argc, char **argv) const noexcept {
+    int n{};
+
+    for (int i{1};;) {
+      if (i == argc)
+        break;
+
+      switch (argv[i][0]) {
+      default:
+        if (n == std::size(positional__)) [[unlikely]] {
+          fprintf(stderr, "Too many command line arguments (max %u)\n",
+                  std::size(positional__));
+          exit(EXIT_FAILURE);
+        }
+        positional__[n++] = i++;
+        break;
+      case '-':
+        switch (argv[i][1]) {
+        default:
+          fprintf(stderr, "Unrecognized option: %s\n", argv[i]);
+          exit(EXIT_FAILURE);
+        case 'F':
+          if (argv[i][2] == '\0' || argv[i][3] != '\0') [[unlikely]] {
+            fprintf(stderr, "Illegal FS: ");
+            for (int j{2}; argv[i][j] != '\0'; ++j)
+              fprintf(stderr, "%c", argv[i][j]);
+            fputs("", stderr);
+          }
+          FS_ = argv[i][2];
+          ++i;
+        }
+      }
+    }
+  }
+} parse_cmd_line__{};
 
 inline static constexpr struct {
   template <input_type__ T__ = input_type__::main__>
