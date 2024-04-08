@@ -132,7 +132,7 @@ constexpr void ast_code_gen::operator()(call_expr &e) {
 }
 
 constexpr void ast_code_gen::operator()(cast_expr &e) {
-  os_ << "cast__.operator<" << e.type_.lexeme_ << ">(";
+  os_ << "cast__.operator()<" << e.type_.lexeme_ << ">(";
   e.e_->operator()(this);
   os_ << ')';
 }
@@ -382,6 +382,7 @@ inline static struct {
     }
 
     if constexpr (stage == stage_label::begin) {
+      os << "namespace cawk {";
       os << "auto init_begin__ {[]() noexcept -> bool {";
       os << "cawk::run_begin__ = [&]() noexcept -> void {";
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
@@ -392,9 +393,11 @@ inline static struct {
       os << "};";
       os << "return true;";
       os << "}()};";
+      os << "}";
     }
 
     if constexpr (stage == stage_label::mid) {
+      os << "namespace cawk {";
       os << "auto init_mid__ {[]() noexcept -> bool {";
       os << "cawk::run_mid__ = [&]() noexcept -> void {";
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
@@ -405,9 +408,11 @@ inline static struct {
       os << "};";
       os << "return true;";
       os << "}()};";
+      os << "}";
     }
 
     if constexpr (stage == stage_label::end) {
+      os << "namespace cawk {";
       os << "auto init_end__ {[]() noexcept -> bool {";
       os << "cawk::run_end__ = [&]() noexcept -> void {";
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
@@ -418,6 +423,7 @@ inline static struct {
       os << "};";
       os << "return true;";
       os << "}()};";
+      os << "}";
     }
   }
 } code_gen{};

@@ -110,15 +110,30 @@ inline static constexpr struct {
         default:
           fprintf(stderr, "Unrecognized option: %s\n", argv[i]);
           exit(EXIT_FAILURE);
-        case 'F':
-          if (argv[i][2] == '\0' || argv[i][3] != '\0') [[unlikely]] {
+        case 'F': {
+          auto fs_err{[&] -> void {
             fprintf(stderr, "Illegal FS: ");
             for (int j{2}; argv[i][j] != '\0'; ++j)
               fprintf(stderr, "%c", argv[i][j]);
             fputs("", stderr);
+          }};
+
+          switch (argv[i][2]) {
+          default:
+            if (argv[i][3] != '\0')
+              fs_err();
+            FS_ = argv[i][2];
+            break;
+          case '\0':
+            fs_err();
+          case '\'':
+            if (argv[i][4] != '\'')
+              fs_err();
+            FS_ = argv[i][3];
           }
-          FS_ = argv[i][2];
+
           ++i;
+        }
         }
       }
     }
@@ -908,11 +923,18 @@ inline static constexpr struct {
   }
 } close_{};
 
+inline static constexpr struct {
+  inline auto operator()(auto &&...args__) const noexcept {
+    return printf(std::forward<decltype(args__)>(args__)...);
+  }
+} printf_{};
+
 } // namespace cawk
 
 int main(int argc, char **argv) {
-  if (argc == 2) {
-    cawk::open__(argv[1]);
+  cawk::parse_cmd_line__(argc, argv);
+  if (std::size(cawk::positional__) != 0) {
+    cawk::open__(argv[cawk::positional__.front()]);
     cawk::run__();
     cawk::close__();
   } else {

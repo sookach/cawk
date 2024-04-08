@@ -21,6 +21,8 @@ llvm::cl::opt<std::string> compiler{"c++",
                                     llvm::cl::desc{"Use <compiler> to compile"},
                                     llvm::cl::value_desc{"compiler"}};
 
+llvm::cl::opt<bool> emit_cc{"emit-cc", llvm::cl::desc{"Generate C++ code"}};
+
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
@@ -41,7 +43,8 @@ int main(int argc, char **argv) {
                                     ".cc -std=gnu++2c -o" + output_filename)
                                        .c_str())};
 
-  std::system(("rm " + output_filename + ".cc").c_str());
+  if (!emit_cc)
+    std::system(("rm " + output_filename + ".cc").c_str());
 
   exit(exit_code);
 }
