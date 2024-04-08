@@ -17,16 +17,31 @@ llvm::cl::opt<std::string> output_filename{
     "o", llvm::cl::desc{"Write output to <file>"},
     llvm::cl::value_desc{"file"}};
 
+llvm::cl::opt<std::string> compiler{"c++",
+                                    llvm::cl::desc{"Use <compiler> to compile"},
+                                    llvm::cl::value_desc{"compiler"}};
+
 int main(int argc, char **argv) {
   llvm::cl::ParseCommandLineOptions(argc, argv);
 
-  std::ofstream os{std::empty(output_filename) ? "main.cc"
-                                               : output_filename.c_str()};
+  if (std::empty(output_filename))
+    output_filename = "main";
+
+  if (std::empty(compiler))
+    compiler = "clang++";
+
+  std::ofstream os{(output_filename + ".cc").c_str()};
 
   cawk::code_gen(cawk::parser{cawk::lexer{input_filename}()}());
   cawk::code_gen(os);
 
   os.close();
 
-  std::system("clang-format -style=llvm -i main.cc");
+  const auto exit_code{std::system((compiler + " " + output_filename +
+                                    ".cc -std=gnu++2c -o" + output_filename)
+                                       .c_str())};
+
+  std::system(("rm " + output_filename + ".cc").c_str());
+
+  exit(exit_code);
 }

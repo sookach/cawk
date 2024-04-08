@@ -99,7 +99,7 @@ inline static constexpr struct {
       switch (argv[i][0]) {
       default:
         if (n == std::size(positional__)) [[unlikely]] {
-          fprintf(stderr, "Too many command line arguments (max %u)\n",
+          fprintf(stderr, "Too many command line arguments (max %zu)\n",
                   std::size(positional__));
           exit(EXIT_FAILURE);
         }
