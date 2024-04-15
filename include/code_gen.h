@@ -378,6 +378,10 @@ inline static struct {
         if (dynamic_cast<cawk::fn_decl *>(x.get()) != nullptr ||
             dynamic_cast<cawk::var_decl *>(x.get()) != nullptr)
           x->operator()(gen.get());
+
+      for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
+        if (dynamic_cast<cawk::fn_decl *>(x.get()) != nullptr)
+          x->operator()(gen.get());
       os << "}";
     }
 

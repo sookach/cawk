@@ -41,6 +41,8 @@ int main(int argc, char **argv) {
 
   os.close();
 
+  std::system(("clang-format -style=llvm -i " + args["-o"] + ".cc").c_str());
+
   const auto exit_code{std::system((args["-c++"] + " " + args["-o"] +
                                     ".cc -std=gnu++2c -o" + args["-o"].data())
                                        .c_str())};
