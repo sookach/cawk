@@ -82,8 +82,8 @@ enum struct input_type__ { main__, file__, cmd__ };
 triple<char *> bytes__{};
 off_t size__{};
 
-auto positional__{[]() constexpr -> std::array<u8, 5> {
-  std::array<u8, 5> a{};
+auto positional__{[]() consteval -> std::array<i8, 5> {
+  std::array<i8, 5> a{};
   std::ranges::fill(a, -1);
   return a;
 }()};
@@ -933,7 +933,7 @@ inline static constexpr struct {
 
 int main(int argc, char **argv) {
   cawk::parse_cmd_line__(argc, argv);
-  if (std::size(cawk::positional__) != 0) {
+  if (cawk::positional__.front() != -1) {
     cawk::open__(argv[cawk::positional__.front()]);
     cawk::run__();
     cawk::close__();

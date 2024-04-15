@@ -3,48 +3,50 @@
 #include "parser.h"
 #include "sema.h"
 
-#include "llvm/Support/CommandLine.h"
-
 #include <concepts>
 #include <functional>
 #include <iostream>
 #include <sysexits.h>
 
-llvm::cl::opt<std::string> input_filename{
-    llvm::cl::Positional, llvm::cl::desc{"<file>"}, llvm::cl::Required};
-
-llvm::cl::opt<std::string> output_filename{
-    "o", llvm::cl::desc{"Write output to <file>"},
-    llvm::cl::value_desc{"file"}};
-
-llvm::cl::opt<std::string> compiler{"c++",
-                                    llvm::cl::desc{"Use <compiler> to compile"},
-                                    llvm::cl::value_desc{"compiler"}};
-
-llvm::cl::opt<bool> emit_cc{"emit-cc", llvm::cl::desc{"Generate C++ code"}};
-
 int main(int argc, char **argv) {
-  llvm::cl::ParseCommandLineOptions(argc, argv);
+  std::vector<std::string_view> argvs{};
+  std::unordered_map<std::string_view, std::string> args{};
 
-  if (std::empty(output_filename))
-    output_filename = "main";
+  for (int i{1}; i != argc; ++i)
+    argvs.push_back(argv[i]);
 
-  if (std::empty(compiler))
-    compiler = "clang++";
+  args["-o"] = "main";
+  args["-c++"] = "c++";
 
-  std::ofstream os{(output_filename + ".cc").c_str()};
+  for (auto i{std::cbegin(argvs)}; i != std::cend(argvs);) {
+    switch (i->front()) {
+    default:
+      args["in"] = *i++;
+      break;
+    case '-':
+      if (*i == "-emit-cc") {
+        args["-emit-cc"] = "";
+        ++i;
+      } else {
+        args[*i] = *(i + 1);
+        i += 2;
+      }
+    }
+  }
 
-  cawk::code_gen(cawk::parser{cawk::lexer{input_filename}()}());
+  std::ofstream os{(args["-o"] + ".cc").c_str()};
+
+  cawk::code_gen(cawk::parser{cawk::lexer{args["in"]}()}());
   cawk::code_gen(os);
 
   os.close();
 
-  const auto exit_code{std::system((compiler + " " + output_filename +
-                                    ".cc -std=gnu++2c -o" + output_filename)
+  const auto exit_code{std::system((args["-c++"] + " " + args["-o"] +
+                                    ".cc -std=gnu++2c -o" + args["-o"].data())
                                        .c_str())};
 
-  if (!emit_cc)
-    std::system(("rm " + output_filename + ".cc").c_str());
+  if (!args.contains("-emit-cc"))
+    std::system(("rm " + args["-o"] + ".cc").c_str());
 
   exit(exit_code);
 }
