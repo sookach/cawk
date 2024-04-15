@@ -759,6 +759,7 @@ class parser final {
         next();
         [[fallthrough]];
       case token_type::kw_default:
+        break;
       }
 
       cases.push_back(

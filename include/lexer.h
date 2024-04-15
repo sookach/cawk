@@ -522,7 +522,7 @@ class lexer final {
 
 public:
   constexpr lexer(std::string_view filename) {
-    std::ifstream file{filename};
+    std::ifstream file{filename.data()};
     if (!file.good())
       exit(EXIT_FAILURE);
 
