@@ -16,7 +16,6 @@ int main(int argc, char **argv) {
     argvs.push_back(argv[i]);
 
   args["-o"] = "main";
-  args["-c++"] = "c++";
 
   for (auto i{std::cbegin(argvs)}; i != std::cend(argvs);) {
     switch (i->front()) {
@@ -43,7 +42,7 @@ int main(int argc, char **argv) {
 
   std::system(("clang-format -style=llvm -i " + args["-o"] + ".cc").c_str());
 
-  const auto exit_code{std::system((args["-c++"] + " " + args["-o"] +
+  const auto exit_code{std::system(("clang++ -stdlib=libc++ " + args["-o"] +
                                     ".cc -std=gnu++2c -o" + args["-o"].data())
                                        .c_str())};
 
