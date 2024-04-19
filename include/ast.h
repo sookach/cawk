@@ -50,7 +50,7 @@ struct switch_stmt;
 // Declaration AST node forward declarations.
 
 struct decl;
-struct block_decl;
+struct block_stmt;
 struct decl_stmt;
 struct fn_decl;
 struct rule_decl;
@@ -71,6 +71,7 @@ struct ast_visitor {
   constexpr virtual void operator()(templ &) = 0;
   constexpr virtual void operator()(templ_type &) = 0;
 
+  constexpr virtual void operator()(block_stmt &) = 0;
   constexpr virtual void operator()(break_stmt &) = 0;
   constexpr virtual void operator()(exit_stmt &) = 0;
   constexpr virtual void operator()(expr_stmt &) = 0;
@@ -81,7 +82,6 @@ struct ast_visitor {
   constexpr virtual void operator()(return_stmt &) = 0;
   constexpr virtual void operator()(switch_stmt &) = 0;
 
-  constexpr virtual void operator()(block_decl &) = 0;
   constexpr virtual void operator()(decl_stmt &) = 0;
   constexpr virtual void operator()(fn_decl &) = 0;
   constexpr virtual void operator()(rule_decl &) = 0;
@@ -106,6 +106,7 @@ struct stmt : public ast {
 
 /// decl - The base struct from which all declarations derive.
 struct decl : public ast {
+  const token iden_{};
   virtual ~decl() {}
 };
 
@@ -264,6 +265,18 @@ struct templ_type final : public ast {
   }
 };
 
+/// block_stmt - A block statement.
+struct block_stmt final : public stmt {
+  const std::vector<std::unique_ptr<decl>> body_{};
+
+  constexpr block_stmt(std::vector<std::unique_ptr<decl>> body)
+      : body_{std::move(body)} {}
+
+  constexpr virtual void operator()(ast_visitor *v) override final {
+    v->operator()(*this);
+  }
+};
+
 /// break_stmt - A break statement.
 struct break_stmt final : public stmt {
   constexpr virtual void operator()(ast_visitor *v) override final {
@@ -375,22 +388,10 @@ struct range_stmt final : public stmt {
   }
 };
 
-/// block_decl - A block declaration.
-struct block_decl final : public decl {
-  const std::vector<std::unique_ptr<decl>> body_{};
-
-  constexpr block_decl(std::vector<std::unique_ptr<decl>> body)
-      : body_{std::move(body)} {}
-
-  constexpr virtual void operator()(ast_visitor *v) override final {
-    v->operator()(*this);
-  }
-};
-
 /// switch_stmt - A switch statement.
 struct switch_stmt final : public stmt {
   std::unique_ptr<expr> e_{};
-  std::vector<std::pair<token, std::unique_ptr<block_decl>>> cases_{};
+  std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases_{};
 
   constexpr switch_stmt(std::unique_ptr<expr> e, decltype(cases_) cases)
       : e_{std::move(e)}, cases_{std::move(cases)} {}
@@ -404,12 +405,12 @@ struct switch_stmt final : public stmt {
 /// have function declarations).
 struct fn_decl final : public decl {
   const std::string iden_{};
-  const std::unique_ptr<decl> body_{};
+  const std::unique_ptr<block_stmt> body_{};
   const std::vector<std::pair<bool, std::string>> params_{};
   const bool ret_{};
   mutable bool proto_{true};
 
-  constexpr fn_decl(std::string iden, std::unique_ptr<decl> body,
+  constexpr fn_decl(std::string iden, std::unique_ptr<block_stmt> body,
                     std::vector<std::pair<bool, std::string>> params = {},
                     bool ret = false)
       : iden_{iden}, body_{std::move(body)}, params_{params}, ret_{ret} {}
@@ -422,11 +423,11 @@ struct fn_decl final : public decl {
 /// rule_decl - A rule definition.
 struct rule_decl final : public decl {
   const std::unique_ptr<expr> pattern_{};
-  const std::unique_ptr<block_decl> action_{};
+  const std::unique_ptr<block_stmt> action_{};
   const enum struct type { begin, mid, end } pos_{};
 
   constexpr rule_decl(std::unique_ptr<expr> pattern,
-                      std::unique_ptr<block_decl> action, type pos)
+                      std::unique_ptr<block_stmt> action, type pos)
       : pattern_{std::move(pattern)}, action_{std::move(action)}, pos_{pos} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {

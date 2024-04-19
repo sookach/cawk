@@ -529,7 +529,7 @@ class parser final {
       exit(EXIT_FAILURE);
 
     bool ret{match(token_type::arrow)};
-    auto body{parse_block_decl()};
+    auto body{parse_block_stmt()};
 
     return std::make_unique<fn_decl>(iden, std::move(body), params, ret);
   }
@@ -566,7 +566,7 @@ class parser final {
 
     return std::make_unique<rule_decl>(
         std::move(pattern),
-        peek().type_ == token_type::l_brace ? parse_block_decl() : nullptr,
+        peek().type_ == token_type::l_brace ? parse_block_stmt() : nullptr,
         pos);
   }
 
@@ -581,16 +581,16 @@ class parser final {
     return std::make_unique<expr_stmt>(std::move(e));
   }
 
-  /// @brief parse_block_decl - Parse a code block.
-  /// @return A block_decl ast node representing the block.
-  [[nodiscard]] std::unique_ptr<block_decl> parse_block_decl() noexcept {
+  /// @brief parse_block_stmt - Parse a code block.
+  /// @return A block_stmt ast node representing the block.
+  [[nodiscard]] std::unique_ptr<block_stmt> parse_block_stmt() noexcept {
     std::vector<std::unique_ptr<decl>> block{};
     expect(token_type::l_brace);
     for (; peek().type_ != token_type::eof &&
            peek().type_ != token_type::r_brace;)
       block.push_back(parse_inner_decl());
     expect(token_type::r_brace);
-    return std::make_unique<block_decl>(std::move(block));
+    return std::make_unique<block_stmt>(std::move(block));
   }
 
   /// @brief parse_exit_stmt - Parse an exit statement.
@@ -748,7 +748,7 @@ class parser final {
     expect(token_type::r_paren);
     expect(token_type::l_brace);
 
-    std::vector<std::pair<token, std::unique_ptr<block_decl>>> cases{};
+    std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases{};
 
     for (bool done{}; !done;) {
       switch (peek().type_) {
@@ -784,7 +784,7 @@ class parser final {
                 [[fallthrough]];
               case token_type::r_brace:
                 return std::make_pair(
-                    label, std::make_unique<block_decl>(std::move(v)));
+                    label, std::make_unique<block_stmt>(std::move(v)));
               }
             }
           }());
@@ -819,16 +819,16 @@ class parser final {
     }
   }
 
-  /// @brief parse_stmt_block - Parses both statemetns and block declarations.
+  /// @brief parse_stmt_block - Parses both statements and block declarations.
   /// @return A decl AST node.
-  [[nodiscard]] constexpr std::unique_ptr<decl> parse_stmt_block() noexcept {
-    switch (peek().type_) {
-    default:
-      return std::make_unique<decl_stmt>(parse_stmt());
-    case token_type::l_brace:
-      return parse_block_decl();
-    }
-  }
+  // [[nodiscard]] constexpr std::unique_ptr<decl> parse_stmt_block() noexcept {
+  //   switch (peek().type_) {
+  //   default:
+  //     return std::make_unique<decl_stmt>(parse_stmt());
+  //   case token_type::l_brace:
+  //     return parse_block_stmt();
+  //   }
+  // }
 
   /// @brief parse_inner_decl - Parse a declaration that can only appear
   /// in a local scope.

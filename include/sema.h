@@ -31,7 +31,7 @@ struct sema final : public ast_visitor {
   constexpr virtual void operator()(return_stmt &) override final;
   constexpr virtual void operator()(switch_stmt &) override final;
 
-  constexpr virtual void operator()(block_decl &) override final;
+  constexpr virtual void operator()(block_stmt &) override final;
   constexpr virtual void operator()(decl_stmt &) override final;
   constexpr virtual void operator()(fn_decl &) override final;
   constexpr virtual void operator()(rule_decl &) override final;
