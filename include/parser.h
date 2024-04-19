@@ -545,8 +545,8 @@ class parser final {
     default:
       pattern = parse_expr();
       // probably not the cleanest way to handle regexes but it suffices.
-      if (dynamic_cast<atom_expr *>(pattern.get()) != nullptr &&
-          dynamic_cast<atom_expr *>(pattern.get())->atom_.type_ ==
+      if (pattern->kind_ == expr::kind::atom &&
+          static_cast<atom_expr *>(pattern.get())->atom_.type_ ==
               token_type::string_literal)
         pattern = std::make_unique<binary_expr>(
             token{.type_ = token_type::tilde},

@@ -375,12 +375,11 @@ inline static struct {
     if constexpr (stage == stage_label::fn_var) {
       os << "namespace cawk {";
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
-        if (dynamic_cast<cawk::fn_decl *>(x.get()) != nullptr ||
-            dynamic_cast<cawk::var_decl *>(x.get()) != nullptr)
+        if (x->kind_ == decl::kind::var || x->kind_ == decl::kind::fn)
           x->operator()(gen.get());
 
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
-        if (dynamic_cast<cawk::fn_decl *>(x.get()) != nullptr)
+        if (x->kind_ == decl::kind::fn)
           x->operator()(gen.get());
       os << "}";
     }
@@ -390,8 +389,8 @@ inline static struct {
       os << "auto init_begin__ {[]() noexcept -> bool {";
       os << "cawk::run_begin__ = [&]() noexcept -> void {";
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
-        if (dynamic_cast<cawk::rule_decl *>(x.get()) != nullptr &&
-            dynamic_cast<cawk::rule_decl *>(x.get())->pos_ ==
+        if (x->kind_ == decl::kind::rule &&
+            static_cast<cawk::rule_decl *>(x.get())->pos_ ==
                 cawk::rule_decl::type::begin)
           x->operator()(gen.get());
       os << "};";
@@ -405,8 +404,8 @@ inline static struct {
       os << "auto init_mid__ {[]() noexcept -> bool {";
       os << "cawk::run_mid__ = [&]() noexcept -> void {";
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
-        if (dynamic_cast<cawk::rule_decl *>(x.get()) != nullptr &&
-            dynamic_cast<cawk::rule_decl *>(x.get())->pos_ ==
+        if (x->kind_ == decl::kind::rule &&
+            static_cast<cawk::rule_decl *>(x.get())->pos_ ==
                 cawk::rule_decl::type::mid)
           x->operator()(gen.get());
       os << "};";
@@ -420,8 +419,8 @@ inline static struct {
       os << "auto init_end__ {[]() noexcept -> bool {";
       os << "cawk::run_end__ = [&]() noexcept -> void {";
       for (auto gen{std::make_unique<ast_code_gen>(os)}; auto &&x : ast_)
-        if (dynamic_cast<cawk::rule_decl *>(x.get()) != nullptr &&
-            dynamic_cast<cawk::rule_decl *>(x.get())->pos_ ==
+        if (x->kind_ == decl::kind::rule &&
+            static_cast<cawk::rule_decl *>(x.get())->pos_ ==
                 cawk::rule_decl::type::end)
           x->operator()(gen.get());
       os << "};";

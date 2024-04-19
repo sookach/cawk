@@ -37,6 +37,7 @@ struct templ_type;
 // Statement AST node forward declarations.
 
 struct stmt;
+struct block_stmt;
 struct break_stmt;
 struct exit_stmt;
 struct expr_stmt;
@@ -50,7 +51,6 @@ struct switch_stmt;
 // Declaration AST node forward declarations.
 
 struct decl;
-struct block_stmt;
 struct decl_stmt;
 struct fn_decl;
 struct rule_decl;
@@ -96,6 +96,21 @@ struct ast {
 /// expr - The base struct from which all expressions derive.
 struct expr : public ast {
   enum struct type { unknown_t, numeric_t, string_t, char_t, bool_t } type_{};
+  const enum struct kind {
+    unknown,
+    atom,
+    binary,
+    call,
+    cast,
+    field,
+    grouping,
+    index,
+    init_list,
+    postfix,
+    prefix
+  } kind_{};
+
+  constexpr expr(kind k = kind::unknown) : kind_{k} {}
   virtual ~expr() {}
 };
 
@@ -106,7 +121,10 @@ struct stmt : public ast {
 
 /// decl - The base struct from which all declarations derive.
 struct decl : public ast {
+  enum struct kind { unknown, stmt, fn, rule, var } kind_{};
   const token iden_{};
+
+  constexpr decl(kind k = kind::unknown) : kind_{k} {}
   virtual ~decl() {}
 };
 
@@ -114,10 +132,10 @@ struct decl : public ast {
 struct atom_expr final : public expr {
   const token atom_{};
 
-  constexpr atom_expr(token atom) : atom_{atom} {}
+  constexpr atom_expr(token atom) : expr{kind::atom}, atom_{atom} {}
 
   constexpr atom_expr(token_type type, std::string lexeme)
-      : atom_{.type_ = type, .lexeme_ = lexeme} {}
+      : expr{kind::atom}, atom_{.type_ = type, .lexeme_ = lexeme} {}
 
   virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -132,7 +150,8 @@ struct binary_expr final : public expr {
 
   constexpr binary_expr(token op, std::unique_ptr<expr> lhs,
                         std::unique_ptr<expr> rhs)
-      : op_{op}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
+      : expr{kind::binary}, op_{op}, lhs_{std::move(lhs)},
+        rhs_{std::move(rhs)} {}
 
   virtual void operator()(ast_visitor *v) override { v->operator()(*this); }
 };
@@ -144,10 +163,10 @@ struct call_expr final : public expr {
 
   constexpr call_expr(std::unique_ptr<expr> callee,
                       std::vector<std::unique_ptr<expr>> args = {})
-      : callee_{std::move(callee)}, args_{std::move(args)} {}
+      : expr{kind::call}, callee_{std::move(callee)}, args_{std::move(args)} {}
 
   constexpr call_expr(std::unique_ptr<expr> callee, std::unique_ptr<expr> arg)
-      : callee_{std::move(callee)} {
+      : expr{kind::call}, callee_{std::move(callee)} {
     args_.push_back(std::move(arg));
   }
 
@@ -163,7 +182,7 @@ struct cast_expr final : public expr {
   const std::unique_ptr<expr> e_{};
 
   constexpr cast_expr(token type, std::unique_ptr<expr> e)
-      : type_{type}, e_{std::move(e)} {}
+      : expr{kind::cast}, type_{type}, e_{std::move(e)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -175,7 +194,8 @@ struct cast_expr final : public expr {
 struct field_expr final : public expr {
   std::unique_ptr<expr> e_{};
 
-  constexpr field_expr(std::unique_ptr<expr> e) : e_{std::move(e)} {}
+  constexpr field_expr(std::unique_ptr<expr> e)
+      : expr{kind::field}, e_{std::move(e)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -187,7 +207,8 @@ struct field_expr final : public expr {
 struct grouping_expr final : public expr {
   const std::unique_ptr<expr> e_{};
 
-  constexpr grouping_expr(std::unique_ptr<expr> e) : e_{std::move(e)} {}
+  constexpr grouping_expr(std::unique_ptr<expr> e)
+      : expr{kind::grouping}, e_{std::move(e)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -200,7 +221,7 @@ struct index_expr final : public expr {
   const std::unique_ptr<expr> rhs_{};
 
   constexpr index_expr(std::unique_ptr<expr> lhs, std::unique_ptr<expr> rhs)
-      : lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
+      : expr{kind::index}, lhs_{std::move(lhs)}, rhs_{std::move(rhs)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -210,6 +231,8 @@ struct index_expr final : public expr {
 /// init_list_expr - An initializer list '{expr1, expr2, expr3}'.
 struct init_list_expr final : public expr {
   std::vector<std::unique_ptr<expr>> init_list_{};
+
+  constexpr init_list_expr() : expr{kind::init_list} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -222,7 +245,7 @@ struct postfix_expr final : public expr {
   const std::unique_ptr<expr> lhs_{};
 
   constexpr postfix_expr(token op, std::unique_ptr<expr> lhs)
-      : op_{op}, lhs_{std::move(lhs)} {}
+      : expr{kind::prefix}, op_{op}, lhs_{std::move(lhs)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -235,7 +258,7 @@ struct prefix_expr final : public expr {
   const std::unique_ptr<expr> rhs_{};
 
   constexpr prefix_expr(token op, std::unique_ptr<expr> rhs)
-      : op_{op}, rhs_{std::move(rhs)} {}
+      : expr{kind::prefix}, op_{op}, rhs_{std::move(rhs)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -311,7 +334,8 @@ struct expr_stmt final : public stmt {
 struct decl_stmt final : public decl {
   std::unique_ptr<stmt> s_{};
 
-  constexpr decl_stmt(std::unique_ptr<stmt> s) : s_{std::move(s)} {}
+  constexpr decl_stmt(std::unique_ptr<stmt> s)
+      : decl{kind::stmt}, s_{std::move(s)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -413,7 +437,8 @@ struct fn_decl final : public decl {
   constexpr fn_decl(std::string iden, std::unique_ptr<block_stmt> body,
                     std::vector<std::pair<bool, std::string>> params = {},
                     bool ret = false)
-      : iden_{iden}, body_{std::move(body)}, params_{params}, ret_{ret} {}
+      : decl{kind::fn}, iden_{iden}, body_{std::move(body)}, params_{params},
+        ret_{ret} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -428,7 +453,8 @@ struct rule_decl final : public decl {
 
   constexpr rule_decl(std::unique_ptr<expr> pattern,
                       std::unique_ptr<block_stmt> action, type pos)
-      : pattern_{std::move(pattern)}, action_{std::move(action)}, pos_{pos} {}
+      : decl{kind::rule}, pattern_{std::move(pattern)},
+        action_{std::move(action)}, pos_{pos} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
@@ -446,17 +472,17 @@ struct var_decl final : public decl {
 
   constexpr var_decl(token type, token iden,
                      std::unique_ptr<expr> init = nullptr)
-      : type_{type}, iden_{iden}, init_{std::move(init)} {}
+      : decl{kind::var}, type_{type}, iden_{iden}, init_{std::move(init)} {}
 
   constexpr var_decl(token type, std::unique_ptr<templ> temp, token iden,
                      std::unique_ptr<expr> init = nullptr)
-      : type_{type}, temp_{std::move(temp)}, iden_{iden},
+      : decl{kind::var}, type_{type}, temp_{std::move(temp)}, iden_{iden},
         init_{std::move(init)} {}
 
   constexpr var_decl(bool is_static, token type, std::unique_ptr<templ> temp,
                      token iden, std::unique_ptr<expr> init = nullptr)
-      : is_static_{is_static}, type_{type}, temp_{std::move(temp)}, iden_{iden},
-        init_{std::move(init)} {}
+      : decl{kind::var}, is_static_{is_static}, type_{type},
+        temp_{std::move(temp)}, iden_{iden}, init_{std::move(init)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {
     v->operator()(*this);
