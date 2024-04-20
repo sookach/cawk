@@ -21,6 +21,13 @@ public:
     return nullptr;
   }
 
+  constexpr bool contains(std::string_view name) const noexcept {
+    for (auto s{this}; s != nullptr; s = s->get_parent())
+      if (s->symbols_.contains(name.data()))
+        return true;
+    return false;
+  }
+
   constexpr scope *get_parent() const noexcept { return parent_; }
 };
 } // namespace cawk
