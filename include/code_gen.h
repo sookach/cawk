@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ast.h"
+#include "cawk_code.h"
 #include "token.h"
 #include "token_type.h"
 
@@ -370,7 +371,8 @@ inline static struct {
     }
 
     if constexpr (stage == stage_label::support)
-      os << std::ifstream{"include/cawk.h"}.rdbuf();
+      for (auto &&x : cawk_code)
+        os << x << '\n';
 
     if constexpr (stage == stage_label::fn_var) {
       os << "namespace cawk {";
