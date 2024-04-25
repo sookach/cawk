@@ -18,7 +18,7 @@ namespace cawk {
 /// Parser - Interface for building an AST from a stream of tokens.
 class parser final {
   /// The stream of tokens.
-  std::vector<token> tokens_{};
+  const std::vector<token> tokens_{};
 
   /// Lookahead token index.
   std::vector<token>::size_type curr_{};
@@ -34,7 +34,7 @@ class parser final {
   /// @param i The lookahed amount (default is 0).
   /// @return The token at tokens_[curr_ + i];
   /// TODO: should probably change this to a referene
-  [[nodiscard]] __attribute__((const)) constexpr token
+  [[nodiscard]] __attribute__((__pure__)) constexpr token
   peek(std::vector<token>::size_type i = 0) const noexcept {
     return tokens_[curr_ + i];
   }
@@ -137,77 +137,79 @@ class parser final {
   /// @brief lbp - The left binding power of an operator.
   /// @param type The type of the token (a.k.a the operator type)
   /// @return an unsigned byte >= 0 representing the binding power.
-  [[nodiscard]] __attribute__((const)) static constexpr uint8_t
-  lbp(token_type type) noexcept {
-    switch (type) {
-    default:
-      return 0;
-    case token_type::equal:
-      [[fallthrough]];
-    case token_type::plusequal:
-      [[fallthrough]];
-    case token_type::minusequal:
-      [[fallthrough]];
-    case token_type::starequal:
-      [[fallthrough]];
-    case token_type::slashequal:
-      [[fallthrough]];
-    case token_type::percentequal:
-      [[fallthrough]];
-    case token_type::lesslessequal:
-      [[fallthrough]];
-    case token_type::greatergreaterequal:
-      [[fallthrough]];
-    case token_type::ampequal:
-      [[fallthrough]];
-    case token_type::caretequal:
-      [[fallthrough]];
-    case token_type::pipeequal:
-      return 1;
-    case token_type::pipepipe:
-      return 2;
-    case token_type::ampamp:
-      return 3;
-    case token_type::pipe:
-      return 4;
-    case token_type::caret:
-      return 5;
-    case token_type::amp:
-      return 6;
-    case token_type::equalequal:
-      [[fallthrough]];
-    case token_type::exclaimequal:
-      return 7;
-    case token_type::less:
-      [[fallthrough]];
-    case token_type::lessequal:
-      [[fallthrough]];
-    case token_type::greater:
-      [[fallthrough]];
-    case token_type::greaterequal:
-      return 8;
-    case token_type::tilde:
-      return 9;
-    case token_type::lessless:
-      [[fallthrough]];
-    case token_type::greatergreater:
-      return 10;
-    case token_type::plus:
-      [[fallthrough]];
-    case token_type::minus:
-      return 11;
-    case token_type::star:
-      [[fallthrough]];
-    case token_type::slash:
-      [[fallthrough]];
-    case token_type::percent:
-      return 12;
-    case token_type::starstar:
-      [[fallthrough]];
-    case token_type::slashslash:
-      return 13;
+  __attribute__((__const__)) inline static constexpr struct {
+    [[nodiscard]] __attribute__((__const__)) constexpr uint8_t
+    operator()(token_type type) const noexcept {
+      switch (type) {
+      default:
+        return 0;
+      case token_type::equal:
+        [[fallthrough]];
+      case token_type::plusequal:
+        [[fallthrough]];
+      case token_type::minusequal:
+        [[fallthrough]];
+      case token_type::starequal:
+        [[fallthrough]];
+      case token_type::slashequal:
+        [[fallthrough]];
+      case token_type::percentequal:
+        [[fallthrough]];
+      case token_type::lesslessequal:
+        [[fallthrough]];
+      case token_type::greatergreaterequal:
+        [[fallthrough]];
+      case token_type::ampequal:
+        [[fallthrough]];
+      case token_type::caretequal:
+        [[fallthrough]];
+      case token_type::pipeequal:
+        return 1;
+      case token_type::pipepipe:
+        return 2;
+      case token_type::ampamp:
+        return 3;
+      case token_type::pipe:
+        return 4;
+      case token_type::caret:
+        return 5;
+      case token_type::amp:
+        return 6;
+      case token_type::equalequal:
+        [[fallthrough]];
+      case token_type::exclaimequal:
+        return 7;
+      case token_type::less:
+        [[fallthrough]];
+      case token_type::lessequal:
+        [[fallthrough]];
+      case token_type::greater:
+        [[fallthrough]];
+      case token_type::greaterequal:
+        return 8;
+      case token_type::tilde:
+        return 9;
+      case token_type::lessless:
+        [[fallthrough]];
+      case token_type::greatergreater:
+        return 10;
+      case token_type::plus:
+        [[fallthrough]];
+      case token_type::minus:
+        return 11;
+      case token_type::star:
+        [[fallthrough]];
+      case token_type::slash:
+        [[fallthrough]];
+      case token_type::percent:
+        return 12;
+      case token_type::starstar:
+        [[fallthrough]];
+      case token_type::slashslash:
+        return 13;
+      }
     }
-  }
+  } lbp{};
 
   /// @brief nud - Null denomination handler.
   /// @return The resulting expr ast node of the handler call.
@@ -390,8 +392,8 @@ class parser final {
     }
 
     for (; lbp(peek().type_) > rbp;) {
-      auto op{peek()};
-      auto bp{[](token_type type) constexpr noexcept -> uint8_t {
+      const auto op{peek()};
+      const auto bp{[](token_type type) constexpr noexcept -> uint8_t {
         // need to discriminate between left/right associativity.
         switch (type) {
         default:
@@ -528,7 +530,7 @@ class parser final {
     if (peek().type_ == token_type::eof)
       exit(EXIT_FAILURE);
 
-    bool ret{match(token_type::arrow)};
+    const auto ret{match(token_type::arrow)};
     auto body{parse_block_stmt()};
 
     return std::make_unique<fn_decl>(iden, std::move(body), params, ret);
@@ -539,7 +541,7 @@ class parser final {
   /// rule.
   [[nodiscard]] constexpr std::unique_ptr<rule_decl> parse_rule() noexcept {
     std::unique_ptr<expr> pattern{};
-    rule_decl::type pos{rule_decl::type::mid};
+    auto pos{rule_decl::type::mid};
 
     switch (peek().type_) {
     default:
@@ -583,7 +585,8 @@ class parser final {
 
   /// @brief parse_block_stmt - Parse a code block.
   /// @return A block_stmt ast node representing the block.
-  [[nodiscard]] std::unique_ptr<block_stmt> parse_block_stmt() noexcept {
+  [[nodiscard]] constexpr std::unique_ptr<block_stmt>
+  parse_block_stmt() noexcept {
     std::vector<std::unique_ptr<decl>> block{};
     expect(token_type::l_brace);
     for (; peek().type_ != token_type::eof &&
@@ -959,7 +962,8 @@ class parser final {
 public:
   constexpr parser(std::vector<token> tokens) : tokens_{tokens} {}
 
-  [[nodiscard]] constexpr std::vector<std::unique_ptr<decl>> operator()() {
+  [[nodiscard]] constexpr std::vector<std::unique_ptr<decl>>
+  operator()() noexcept {
     std::vector<std::unique_ptr<decl>> ast{};
 
     for (; !match(token_type::eof);)

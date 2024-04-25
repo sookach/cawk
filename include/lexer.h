@@ -31,23 +31,55 @@ class lexer final {
   /// Current line the lexer is handling.
   uint16_t line_{1};
 
-  inline static constexpr struct {
+  /// @brief Checks if the given character is an alphabetic character
+  __attribute__((__const__)) inline static constexpr struct {
     [[nodiscard]] __attribute__((__const__)) inline constexpr bool
-    operator()(char x) const {
-      return std::isalpha(x) || x == '_';
+    operator()(auto c) const noexcept {
+      switch (c) {
+      default:
+        return false;
+      case 'A' ... 'Z':
+        [[fallthrough]];
+      case 'a' ... 'z':
+        return true;
+      }
     }
   } isalpha{};
 
-  inline static constexpr struct {
+  /// @brief Checks if the given character is one of the 10 decimal digits:
+  /// 0123456789.
+  __attribute__((__const__)) inline static constexpr struct {
     [[nodiscard]] __attribute__((__const__)) inline constexpr bool
-    operator()(char x) const {
-      return isalpha(x) || std::isdigit(x);
+    operator()(auto c) const noexcept {
+      switch (c) {
+      default:
+        return false;
+      case '0' ... '9':
+        return true;
+      }
+    }
+  } isdigit{};
+
+  /// @brief Checks if the given character is an alphanumeric character.
+  __attribute__((__const__)) inline static constexpr struct {
+    [[nodiscard]] __attribute__((__const__)) inline constexpr bool
+    operator()(auto c) const noexcept {
+      switch (c) {
+      default:
+        return false;
+      case 'A' ... 'Z':
+        [[fallthrough]];
+      case 'a' ... 'z':
+        [[fallthrough]];
+      case '0' ... '9':
+        return true;
+      }
     }
   } isalnum{};
 
   /// @brief end - Check if entire source was lexed.
   /// @return true if end of input, false otherwise.
-  [[nodiscard]] __attribute__((__const__)) constexpr bool end() const noexcept {
+  [[nodiscard]] __attribute__((__pure__)) constexpr bool end() const noexcept {
     return next_ == std::size(source_);
   }
 
@@ -89,7 +121,9 @@ class lexer final {
       case '\n':
         ++line_;
       case ' ':
+        [[fallthrough]];
       case '\t':
+        [[fallthrough]];
       case '\r':
         break;
       case '#':
@@ -106,7 +140,7 @@ class lexer final {
   /// @return A token with values set as described above.
   [[nodiscard]] __attribute__((const)) constexpr token
   make_token(token_type type) const {
-    return token{type, source_.substr(prev_, next_ - prev_), line_};
+    return {type, source_.substr(prev_, next_ - prev_), line_};
   }
 
   /// @brief lex_numeric_constant - Lexes a numeric constant. Handles both

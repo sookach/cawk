@@ -71,9 +71,9 @@ constexpr void sema::operator()(return_stmt &) {}
 constexpr void sema::operator()(switch_stmt &) {}
 
 constexpr void sema::operator()(block_stmt &) {
-  scope_ = new scope{scope_};
+  // scope_ = new scope{scope_};
 
-  scope_ = scope_->get_parent();
+  // scope_ = scope_->get_parent();
 }
 constexpr void sema::operator()(decl_stmt &) {}
 constexpr void sema::operator()(fn_decl &) {}
