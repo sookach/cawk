@@ -196,7 +196,7 @@ class lexer final {
   /// @brief lex_identifier - Lexes an identifier.
   /// @return The lexed identifier.
   [[nodiscard]] constexpr token lex_identifier() noexcept {
-    for (; isalnum(peek()); next())
+    for (; isalnum(peek()) || peek() == '_'; next())
       ;
     auto tok{make_token(token_type::identifier)};
     tok.lexeme_.push_back('_');
