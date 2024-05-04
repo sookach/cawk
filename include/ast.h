@@ -415,9 +415,12 @@ struct range_stmt final : public stmt {
 /// switch_stmt - A switch statement.
 struct switch_stmt final : public stmt {
   std::unique_ptr<expr> e_{};
-  std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases_{};
+  const std::vector<std::pair<std::vector<token>, std::unique_ptr<block_stmt>>>
+      cases_{};
 
-  constexpr switch_stmt(std::unique_ptr<expr> e, decltype(cases_) cases)
+  constexpr switch_stmt(
+      std::unique_ptr<expr> e,
+      std::add_rvalue_reference_t<std::remove_const_t<decltype(cases_)>> cases)
       : e_{std::move(e)}, cases_{std::move(cases)} {}
 
   constexpr virtual void operator()(ast_visitor *v) override final {

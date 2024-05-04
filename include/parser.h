@@ -751,7 +751,8 @@ class parser final {
     expect(token_type::r_paren);
     expect(token_type::l_brace);
 
-    std::vector<std::pair<token, std::unique_ptr<block_stmt>>> cases{};
+    std::vector<std::pair<std::vector<token>, std::unique_ptr<block_stmt>>>
+        cases{};
 
     for (bool done{}; !done;) {
       switch (peek().type_) {
@@ -765,32 +766,34 @@ class parser final {
         break;
       }
 
-      cases.push_back(
-          [this]() constexpr noexcept -> decltype(cases)::value_type {
-            std::vector<std::unique_ptr<decl>> v{};
-            auto label{next()};
-            expect(token_type::colon);
-            for (;;) {
-              switch (peek().type_) {
-              default:
-                v.push_back(parse_inner_decl());
-                break;
-              case token_type::kw_break:
-                next();
-                expect(token_type::semi);
-                v.push_back(std::make_unique<decl_stmt>(
-                    std::make_unique<break_stmt>()));
-                break;
-              case token_type::eof:
-                [[fallthrough]];
-              case token_type::kw_case:
-                [[fallthrough]];
-              case token_type::r_brace:
-                return std::make_pair(
-                    label, std::make_unique<block_stmt>(std::move(v)));
-              }
-            }
-          }());
+      cases.push_back([this]() constexpr noexcept
+                      -> decltype(cases)::value_type {
+        std::vector<std::unique_ptr<decl>> v{};
+        std::vector label{next()};
+        for (; match(token_type::comma); label.push_back(next()))
+          ;
+        expect(token_type::colon);
+        for (;;) {
+          switch (peek().type_) {
+          default:
+            v.push_back(parse_inner_decl());
+            break;
+          case token_type::kw_break:
+            next();
+            expect(token_type::semi);
+            v.push_back(
+                std::make_unique<decl_stmt>(std::make_unique<break_stmt>()));
+            break;
+          case token_type::eof:
+            [[fallthrough]];
+          case token_type::kw_case:
+            [[fallthrough]];
+          case token_type::r_brace:
+            return std::make_pair(std::move(label),
+                                  std::make_unique<block_stmt>(std::move(v)));
+          }
+        }
+      }());
     }
 
     expect(token_type::r_brace);

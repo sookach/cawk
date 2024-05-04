@@ -273,15 +273,23 @@ constexpr void ast_code_gen::operator()(switch_stmt &s) {
   os_ << "switch (";
   s.e_->operator()(this);
   os_ << ") {";
-  for (auto &&x : s.cases_) {
-    if (x.first.type_ != token_type::kw_default)
-      os_ << "case ";
-    if (x.first.type_ == token_type::string_literal)
-      os_ << std::hash<std::string_view>{}(x.first.lexeme_) << "ul";
-    else
-      os_ << x.first.lexeme_;
-    os_ << ":";
-    x.second->operator()(this);
+  for (auto &&[x, y] : s.cases_) {
+    auto consume_label{[this](auto &&x) constexpr noexcept -> void {
+      if (x.type_ != token_type::kw_default)
+        os_ << "case ";
+      if (x.type_ == token_type::string_literal)
+        os_ << std::hash<std::string_view>{}(x.lexeme_) << "ul";
+      else
+        os_ << x.lexeme_;
+      os_ << ":";
+    }};
+
+    for (consume_label(x.front()); auto &&z : x | std::views::drop(1)) {
+      os_ << "[[fallthrough]];";
+      consume_label(z);
+    }
+
+    y->operator()(this);
   }
   os_ << '}';
 }
