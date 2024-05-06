@@ -631,6 +631,15 @@ class parser final {
       auto var{next()};
       next();
       auto range{parse_expr()};
+      if (match(token_type::ellipsis)) {
+        std::vector<std::unique_ptr<expr>> bounds{};
+        bounds.push_back(std::move(range));
+        bounds.push_back(parse_expr());
+
+        range = std::make_unique<call_expr>(
+            std::make_unique<atom_expr>(token{.lexeme_ = "make_iota_view"}),
+            std::move(bounds));
+      }
       expect(token_type::r_paren);
       auto body{parse_stmt()};
 

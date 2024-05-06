@@ -464,7 +464,7 @@ inline static constexpr struct {
 } cast__{};
 
 inline constexpr struct {
-  __attribute__((__const__)) constexpr void operator()() const noexcept {}
+  // __attribute__((__const__)) constexpr void operator()() const noexcept {}
 
   template <typename T__, typename... Args__>
   constexpr void operator()(T__ &&x__, Args__ &&...y__) const noexcept {
@@ -546,6 +546,16 @@ operator==(std::span<char> s1__, std::string_view s2__) noexcept {
 operator==(std::span<char> s1__, std::span<char> s2__) noexcept {
   return std::ranges::equal(s1__, s2__);
 }
+
+inline static constexpr struct {
+  template <typename T1, typename T2>
+  [[nodiscard]] constexpr decltype(auto) operator()(T1 &&x,
+                                                    T2 &&y) const noexcept {
+    return std::views::iota(
+        static_cast<std::common_type_t<T1, T2>>(std::forward<T1>(x)),
+        static_cast<std::common_type_t<T1, T2>>(std::forward<T2>(y)));
+  }
+} make_iota_view{};
 
 ///
 /// Built-in Functions
