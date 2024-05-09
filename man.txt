@@ -129,28 +129,30 @@ function base(x, y) -> {
 
 # Calculates the nth element in the fibonacci sequence.
 function fib(n) -> {
-	# Will update once I implement switch statements.
-	if (n == 0)
-		return 0;
-	if (n == 1 || n == 2)
-		return 1;
-	return fib(n - 1) + fib(n - 2);
+	switch (n) {
+        default:
+	  return fib(n - 1) + fib(n - 2);
+        case 0:
+	  return 0;
+	case 1, 2: # Can put multiple cases per label
+	  return 1;
+        }
 }
 
 # Using memoization
 hmap![i32, i32] h;
 
 function fib(n) -> {
-	if (n == 0)
-		return 0;
-	if (n == 1 || n == 2)
-		return 1;
-	return fib(n - 1) + fib(n - 2);
-
-	if (h[n] == 0)
-		h[n] = fib(n - 1) + fib(n - 2);
-
-	return h[n];
+        switch (n) {
+	default:
+	  if (h[n] == 0)
+	    h[n] = fib(n - 1) + fib(n - 2);
+	  return h[n];
+        case 0:
+	  return 0;
+	case 1, 2:
+	  return 1;
+        }
 }
 
 # Heapsort
