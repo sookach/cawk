@@ -5,8 +5,10 @@
 #include "token.h"
 #include "token_type.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <ranges>
 
 namespace cawk {
 struct ast_code_gen final : public ast_visitor {
@@ -270,15 +272,16 @@ constexpr void ast_code_gen::operator()(return_stmt &s) {
 }
 
 constexpr void ast_code_gen::operator()(switch_stmt &s) {
-  os_ << "switch (";
+  os_ << "switch (switch__(";
   s.e_->operator()(this);
-  os_ << ") {";
+  os_ << ")) {";
   for (auto &&[x, y] : s.cases_) {
     auto consume_label{[this](auto &&x) constexpr noexcept -> void {
       if (x.type_ != token_type::kw_default)
         os_ << "case ";
       if (x.type_ == token_type::string_literal)
-        os_ << std::hash<std::string_view>{}(x.lexeme_) << "ul";
+        os_ << std::ranges::fold_left(
+            x.lexeme_, 0, [](auto &&x, auto &&y) -> int { return x * 37 + y; });
       else
         os_ << x.lexeme_;
       os_ << ":";

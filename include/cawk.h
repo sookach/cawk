@@ -557,6 +557,18 @@ inline static constexpr struct {
   }
 } make_iota_view{};
 
+inline static constexpr struct {
+  template <typename T>
+  [[nodiscard]] constexpr decltype(auto) operator()(T &&x) const noexcept {
+    if constexpr (std::is_convertible_v<T, std::string>)
+      return std::ranges::fold_left(
+          std::string{std::forward<T>(x)}, 0,
+          [](auto &&x, auto &&y) -> u32 { return x * 37 + y; });
+    else
+      return std::forward<T>(x);
+  }
+} switch__{};
+
 ///
 /// Built-in Functions
 ///
