@@ -21,6 +21,10 @@ int main(int argc, char **argv) {
   for (auto i{std::cbegin(argvs)}; i != std::cend(argvs);) {
     switch (i->front()) {
     default:
+      if (args.contains("in")) {
+        std::cerr << "unknown argument " << *i << std::endl;
+        exit(EXIT_FAILURE);
+      }
       args["in"] = *i++;
       break;
     case '-':
@@ -34,6 +38,8 @@ int main(int argc, char **argv) {
     }
   }
 
+  args["-o"] = args["in"].substr(0, args["in"].find('.'));
+
   std::ofstream os{(args["-o"] + ".cc").c_str()};
 
   cawk::code_gen(cawk::parser{cawk::lexer{args["in"]}()}());
@@ -41,16 +47,19 @@ int main(int argc, char **argv) {
 
   os.close();
 
-  std::system(("clang-format -style=llvm -i " + args["-o"] + ".cc").c_str());
+  int exit_code{};
+
+  exit_code = std::system(
+      ("clang-format -style=llvm -i " + args["-o"] + ".cc").c_str());
 
   if (args.contains("-cc"))
-    return;
+    exit(exit_code);
 
-  const auto exit_code{std::system(("clang++ -stdlib=libc++ " + args["-o"] +
-                                    ".cc -std=gnu++2c -o" + args["-o"].data())
-                                       .c_str())};
+  exit_code = std::system(("clang++ -stdlib=libc++ " + args["-o"] +
+                           ".cc -std=gnu++2c -o" + args["-o"].data())
+                              .c_str());
 
-  std::system(("rm " + args["-o"] + ".cc").c_str());
+  exit_code = std::system(("rm " + args["-o"] + ".cc").c_str());
 
   exit(exit_code);
 }
