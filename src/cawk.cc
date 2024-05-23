@@ -6,14 +6,15 @@
 #include <concepts>
 #include <functional>
 #include <iostream>
+#include <ranges>
 #include <sysexits.h>
 
 int main(int argc, char **argv) {
   std::vector<std::string_view> argvs{};
   std::unordered_map<std::string_view, std::string> args{};
 
-  for (int i{1}; i != argc; ++i)
-    argvs.push_back(argv[i]);
+  for (auto &&x : std::views::iota(1, argc))
+    argvs.push_back(argv[x]);
 
   args["-o"] = "main";
 

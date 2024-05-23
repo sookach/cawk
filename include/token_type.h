@@ -111,7 +111,6 @@ enum struct token_type {
   kw_print,
   kw_return,
   kw_set,
-  kw_slice,
   kw_static,
   kw_string,
   kw_struct,
@@ -123,341 +122,232 @@ enum struct token_type {
   kw_u64,
   kw_u128,
   kw_union,
+  kw_vector,
   kw_void,
 };
 
 std::ostream &operator<<(std::ostream &os, token_type t) {
   switch (t) {
   default:
-    os << "undefined token";
-    break;
+    return os << "undefined token";
   case token_type::unknown:
-    os << "unknown";
-    break;
+    return os << "unknown";
   case token_type::eof:
-    os << "eof";
-    break;
+    return os << "eof";
   case token_type::identifier:
-    os << "identifier";
-    break;
+    return os << "identifier";
   case token_type::numeric_constant:
-    os << "numeric_constant";
-    break;
+    return os << "numeric_constant";
   case token_type::char_constant:
-    os << "char_constant";
-    break;
+    return os << "char_constant";
   case token_type::string_literal:
-    os << "string_literal";
-    break;
+    return os << "string_literal";
   case token_type::l_square:
-    os << "l_square";
-    break;
+    return os << "l_square";
   case token_type::r_square:
-    os << "r_square";
-    break;
+    return os << "r_square";
   case token_type::l_paren:
-    os << "l_paren";
-    break;
+    return os << "l_paren";
   case token_type::r_paren:
-    os << "r_paren";
-    break;
+    return os << "r_paren";
   case token_type::l_brace:
-    os << "l_brace";
-    break;
+    return os << "l_brace";
   case token_type::r_brace:
-    os << "r_brace";
-    break;
+    return os << "r_brace";
   case token_type::period:
-    os << "period";
-    break;
+    return os << "period";
   case token_type::ellipsis:
-    os << "ellipsis";
-    break;
+    return os << "ellipsis";
   case token_type::amp:
-    os << "amp";
-    break;
+    return os << "amp";
   case token_type::ampamp:
-    os << "ampamp";
-    break;
+    return os << "ampamp";
   case token_type::ampequal:
-    os << "ampequal";
-    break;
+    return os << "ampequal";
   case token_type::star:
-    os << "star";
-    break;
+    return os << "star";
   case token_type::starstar:
-    os << "starstar";
-    break;
+    return os << "starstar";
   case token_type::starequal:
-    os << "starequal";
-    break;
+    return os << "starequal";
   case token_type::starstarequal:
-    os << "starstarequal";
-    break;
+    return os << "starstarequal";
   case token_type::plus:
-    os << "plus";
-    break;
+    return os << "plus";
   case token_type::plusplus:
-    os << "plusplus";
-    break;
+    return os << "plusplus";
   case token_type::plusequal:
-    os << "plusequal";
-    break;
+    return os << "plusequal";
   case token_type::minus:
-    os << "minus";
-    break;
+    return os << "minus";
   case token_type::arrow:
-    os << "arrow";
-    break;
+    return os << "arrow";
   case token_type::minusminus:
-    os << "minusminus";
-    break;
+    return os << "minusminus";
   case token_type::minusequal:
-    os << "minusequal";
-    break;
+    return os << "minusequal";
   case token_type::tilde:
-    os << "tilde";
-    break;
+    return os << "tilde";
   case token_type::exclaim:
-    os << "exclaim";
-    break;
+    return os << "exclaim";
   case token_type::exclaimequal:
-    os << "exclaimequal";
-    break;
+    return os << "exclaimequal";
   case token_type::exclaiml_square:
-    os << "exclaiml_square";
-    break;
+    return os << "exclaiml_square";
   case token_type::slash:
-    os << "slash";
-    break;
+    return os << "slash";
   case token_type::slashslash:
-    os << "slashslash";
-    break;
+    return os << "slashslash";
   case token_type::slashequal:
-    os << "slashequal";
-    break;
+    return os << "slashequal";
   case token_type::slashslashequal:
-    os << "slashslashequal";
-    break;
+    return os << "slashslashequal";
   case token_type::percent:
-    os << "percent";
-    break;
+    return os << "percent";
   case token_type::percentequal:
-    os << "percentequal";
-    break;
+    return os << "percentequal";
   case token_type::less:
-    os << "less";
-    break;
+    return os << "less";
   case token_type::lessless:
-    os << "lessless";
-    break;
+    return os << "lessless";
   case token_type::lessequal:
-    os << "lessequal";
-    break;
+    return os << "lessequal";
   case token_type::lesslessequal:
-    os << "lesslessequal";
-    break;
+    return os << "lesslessequal";
   case token_type::spaceship:
-    os << "spaceship";
-    break;
+    return os << "spaceship";
   case token_type::greater:
-    os << "greater";
-    break;
+    return os << "greater";
   case token_type::greatergreater:
-    os << "greatergreater";
-    break;
+    return os << "greatergreater";
   case token_type::greaterequal:
-    os << "greaterequal";
-    break;
+    return os << "greaterequal";
   case token_type::greatergreaterequal:
-    os << "greatergreaterequal";
-    break;
+    return os << "greatergreaterequal";
   case token_type::caret:
-    os << "caret";
-    break;
+    return os << "caret";
   case token_type::caretequal:
-    os << "caretequal";
-    break;
+    return os << "caretequal";
   case token_type::pipe:
-    os << "pipe";
-    break;
+    return os << "pipe";
   case token_type::pipepipe:
-    os << "pipepipe";
-    break;
+    return os << "pipepipe";
   case token_type::pipeequal:
-    os << "pipeequal";
-    break;
+    return os << "pipeequal";
   case token_type::question:
-    os << "question";
-    break;
+    return os << "question";
   case token_type::colon:
-    os << "colon";
-    break;
+    return os << "colon";
   case token_type::semi:
-    os << "semi";
-    break;
+    return os << "semi";
   case token_type::equal:
-    os << "equal";
-    break;
+    return os << "equal";
   case token_type::equalequal:
-    os << "equalequal";
-    break;
+    return os << "equalequal";
   case token_type::comma:
-    os << "comma";
-    break;
+    return os << "comma";
   case token_type::hash:
-    os << "hash";
-    break;
+    return os << "hash";
   case token_type::hashhash:
-    os << "hashhash";
-    break;
+    return os << "hashhash";
   case token_type::hashat:
-    os << "hashat";
-    break;
+    return os << "hashat";
   case token_type::dollar:
-    os << "dollar";
-    break;
+    return os << "dollar";
   case token_type::kw_auto:
-    os << "kw_auto";
-    break;
+    return os << "kw_auto";
   case token_type::kw_begin:
-    os << "kw_begin";
-    break;
+    return os << "kw_begin";
   case token_type::kw_bool:
-    os << "kw_bool";
-    break;
+    return os << "kw_bool";
   case token_type::kw_break:
-    os << "kw_break";
-    break;
+    return os << "kw_break";
   case token_type::kw_case:
-    os << "kw_case";
-    break;
+    return os << "kw_case";
   case token_type::kw_char:
-    os << "kw_char";
-    break;
+    return os << "kw_char";
   case token_type::kw_const:
-    os << "kw_const";
-    break;
+    return os << "kw_const";
   case token_type::kw_continue:
-    os << "kw_continue";
-    break;
+    return os << "kw_continue";
   case token_type::kw_default:
-    os << "kw_default";
-    break;
+    return os << "kw_default";
   case token_type::kw_else:
-    os << "kw_else";
-    break;
+    return os << "kw_else";
   case token_type::kw_end:
-    os << "kw_end";
-    break;
+    return os << "kw_end";
   case token_type::kw_enum:
-    os << "kw_enum";
-    break;
+    return os << "kw_enum";
   case token_type::kw_exit:
-    os << "kw_exit";
-    break;
+    return os << "kw_exit";
   case token_type::kw_extern:
-    os << "kw_extern";
-    break;
+    return os << "kw_extern";
   case token_type::kw_f32:
-    os << "kw_f32";
-    break;
+    return os << "kw_f32";
   case token_type::kw_f64:
-    os << "kw_f64";
-    break;
+    return os << "kw_f64";
   case token_type::kw_false:
-    os << "kw_false";
-    break;
+    return os << "kw_false";
   case token_type::kw_for:
-    os << "kw_for";
-    break;
+    return os << "kw_for";
   case token_type::kw_function:
-    os << "kw_function";
-    break;
+    return os << "kw_function";
   case token_type::kw_getline:
-    os << "kw_getline";
-    break;
+    return os << "kw_getline";
   case token_type::kw_goto:
-    os << "kw_goto";
-    break;
+    return os << "kw_goto";
   case token_type::kw_hmap:
-    os << "kw_hmap";
-    break;
+    return os << "kw_hmap";
   case token_type::kw_hset:
-    os << "kw_hset";
-    break;
+    return os << "kw_hset";
   case token_type::kw_i8:
-    os << "kw_i8";
-    break;
+    return os << "kw_i8";
   case token_type::kw_i16:
-    os << "kw_i16";
-    break;
+    return os << "kw_i16";
   case token_type::kw_i32:
-    os << "kw_i32";
-    break;
+    return os << "kw_i32";
   case token_type::kw_i64:
-    os << "kw_i64";
-    break;
+    return os << "kw_i64";
   case token_type::kw_i128:
-    os << "kw_i128";
-    break;
+    return os << "kw_i128";
   case token_type::kw_if:
-    os << "kw_if";
-    break;
+    return os << "kw_if";
   case token_type::kw_in:
-    os << "kw_in";
-    break;
+    return os << "kw_in";
   case token_type::kw_map:
-    os << "kw_map";
-    break;
+    return os << "kw_map";
   case token_type::kw_print:
-    os << "kw_print";
-    break;
+    return os << "kw_print";
   case token_type::kw_return:
-    os << "kw_return";
-    break;
+    return os << "kw_return";
   case token_type::kw_set:
-    os << "kw_set";
-    break;
-  case token_type::kw_slice:
-    os << "kw_slice";
-    break;
+    return os << "kw_set";
   case token_type::kw_static:
-    os << "kw_static";
-    break;
+    return os << "kw_static";
   case token_type::kw_string:
-    os << "kw_string";
-    break;
+    return os << "kw_string";
   case token_type::kw_struct:
-    os << "kw_struct";
-    break;
+    return os << "kw_struct";
   case token_type::kw_switch:
-    os << "kw_switch";
-    break;
+    return os << "kw_switch";
   case token_type::kw_true:
-    os << "kw_true";
-    break;
+    return os << "kw_true";
   case token_type::kw_u8:
-    os << "kw_u8";
-    break;
+    return os << "kw_u8";
   case token_type::kw_u16:
-    os << "kw_u16";
-    break;
+    return os << "kw_u16";
   case token_type::kw_u32:
-    os << "kw_u32";
-    break;
+    return os << "kw_u32";
   case token_type::kw_u64:
-    os << "kw_u64";
-    break;
+    return os << "kw_u64";
   case token_type::kw_u128:
-    os << "kw_u128";
-    break;
+    return os << "kw_u128";
   case token_type::kw_union:
-    os << "kw_union";
-    break;
+    return os << "kw_union";
+  case token_type::kw_vector:
+    return os << "kw_vector";
   case token_type::kw_void:
-    os << "kw_void";
-    break;
+    return os << "kw_void";
   }
 
   return os;

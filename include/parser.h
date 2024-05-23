@@ -126,7 +126,7 @@ class parser final {
         //     [[fallthrough]];
         //   case token_type::kw_set:
         //     [[fallthrough]];
-        //   case token_type::kw_slice:
+        //   case token_type::kw_vector:
         //     [[fallthrough]];
         //   case token_type::kw_string:
         return;
@@ -462,7 +462,7 @@ class parser final {
         [[fallthrough]];
       case token_type::kw_set:
         [[fallthrough]];
-      case token_type::kw_slice:
+      case token_type::kw_vector:
         return std::make_unique<templ_type>(type, parse_template());
       }
     }};
@@ -497,11 +497,12 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];
-    case token_type::kw_slice:
+    case token_type::kw_vector:
       temp = parse_template();
     }
 
-    const auto iden{next()};
+    const auto iden{peek()};
+    expect(token_type::identifier);
     auto init{match(token_type::equal) ? parse_expr() : nullptr};
 
     if (expect_semi)
@@ -695,7 +696,7 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];
-    case token_type::kw_slice:
+    case token_type::kw_vector:
       [[fallthrough]];
     case token_type::kw_string:
       init = parse_var_decl();
@@ -713,12 +714,14 @@ class parser final {
 
   /// @brief parse_print_stmt - Parse a print statement.
   /// @return A print_stmt AST node.
-  [[nodiscard]] constexpr std::unique_ptr<print_stmt>
+  [[nodiscard]] constexpr std::unique_ptr<expr_stmt>
   parse_print_stmt() noexcept {
     expect(token_type::kw_print);
 
     if (match(token_type::semi))
-      return std::make_unique<print_stmt>();
+      return std::make_unique<expr_stmt>(std::make_unique<call_expr>(
+          std::make_unique<atom_expr>(token{.lexeme_ = "print__"}),
+          std::make_unique<atom_expr>(token{.lexeme_ = ""})));
 
     std::vector<std::unique_ptr<expr>> args{};
     args.push_back(parse_expr());
@@ -728,7 +731,9 @@ class parser final {
 
     expect(token_type::semi);
 
-    return std::make_unique<print_stmt>(std::move(args));
+    return std::make_unique<expr_stmt>(std::make_unique<call_expr>(
+        std::make_unique<atom_expr>(token{.lexeme_ = "print__"}),
+        std::move(args)));
   }
 
   /// @brief parse_return_stmt - Parse a return statement.
@@ -896,7 +901,7 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];
-    case token_type::kw_slice:
+    case token_type::kw_vector:
       [[fallthrough]];
     case token_type::kw_string:
       d = parse_var_decl();
@@ -956,7 +961,7 @@ class parser final {
       [[fallthrough]];
     case token_type::kw_set:
       [[fallthrough]];
-    case token_type::kw_slice:
+    case token_type::kw_vector:
       [[fallthrough]];
     case token_type::kw_string:
       d = parse_var_decl();

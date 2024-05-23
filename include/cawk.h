@@ -10,6 +10,7 @@
 #include <fstream>
 #include <functional>
 #include <iostream>
+#include <print>
 #include <random>
 #include <ranges>
 #include <regex>
@@ -45,12 +46,10 @@ using u128 = __uint128_t;
 using f32 = float;
 using f64 = double;
 
-using std::string;
-
-template <typename T__> using slice = std::vector<T__>;
-
 using std::map;
 using std::set;
+using std::string;
+using std::vector;
 
 template <typename T__> using hset = std::unordered_set<T__>;
 
@@ -334,9 +333,10 @@ inline static constexpr struct {
   }
 
   [[nodiscard]] __attribute__((pure)) inline constexpr auto
-  operator()(auto &&x__, regex__ auto &&y__) const noexcept -> std::enable_if_t<
-      std::is_same_v<std::remove_cvref_t<decltype(x__)>, std::span<char>>,
-      bool> {
+  operator()(auto &&x__, regex__ auto &&y__) const noexcept
+      -> std::enable_if_t<
+          std::is_same_v<std::remove_cvref_t<decltype(x__)>, std::span<char>>,
+          bool> {
     return std::regex_search(string{std::cbegin(x__), std::cend(x__)},
                              std::regex{y__});
   }
@@ -468,42 +468,42 @@ inline constexpr struct {
 
   template <typename T__, typename... Args__>
   constexpr void operator()(T__ &&x__, Args__ &&...y__) const noexcept {
-    if constexpr (sizeof...(y__) == 1)
-      std::cout << x__;
+    if constexpr (sizeof...(y__) == 0)
+      std::cout << std::format("{}\n", std::forward<T__>(x__));
     else {
-      std::cout << x__ << ' ';
+      std::cout << std::format("{} ", x__);
       this->operator()(y__...);
     }
   }
 } print__{};
 
 template <typename T__>
-[[nodiscard]] auto operator+=(slice<T__> &s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+=(vector<T__> &s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
-                        slice<T__> &> {
+                        vector<T__> &> {
   s__.push_back(std::forward<decltype(v__)>(v__));
   return s__;
 }
 
 template <typename T__>
-[[nodiscard]] auto operator+=(slice<T__> &&s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+=(vector<T__> &&s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
-                        slice<T__> &&> {
+                        vector<T__> &&> {
   s__.push_back(std::forward<decltype(v__)>(v__));
   return std::move(s__);
 }
 
 template <typename T__>
-[[nodiscard]] auto operator+(slice<T__> &s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+(vector<T__> &s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
-                        slice<T__> &> {
+                        vector<T__> &> {
   return s__ + std::forward<decltype(v__)>(v__);
 }
 
 template <typename T__>
-[[nodiscard]] auto operator+(slice<T__> &&s__, auto &&v__) noexcept
+[[nodiscard]] auto operator+(vector<T__> &&s__, auto &&v__) noexcept
     -> std::enable_if_t<std::is_same_v<std::remove_cvref_t<decltype(v__)>, T__>,
-                        slice<T__> &&> {
+                        vector<T__> &&> {
   return std::move(s__) + std::forward<decltype(v__)>(v__);
 }
 
@@ -757,7 +757,7 @@ inline static constexpr struct {
   constexpr void operator()(auto &&string__, auto &&array__,
                             auto &&fieldsep__) const noexcept
     requires std::__is_same_uncvref<decltype(string__), string>::value
-             && std::__is_same_uncvref<decltype(array__), slice<string>>::value
+             && std::__is_same_uncvref<decltype(array__), vector<string>>::value
              && std::__is_same_uncvref<decltype(fieldsep__), char>::value
   {
     auto first__{std::cbegin(string__)}, next__{std::cbegin(string__)};
@@ -779,7 +779,7 @@ inline static constexpr struct {
 
   constexpr void operator()(auto &&string__, auto &&array__) const noexcept
     requires std::__is_same_uncvref<decltype(string__), string>::value
-             && std::__is_same_uncvref<decltype(array__), slice<string>>::value
+             && std::__is_same_uncvref<decltype(array__), vector<string>>::value
   {
     auto first__{std::cbegin(string__)}, next__{std::cbegin(string__)};
     for (; first__ != std::cend(string__);) {

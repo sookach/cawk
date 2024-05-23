@@ -504,8 +504,6 @@ class lexer final {
       switch (peek()) {
       default:
         return lex_keyword("et", token_type::kw_set);
-      case 'l':
-        return lex_keyword("lice", token_type::kw_slice);
       case 't':
         switch (next(); peek()) {
         case 'a':
@@ -546,7 +544,7 @@ class lexer final {
     case 'v':
       switch (peek()) {
       default:
-        return lex_identifier();
+        return lex_keyword("ector", token_type::kw_vector);
       case 'o':
         next();
         return lex_keyword("id", token_type::kw_void);
