@@ -24,8 +24,8 @@ int main(int argc, char **argv) {
       args["in"] = *i++;
       break;
     case '-':
-      if (*i == "-emit-cc") {
-        args["-emit-cc"] = "";
+      if (*i == "-cc") {
+        args["-cc"] = "";
         ++i;
       } else {
         args[*i] = *(i + 1);
@@ -43,12 +43,14 @@ int main(int argc, char **argv) {
 
   std::system(("clang-format -style=llvm -i " + args["-o"] + ".cc").c_str());
 
+  if (args.contains("-cc"))
+    return;
+
   const auto exit_code{std::system(("clang++ -stdlib=libc++ " + args["-o"] +
                                     ".cc -std=gnu++2c -o" + args["-o"].data())
                                        .c_str())};
 
-  if (!args.contains("-emit-cc"))
-    std::system(("rm " + args["-o"] + ".cc").c_str());
+  std::system(("rm " + args["-o"] + ".cc").c_str());
 
   exit(exit_code);
 }
