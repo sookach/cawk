@@ -831,6 +831,8 @@ class parser final {
       return parse_break_stmt();
     case token_type::kw_switch:
       return parse_switch_stmt();
+    case token_type::l_brace:
+      return parse_block_stmt();
     }
   }
 
