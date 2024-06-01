@@ -88,6 +88,8 @@ class Parser {
 
   bool Token(TokenKind) { return true; }
 
+  TokenKind Peek() { return CurrTok; }
+
   void NextTok() {}
 
   void Expect(TokenKind) {}
@@ -101,24 +103,31 @@ class Parser {
       ;
   }
 
-  bool Program() { return Pas() || Error(); }
+  void Program() { Pas(); }
 
-  bool And() { return Token(TK_AmpAmp) || And() && Nl(); }
-
-  bool Bor() { return Token(TK_PipePipe) || Bor() && Nl(); }
-
-  bool Comma() { return Token(TK_Comma) || Comma() && Nl(); }
-
-  bool Do() {
-    Expect(TK_Do);
+  void And() {
+    Expect(TK_AmpAmp);
     SkipNewLine();
-    return true;
   }
 
-  bool Else() {
+  void Bor() {
+    Expect(TK_PipePipe);
+    SkipNewLine();
+  }
+
+  void Comma() {
+    Expect(TK_Comma);
+    SkipNewLine();
+  }
+
+  void Do() {
+    Expect(TK_Do);
+    SkipNewLine();
+  }
+
+  void Else() {
     Expect(TK_Else);
     SkipNewLine();
-    return true;
   }
 
   bool For() {
@@ -171,28 +180,72 @@ class Parser {
 
   bool OptNl() { return Empty() || Nl(); }
 
-  bool OptPst() { return Empty() || Pst(); }
+  void Pas() {
+    Pst();
 
-  bool OptSimpleStmt() { return Empty() || SimpleStmt(); }
-
-  bool Pas() { return OptPst() || OptPst() && PaStats() && OptPst(); }
+    // Maybe
+    PaStats();
+    Pst();
+  }
 
   bool PaPat() { return Pattern(); }
 
   bool PaStat() {
-    return PaPat() || PaPat() && LBrace() && StmtList() && Token(TK_RBrace) ||
-           PaPat() && Token(TK_Comma) && OptNl() && PaPat() ||
-           PaPat() && Token(TK_Comma) && OptNl() && PaPat() && LBrace() &&
-               StmtList() && Token(TK_RBrace) ||
-           LBrace() && StmtList() && Token(TK_RBrace) ||
-           Token(TK_Begin) && LBrace() && StmtList() && RBrace() ||
-           Token(TK_End) && LBrace() && StmtList() && RBrace() ||
-           (Token(TK_Function) || Token(TK_Func)) && FuncName() &&
-               Token(TK_LParen) && VarList() && RParen() && LBrace() &&
-               StmtList() && Token(TK_RBrace);
+    switch (CurrTok) {
+    default:
+      break;
+    case TK_LBrace:
+      LBrace();
+      StmtList();
+      Expect(TK_RBrace);
+      break;
+    case TK_Begin:
+      Expect(TK_Begin);
+      LBrace();
+      StmtList();
+      Expect(TK_RBrace);
+      break;
+    case TK_End:
+      Expect(TK_End);
+      LBrace();
+      StmtList();
+      Expect(TK_RBrace);
+      break;
+    case TK_Func:
+    case TK_Function:
+      NextTok();
+      Expect(TK_Identifier);
+      Expect(TK_LParen);
+      VarList();
+      RParen();
+      LBrace();
+      StmtList();
+      Expect(TK_RBrace);
+    }
+
+    Pattern();
+
+    switch (CurrTok) {
+    default:
+      break;
+    case TK_LBrace:
+      LBrace();
+      StmtList();
+      Expect(TK_RBrace);
+      break;
+    case TK_Comma:
+      Expect(TK_Comma);
+      SkipNewLine();
+      Pattern();
+      if (CurrTok != TK_LBrace)
+        break;
+      LBrace();
+      StmtList();
+      Expect(TK_RBrace);
+    }
   }
 
-  bool PaStats() { return PaStat() || PaStats() && OptPst() && PaStat(); }
+  bool PaStats() { return PaStat() || PaStats() && Pst() && PaStat(); }
 
   bool PatList() { return Pattern() || PatList() && Comma() && Pattern(); }
 
@@ -205,8 +258,66 @@ class Parser {
   bool MATCHOP() { return Token(TK_Tilde) || Token(TK_ExclaimTilde); }
 
   bool PPattern() {
-    return Var() && ASGNOP() && PPattern() ||
-           PPattern() && Token(TK_Question) && PPattern() && Token(TK_Colon) &&
+    switch (CurrTok) {
+    default:
+      break;
+    case TK_Identifier:
+      Expect(TK_Identifier);
+      ASGNOP();
+      PPattern();
+      break;
+    case TK_LParen:
+      Expect(TK_LParen);
+      PList();
+      Expect(TK_RParen);
+      Expect(TK_In);
+      Expect(TK_Identifier);
+    }
+
+    PPattern();
+
+    switch (CurrTok) {
+    default:
+      break;
+    case TK_Question:
+      Expect(TK_Question);
+      PPattern();
+      Expect(TK_Colon);
+      PPattern();
+      break;
+    case TK_PipePipe:
+      Bor();
+      PPattern();
+      break;
+    case TK_AmpAmp:
+      And();
+      PPattern();
+      break;
+    case TK_Tilde:
+    case TK_ExclaimTilde:
+      NextTok();
+      if (Peek() == TK_Slash) {
+        RegExpr();
+      } else {
+        PPattern();
+      }
+      break;
+    case TK_In:
+      Expect(TK_In);
+      VarName();
+    case TK_LParen:
+      Expect(TK_LParen);
+      PList();
+      Expect(TK_RParen);
+      Expect(TK_In);
+      VarName();
+      break;
+    case (TK_Exclaim):
+    case (TK_Slash):
+      Re();
+    }
+
+    return PPattern() && Token(TK_Question) && PPattern() && Token(TK_Colon) &&
                PPattern() /* prec ? */
            || PPattern() && Bor() && PPattern() /* prec BOR */ ||
            PPattern() && And() && PPattern() /* prec AND */ ||
@@ -222,8 +333,8 @@ class Parser {
     return Var() && ASGNOP() && Pattern() ||
            Pattern() && Token(TK_Question) && Pattern() && Token(TK_Colon) &&
                Pattern() /* prec ? */
-           || Bor() && Pattern() /* prec BOR */ ||
-           And() && Pattern() /* prec AND */ ||
+           || Pattern() && Bor() && Pattern() /* prec BOR */ ||
+           Pattern() && And() && Pattern() /* prec AND */ ||
            Pattern() && Token(TK_EqualEqual) && Pattern() ||
            Pattern() && Token(TK_GreaterEqual) && Pattern() ||
            Pattern() && Token(TK_Greater) && Pattern() ||
@@ -241,27 +352,31 @@ class Parser {
            || Re() || Term();
   }
 
-  bool PList() {
-    return Pattern() && Comma() && Pattern() || PList() && Comma() && Pattern();
+  void PList() {
+    Pattern();
+    for (; Token(TK_Comma);)
+      Pattern();
   }
 
-  bool PPList() { return PPattern() || PPList() && Comma() && PPattern(); }
+  void PPList() {
+    PPattern();
+    for (; Token(TK_Comma);)
+      PPattern();
+  }
 
-  bool PrArg() {
-    return Empty() || PPList() ||
-           Token(TK_LParen) && PPList() && Token(TK_RParen);
+  void PrArg() {
+    if (Token(TK_LParen)) {
+      PPList();
+      Expect(TK_RParen);
+    } else
+      PPList();
   }
 
   bool Print() { return Token(TK_Print) || Token(TK_Printf); }
 
-  bool Pst() {
-    switch (CurrTok) {
-    default:
-      return Pst() && (Token(TK_NewLine) || Token(TK_Semi));
-    case TokenKind::TK_NewLine:
-    case TokenKind::TK_Semi:
-      return true;
-    }
+  void Pst() {
+    for (; Token(TK_NewLine) || Token(TK_Semi);)
+      ;
   }
 
   bool RBrace() {
@@ -326,7 +441,9 @@ class Parser {
   void Stmt() {
     switch (CurrTok) {
     default:
-      Error();
+      SimpleStmt();
+      St();
+      break;
     case TK_Break:
     case TK_Continue:
     case TK_Next:
@@ -384,6 +501,14 @@ class Parser {
 
   bool POWER() { return Token(TK_StarStar) || Token(TK_Caret); }
 
+  void NUD() {
+    switch (CurrTok) {}
+  }
+
+  int LBP() {}
+
+  void Expr(int RBP = 0) { NUD(); }
+
   bool Term() {
     return Term() && Token(TK_Slash) && ASGNOP() && Term() ||
            Term() && Token(TK_Plus) && Term() ||
@@ -440,9 +565,12 @@ class Parser {
            Var();
   }
 
-  bool Var() {
-    return VarName() ||
-           VarName() && Token(TK_LSquare) && PatList() && Token(TK_RSquare);
+  void Var() {
+    Expect(TK_Identifier);
+    if (Token(TK_LSquare)) {
+      PatList();
+      Expect(TK_RSquare);
+    }
   }
 
   bool VarList() {
@@ -452,6 +580,9 @@ class Parser {
   bool VarName() { return Token(TK_Identifier); }
 
   bool While() {
-    return Token(TK_While) && Token(TK_LParen) && Pattern() && RParen();
+    Expect(TK_While);
+    Expect(TK_LParen);
+    Pattern();
+    RParen();
   }
 };
