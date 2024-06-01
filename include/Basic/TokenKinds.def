@@ -81,7 +81,6 @@ KEYWORD(getline                     , KEYA
 KEYWORD(gsub                        , KEYALL)
 KEYWORD(in                          , KEYALL)
 KEYWORD(index                       , KEYALL)
-KEYWORD(index                       , KEYALL)
 KEYWORD(if                          , KEYALL)
 KEYWORD(match                       , KEYALL)
 KEYWORD(next                        , KEYALL)
