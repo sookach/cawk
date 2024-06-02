@@ -49,6 +49,8 @@ FunctionDecl *Parser::ParseFunctionDecl() {
 CompoundStmt *Parser::ParseCompoundStmt() {
   Expect(tok::l_brace);
 
+  std::vector<Stmt *> Body;
+
   Expect(tok::r_brace);
 
   return nullptr;

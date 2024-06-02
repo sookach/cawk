@@ -62,5 +62,8 @@ private:
   RuleDecl *ParseRuleDecl();
   FunctionDecl *ParseFunctionDecl();
   CompoundStmt *ParseCompoundStmt();
+  Stmt *ParseStmt();
+
+
 };
 } // namespace cawk
