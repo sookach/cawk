@@ -23,7 +23,9 @@ public:
 #undef KEYWORD
   }
 
-  void Next(Token &);
+  void Next(Token &, bool = false);
+
+  void Reset(std::string_view::const_iterator);
 
 private:
   void FormToken(Token &, std::string_view::const_iterator, tok::TokenKind);

@@ -66,6 +66,7 @@ PUNCTUATOR(equalequal,          "==")
 PUNCTUATOR(comma,               ",")
 PUNCTUATOR(hash,                "#")
 PUNCTUATOR(dollar,              "$")
+PUNCTUATOR(newline,             "\n")
 
 KEYWORD(BEGIN                       , KEYALL)
 KEYWORD(break                       , KEYALL)

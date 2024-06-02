@@ -11,7 +11,7 @@ inline bool IsWhitespace(char c) {
   case '\f':
   case '\v':
   case '\r':
-  case '\n':
+    //  case '\n': Newline have syntactically important in AWK
     return true;
   }
 }
@@ -37,7 +37,9 @@ inline bool IsLetter(char c) {
 } // namespace charinfo
 
 namespace cawk {
-void Lexer::Next(Token &T) {
+void Lexer::Reset(std::string_view::const_iterator Ptr) { BufferPtr = Ptr; }
+
+void Lexer::Next(Token &T, bool Regex) {
   for (; BufferPtr != BufferEnd && charinfo::IsWhitespace(*BufferPtr);
        ++BufferPtr)
     ;
@@ -51,12 +53,10 @@ void Lexer::Next(Token &T) {
     auto End = BufferPtr + 1;
     for (; charinfo::IsLetter(*End); ++End)
       ;
-
     std::string_view Name(BufferPtr, End);
-    tok::TokenKind Kind = tok::identifier;
-
+    tok::TokenKind Kind =
+        Keywords.contains(Name) ? Keywords.at(Name) : tok::identifier;
     FormToken(T, End, Kind);
-
     return;
   }
 
@@ -64,13 +64,28 @@ void Lexer::Next(Token &T) {
     auto End = BufferPtr + 1;
     for (; charinfo::IsDigit(*End); ++End)
       ;
-
     if (*BufferPtr == '.')
       for (++BufferPtr; charinfo::IsDigit(*BufferPtr); ++BufferPtr)
         ;
-
     FormToken(T, End, tok::numeric_constant);
+    return;
+  }
 
+  if (*BufferPtr == '"') {
+    auto End = BufferPtr + 1;
+    for (; End != BufferEnd && *End != '"'; ++End)
+      if (*End == '\\')
+        ++End;
+    FormToken(T, End + 1, tok::string_literal);
+    return;
+  }
+
+  if (*BufferPtr == '/' && Regex) {
+    auto End = BufferPtr + 1;
+    for (; End != BufferEnd && *End != '/'; ++End)
+      if (*End == '\\')
+        ++End;
+    FormToken(T, End + 1, tok::regex_literal);
     return;
   }
 
@@ -90,6 +105,7 @@ void Lexer::Next(Token &T) {
     CASE('$', tok::dollar);
     CASE('/', tok::slash);
     CASE('~', tok::tilde);
+    CASE('\n', tok::newline);
 #undef CASE
   case '&':
     if (*(BufferPtr + 1) == '&')
@@ -170,10 +186,6 @@ void Lexer::Next(Token &T) {
   default:
     FormToken(T, BufferPtr + 1, tok::unknown);
   }
-}
-
-void Lexer::Identifier(Token &T) {
-
 }
 
 } // namespace cawk
