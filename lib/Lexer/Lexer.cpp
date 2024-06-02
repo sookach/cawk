@@ -37,7 +37,14 @@ inline bool IsLetter(char c) {
 } // namespace charinfo
 
 namespace cawk {
-void Lexer::Reset(std::string_view::const_iterator Ptr) { BufferPtr = Ptr; }
+
+std::string_view::const_iterator Lexer::GetBufferPtr() const {
+  return BufferPtr;
+}
+
+void Lexer::SetBufferPtr(std::string_view::const_iterator Ptr) {
+  BufferPtr = Ptr;
+}
 
 void Lexer::Next(Token &T, bool Regex) {
   for (; BufferPtr != BufferEnd && charinfo::IsWhitespace(*BufferPtr);

@@ -4,7 +4,7 @@
 
 class Decl;
 class TranslationUnitDecl;
-class PatternActionDecl;
+class RuleDecl;
 class FunctionDecl;
 class VarDecl;
 
@@ -27,7 +27,7 @@ class UnaryExpr;
 
 class Decl {
 public:
-  enum DeclKind { DK_TranslationUnit, DK_PatternAction, DK_Function, DK_Var };
+  enum DeclKind { DK_TranslationUnit, DK_Rule, DK_Function, DK_Var };
 
   Decl(DeclKind K) : Kind(K) {}
 
@@ -49,15 +49,37 @@ public:
 };
 
 class FunctionDecl : public Decl {
+  std::string Name;
+  std::vector<std::string> Params;
   CompoundStmt *Body;
+
+  FunctionDecl() : Decl(DK_Function) {}
+
+  FunctionDecl(std::string N, std::vector<std::string> P, CompoundStmt *B)
+      : Decl(DK_Function), Name(N), Params(P), Body(B) {}
+
+public:
+  static FunctionDecl *Create(std::string N, std::vector<std::string> P,
+                              CompoundStmt *B) {
+    return new FunctionDecl(N, P, B);
+  }
+
+  static FunctionDecl *CreateEmpty() { return new FunctionDecl; }
 };
 
-class PatternActionDecl : public Decl {
+class RuleDecl : public Decl {
   Expr *Pattern;
   CompoundStmt *Action;
 
+protected:
+  RuleDecl() : Decl(DK_Rule) {}
+
+  RuleDecl(Expr *P, CompoundStmt *A) : Decl(DK_Rule), Pattern(P), Action(A) {}
+
 public:
-  PatternActionDecl() : Decl(DK_PatternAction) {}
+  static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action) {
+    return new RuleDecl(Pattern, Action);
+  }
 };
 
 class Stmt {
@@ -72,17 +94,30 @@ public:
     SK_Compound
   };
 
-  Stmt(StmtKind K) : Kind(K) {}
-
-  StmtKind GetKind() const { return Kind; }
-
 private:
   const StmtKind Kind;
+
+protected:
+  Stmt(StmtKind K) : Kind(K) {}
+
+public:
+  StmtKind GetKind() const { return Kind; }
 };
 
 class CompoundStmt : public Stmt {
-  std::vector<Stmt *> Stmts{};
+  std::vector<Stmt *> Body{};
+
+protected:
+  CompoundStmt() : Stmt(SK_Compound) {}
+
+  CompoundStmt(std::vector<Stmt *> B) : Stmt(SK_Compound), Body(B) {}
 
 public:
-  CompoundStmt() : Stmt(SK_Compound) {}
+  static CompoundStmt *Create(std::vector<Stmt *> B) {
+    return new CompoundStmt(B);
+  }
+
+  static CompoundStmt *CreateEmpty() { return new CompoundStmt; }
+
+  std::vector<Stmt *> GetBody() const { return Body; }
 };

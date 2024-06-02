@@ -23,9 +23,9 @@ public:
 #undef KEYWORD
   }
 
+  std::string_view::const_iterator GetBufferPtr() const;
+  void SetBufferPtr(std::string_view::const_iterator);
   void Next(Token &, bool = false);
-
-  void Reset(std::string_view::const_iterator);
 
 private:
   void FormToken(Token &, std::string_view::const_iterator, tok::TokenKind);

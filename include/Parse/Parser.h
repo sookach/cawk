@@ -4,6 +4,7 @@
 #include "Basic/TokenKinds.h"
 #include "Lexer/Lexer.h"
 #include <bitset>
+#include <cstdlib>
 
 namespace cawk {
 class Parser {
@@ -18,9 +19,37 @@ public:
 
 private:
   void Advance(bool = false);
-  void Expect(tok::TokenKind);
-  bool Consume(tok::TokenKind);
   Token Peek(std::size_t, bool = false) const;
+
+  template <typename... Ts> bool Consume(tok::TokenKind K, Ts... Ks) {
+    if (Tok.Is(K)) {
+      Lex.Next(Tok);
+      return true;
+    }
+
+    if constexpr (sizeof...(Ks) == 0)
+      return false;
+
+    return Consume(Ks...);
+  }
+
+  template <typename... Ts> void Expect(tok::TokenKind K, Ts... Ks) {
+    if (!Consume(K))
+      exit(EXIT_FAILURE); // TODO: error handling
+
+    if constexpr (sizeof...(Ks) != 0)
+      Expect(Ks...);
+  }
+
+  template <typename... Ts> void ExpectOneOf(tok::TokenKind K, Ts... Ks) {
+    if (Consume(K))
+      return;
+
+    if constexpr (sizeof...(Ks) == 0)
+      exit(EXIT_FAILURE); // TODO: error handling
+
+    ExpectOneOf(Ks...);
+  }
 
   template <typename... Ts> void Skip(Ts... Ks) {
     std::bitset<tok::NUM_TOKENS> Filter((0 | ... | Ks));
@@ -29,6 +58,9 @@ private:
       ;
   }
 
-  PatternActionDecl *ParsePatternAction();
+  Decl *ParseGlobalDecl();
+  RuleDecl *ParseRuleDecl();
+  FunctionDecl *ParseFunctionDecl();
+  CompoundStmt *ParseCompoundStmt();
 };
 } // namespace cawk
