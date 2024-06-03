@@ -28,12 +28,12 @@ class ValueStmt;
 class WhileStmt;
 
 class Expr;
-class BinaryExpr;
+class BinaryOperator;
 class CallExpr;
 class DeclRefExpr;
 class FloatingLiteral;
 class StringLiteral;
-class UnaryExpr;
+class UnaryOperator;
 
 class Decl {
 public:
@@ -115,14 +115,15 @@ public:
     SK_Do,
     SK_Decl,
     SK_Expr,
-    SK_Compound
+    SK_Compound,
+    SK_Print
   };
 
 private:
   const StmtKind Kind;
 
 protected:
-  Stmt(StmtKind K) : Kind(K) {}
+  Stmt(StmtKind Kind) : Kind(Kind) {}
 
 public:
   StmtKind GetKind() const { return Kind; }
@@ -134,11 +135,11 @@ class CompoundStmt : public Stmt {
 protected:
   CompoundStmt() : Stmt(SK_Compound) {}
 
-  CompoundStmt(std::vector<Stmt *> B) : Stmt(SK_Compound), Body(B) {}
+  CompoundStmt(std::vector<Stmt *> Body) : Stmt(SK_Compound), Body(Body) {}
 
 public:
-  static CompoundStmt *Create(std::vector<Stmt *> B) {
-    return new CompoundStmt(B);
+  static CompoundStmt *Create(std::vector<Stmt *> Body) {
+    return new CompoundStmt(Body);
   }
 
   static CompoundStmt *CreateEmpty() { return new CompoundStmt; }
@@ -154,7 +155,8 @@ class IfStmt : public Stmt {
 protected:
   IfStmt() : Stmt(SK_If) {}
 
-  IfStmt(Expr *C, Stmt *T, Stmt *E) : Stmt(SK_If), Cond(C), Then(T), Else(E) {}
+  IfStmt(Expr *Cond, Stmt *Then, Stmt *Else)
+      : Stmt(SK_If), Cond(Cond), Then(Then), Else(Else) {}
 
 public:
   static IfStmt *Create(Expr *Cond, Stmt *Then, Stmt *Else) {
@@ -171,8 +173,8 @@ class ForStmt : public Stmt {
 protected:
   ForStmt() : Stmt(SK_For) {}
 
-  ForStmt(Stmt *It, Expr *C, Expr *I, Stmt *B)
-      : Stmt(SK_For), Init(It), Cond(C), Inc(I), Body(B) {}
+  ForStmt(Stmt *Init, Expr *Cond, Expr *Inc, Stmt *Body)
+      : Stmt(SK_For), Init(Init), Cond(Cond), Inc(Inc), Body(Body) {}
 
 public:
   static ForStmt *Create(Stmt *Init, Expr *Cond, Expr *Inc, Stmt *Body) {
@@ -181,16 +183,16 @@ public:
 };
 
 class ForRangeStmt : public Stmt {
-  std::string LoopVar;
-  std::string Range;
+  DeclRefExpr *LoopVar;
+  DeclRefExpr *Range;
   Stmt *Body;
 
 protected:
-  ForRangeStmt(std::string LoopVar, std::string Range, Stmt *Body)
+  ForRangeStmt(DeclRefExpr *LoopVar, DeclRefExpr *Range, Stmt *Body)
       : Stmt(SK_ForRange), LoopVar(LoopVar), Range(Range), Body(Body) {}
 
 public:
-  static ForRangeStmt *Create(std::string LoopVar, std::string Range,
+  static ForRangeStmt *Create(DeclRefExpr *LoopVar, DeclRefExpr *Range,
                               Stmt *Body) {
     return new ForRangeStmt(LoopVar, Range, Body);
   }
@@ -254,17 +256,27 @@ public:
   }
 };
 
-class PrintStmt : public Stmt {};
+class PrintStmt : public Stmt {
+  std::vector<Expr *> Args;
+
+protected:
+  PrintStmt(std::vector<Expr *> Args) : Stmt(SK_Print), Args(Args) {}
+
+public:
+  static PrintStmt *Create(std::vector<Expr *> Args) {
+    return new PrintStmt(Args);
+  }
+};
 
 class Expr {
 public:
   enum ExprKind {
-    EK_Binary,
+    EK_BinaryOperator,
     EK_Call,
     EK_DeclRef,
     EK_FloatingLiteral,
     EK_StringLiteral,
-    EK_Unary
+    EK_UnaryOperator
   };
 
 protected:
@@ -274,18 +286,80 @@ private:
   const ExprKind Kind;
 };
 
-class BinaryExpr : public Expr {
+class BinaryOperator : public Expr {
   Expr *LHS;
   Expr *RHS;
-  Token Op;
+  Token Opcode;
 
 protected:
-  BinaryExpr(Expr *LHS, Expr *RHS, Token Op)
-      : Expr(EK_Binary), LHS(LHS), RHS(RHS), Op(Op) {}
+  BinaryOperator(Expr *LHS, Expr *RHS, Token Opcode)
+      : Expr(EK_BinaryOperator), LHS(LHS), RHS(RHS), Opcode(Opcode) {}
 
 public:
-  static BinaryExpr *Create(Expr *LHS, Expr *RHS, Token Op) {
-    return new BinaryExpr(LHS, RHS, Op);
+  static BinaryOperator *Create(Expr *LHS, Expr *RHS, Token Opcode) {
+    return new BinaryOperator(LHS, RHS, Opcode);
+  }
+};
+
+class CallExpr : public Expr {
+  Expr *Callee;
+  std::vector<Expr *> Args;
+
+protected:
+  CallExpr(Expr *Callee, std::vector<Expr *> Args)
+      : Expr(EK_Call), Callee(Callee), Args(Args) {}
+
+public:
+  static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args) {
+    return new CallExpr(Callee, Args);
+  }
+};
+
+class DeclRefExpr : public Expr {
+  Token Identifier;
+
+protected:
+  DeclRefExpr(Token Identifier) : Expr(EK_DeclRef), Identifier(Identifier) {}
+
+public:
+  static DeclRefExpr *Create(Token Identifier) {
+    return new DeclRefExpr(Identifier);
+  }
+};
+
+class FloatingLiteral : public Expr {
+  Token Value;
+
+protected:
+  FloatingLiteral(Token Value) : Expr(EK_FloatingLiteral), Value(Value) {}
+
+public:
+  static FloatingLiteral *Create(Token Value) {
+    return new FloatingLiteral(Value);
+  }
+};
+
+class StringLiteral : public Expr {
+  Token Value;
+
+protected:
+  StringLiteral(Token Value) : Expr(EK_StringLiteral), Value(Value) {}
+
+public:
+  static StringLiteral *Create(Token Value) { return new StringLiteral(Value); }
+};
+
+class UnaryOperator : public Expr {
+  Token Opcode;
+  Expr *SubExpr;
+
+protected:
+  UnaryOperator(Token Opcode, Expr *SubExpr)
+      : Expr(EK_UnaryOperator), Opcode(Opcode), SubExpr(SubExpr) {}
+
+public:
+  static UnaryOperator *Create(Token Opcode, Expr *SubExpr) {
+    return new UnaryOperator(Opcode, SubExpr);
   }
 };
 
