@@ -112,7 +112,6 @@ void Lexer::Next(Token &T, bool Regex) {
     CASE('$', tok::dollar);
     CASE('/', tok::slash);
     CASE('~', tok::tilde);
-    CASE('\n', tok::newline);
 #undef CASE
   case '&':
     if (*(BufferPtr + 1) == '&')
@@ -189,6 +188,12 @@ void Lexer::Next(Token &T, bool Regex) {
       FormToken(T, BufferPtr + 2, tok::percentequal);
     else
       FormToken(T, BufferPtr + 1, tok::percent);
+    break;
+  case '\n':
+    FormToken(T, BufferPtr + 1, tok::newline);
+    // condense successive newlines
+    for (; BufferPtr != BufferEnd && *BufferPtr == '\n'; ++BufferPtr)
+      ;
     break;
   default:
     FormToken(T, BufferPtr + 1, tok::unknown);

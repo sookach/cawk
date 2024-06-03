@@ -58,12 +58,18 @@ private:
       ;
   }
 
+  TranslationUnitDecl *ParseTranslationUnitDecl();
   Decl *ParseGlobalDecl();
   RuleDecl *ParseRuleDecl();
   FunctionDecl *ParseFunctionDecl();
   CompoundStmt *ParseCompoundStmt();
   Stmt *ParseStmt();
-
-
+  Stmt *ParseSimpleStmt();
+  IfStmt *ParseIfStmt();
+  Stmt *ParseForStmt();
+  WhileStmt *ParseWhileStmt();
+  DoStmt *ParseDoStmt();
+  PrintStmt *ParsePrintStmt();
+  Expr *ParseExpr();
 };
 } // namespace cawk

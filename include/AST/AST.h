@@ -1,6 +1,9 @@
 #pragma once
 
+#include "Lexer/Lexer.h"
 #include <vector>
+
+namespace cawk {
 
 class Decl;
 class TranslationUnitDecl;
@@ -11,16 +14,19 @@ class VarDecl;
 class Stmt;
 class BreakStmt;
 class ContinueStmt;
+class CompoundStmt;
+class DeclStmt;
+class DoStmt;
+class ExprStmt;
+class ForStmt;
+class ForRangeStmt;
+class IfStmt;
 class NextStmt;
 class NextfileStmt;
-class ForStmt;
-class IfStmt;
-class WhileStmt;
-class DoStmt;
-class DeclStmt;
-class ExprStmt;
-class CompoundStmt;
+class PrintStmt;
 class ValueStmt;
+class WhileStmt;
+
 class Expr;
 class BinaryExpr;
 class CallExpr;
@@ -103,6 +109,7 @@ public:
     SK_Next,
     SK_Nextfile,
     SK_For,
+    SK_ForRange,
     SK_If,
     SK_While,
     SK_Do,
@@ -173,6 +180,22 @@ public:
   }
 };
 
+class ForRangeStmt : public Stmt {
+  std::string LoopVar;
+  std::string Range;
+  Stmt *Body;
+
+protected:
+  ForRangeStmt(std::string LoopVar, std::string Range, Stmt *Body)
+      : Stmt(SK_ForRange), LoopVar(LoopVar), Range(Range), Body(Body) {}
+
+public:
+  static ForRangeStmt *Create(std::string LoopVar, std::string Range,
+                              Stmt *Body) {
+    return new ForRangeStmt(LoopVar, Range, Body);
+  }
+};
+
 class BreakStmt : public Stmt {
 protected:
   BreakStmt() : Stmt(SK_Break) {}
@@ -204,3 +227,76 @@ protected:
 public:
   static NextfileStmt *Create() { return new NextfileStmt; }
 };
+
+class WhileStmt : public Stmt {
+  Expr *Cond;
+  Stmt *Body;
+
+protected:
+  WhileStmt(Expr *Cond, Stmt *Body) : Stmt(SK_While), Cond(Cond), Body(Body) {}
+
+public:
+  static WhileStmt *Create(Expr *Cond, Stmt *Body) {
+    return new WhileStmt(Cond, Body);
+  }
+};
+
+class DoStmt : public Stmt {
+  Expr *Cond;
+  Stmt *Body;
+
+protected:
+  DoStmt(Expr *Cond, Stmt *Body) : Stmt(SK_Do), Cond(Cond), Body(Body) {}
+
+public:
+  static DoStmt *Create(Expr *Cond, Stmt *Body) {
+    return new DoStmt(Cond, Body);
+  }
+};
+
+class PrintStmt : public Stmt {};
+
+class Expr {
+public:
+  enum ExprKind {
+    EK_Binary,
+    EK_Call,
+    EK_DeclRef,
+    EK_FloatingLiteral,
+    EK_StringLiteral,
+    EK_Unary
+  };
+
+protected:
+  Expr(ExprKind Kind) : Kind(Kind) {}
+
+private:
+  const ExprKind Kind;
+};
+
+class BinaryExpr : public Expr {
+  Expr *LHS;
+  Expr *RHS;
+  Token Op;
+
+protected:
+  BinaryExpr(Expr *LHS, Expr *RHS, Token Op)
+      : Expr(EK_Binary), LHS(LHS), RHS(RHS), Op(Op) {}
+
+public:
+  static BinaryExpr *Create(Expr *LHS, Expr *RHS, Token Op) {
+    return new BinaryExpr(LHS, RHS, Op);
+  }
+};
+
+} // namespace cawk
+
+#if 0
+class Expr;
+class BinaryExpr;
+class CallExpr;
+class DeclRefExpr;
+class FloatingLiteral;
+class StringLiteral;
+class UnaryExpr;
+#endif
