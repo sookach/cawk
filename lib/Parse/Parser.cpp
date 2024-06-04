@@ -35,7 +35,23 @@ Decl *Parser::ParseGlobalDecl() {
   }
 }
 
-RuleDecl *Parser::ParseRuleDecl() { return nullptr; }
+RuleDecl *Parser::ParseRuleDecl() {
+  auto Pattern = [this] -> Expr * {
+    switch (Tok.GetKind()) {
+    default:
+      return ParseExpr();
+    case tok::kw_BEGIN:
+    case tok::kw_END:
+      auto T = Tok;
+      Lex.Next(Tok);
+      return StringLiteral::Create(T);
+    }
+  }();
+
+  auto Action = Tok.Is(tok::l_brace) ? ParseCompoundStmt() : nullptr;
+
+  return RuleDecl::Create(Pattern, Action);
+}
 
 FunctionDecl *Parser::ParseFunctionDecl() {
   ExpectOneOf(tok::kw_func, tok::kw_function);
@@ -112,12 +128,13 @@ DoStmt *Parser::ParseDoStmt() {
 Stmt *Parser::ParseForStmt() {
   Expect(tok::kw_for, tok::l_paren);
   if (Tok.Is(tok::identifier) && Peek(1).Is(tok::kw_in)) {
-    std::string LoopVar(Tok.GetLiteralData());
+    auto LoopVar = Tok;
     Expect(tok::kw_in);
-    std::string Range(Tok.GetLiteralData());
+    auto Range = Tok;
     Expect(tok::identifier, tok::l_paren);
     auto Body = ParseStmt();
-    return ForRangeStmt::Create(LoopVar, Range, Body);
+    return ForRangeStmt::Create(DeclRefExpr::Create(LoopVar),
+                                DeclRefExpr::Create(Range), Body);
   } else {
     auto Init = Tok.Is(tok::semi) ? nullptr : ParseSimpleStmt();
   }
