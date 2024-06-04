@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Lexer/Lexer.h"
-#include <vector>
 #include <string>
+#include <vector>
 
 namespace cawk {
 
@@ -11,6 +11,7 @@ class TranslationUnitDecl;
 class RuleDecl;
 class FunctionDecl;
 class VarDecl;
+class ParamVarDecl;
 
 class Stmt;
 class BreakStmt;
@@ -38,7 +39,13 @@ class UnaryOperator;
 
 class Decl {
 public:
-  enum DeclKind { DK_TranslationUnit, DK_Rule, DK_Function, DK_Var };
+  enum DeclKind {
+    DK_TranslationUnit,
+    DK_Rule,
+    DK_Function,
+    DK_Var,
+    DK_ParamVar
+  };
 
 private:
   const DeclKind Kind;
@@ -68,20 +75,22 @@ public:
 };
 
 class FunctionDecl : public Decl {
-  std::string Name;
-  std::vector<std::string> Params;
+  Token Identifier;
+  std::vector<ParamVarDecl *> Params;
   CompoundStmt *Body;
 
 protected:
   FunctionDecl() : Decl(DK_Function) {}
 
-  FunctionDecl(std::string N, std::vector<std::string> P, CompoundStmt *B)
-      : Decl(DK_Function), Name(N), Params(P), Body(B) {}
+  FunctionDecl(Token Identifier, std::vector<ParamVarDecl *> Params,
+               CompoundStmt *Body)
+      : Decl(DK_Function), Identifier(Identifier), Params(Params), Body(Body) {}
 
 public:
-  static FunctionDecl *Create(std::string N, std::vector<std::string> P,
-                              CompoundStmt *B) {
-    return new FunctionDecl(N, P, B);
+  static FunctionDecl *Create(Token Identifier,
+                              std::vector<ParamVarDecl *> Params,
+                              CompoundStmt *Body) {
+    return new FunctionDecl(Identifier, Params, Body);
   }
 
   static FunctionDecl *CreateEmpty() { return new FunctionDecl; }
@@ -94,11 +103,35 @@ class RuleDecl : public Decl {
 protected:
   RuleDecl() : Decl(DK_Rule) {}
 
-  RuleDecl(Expr *P, CompoundStmt *A) : Decl(DK_Rule), Pattern(P), Action(A) {}
+  RuleDecl(Expr *Pattern, CompoundStmt *Action)
+      : Decl(DK_Rule), Pattern(Pattern), Action(Action) {}
 
 public:
   static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action) {
     return new RuleDecl(Pattern, Action);
+  }
+};
+
+class VarDecl : public Decl {
+protected:
+  Token Identifier;
+
+  VarDecl(DeclKind Kind, Token Identifier)
+      : Decl(Kind), Identifier(Identifier) {}
+
+public:
+  static VarDecl *Create(Token Identifier) {
+    return new VarDecl(DK_Var, Identifier);
+  }
+};
+
+class ParamVarDecl : public VarDecl {
+protected:
+  ParamVarDecl(Token Identifier) : VarDecl(DK_ParamVar, Identifier) {}
+
+public:
+  static ParamVarDecl *Create(Token Identifier) {
+    return new ParamVarDecl(Identifier);
   }
 };
 

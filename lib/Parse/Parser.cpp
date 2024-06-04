@@ -16,139 +16,62 @@ Token Parser::Peek(std::size_t N, bool Regex) const {
   return T;
 }
 
-TranslationUnitDecl *Parser::ParseTranslationUnitDecl() {
-  std::vector<Decl *> Decls;
-  for (; !Consume(tok::eof);)
-    Decls.push_back(ParseGlobalDecl());
-  return TranslationUnitDecl::Create(Decls);
-}
+TranslationUnitDecl *Parser::ParseProgram() { return nullptr; }
 
-Decl *Parser::ParseGlobalDecl() {
-  Skip(tok::newline);
-
+Decl *Parser::ParseItem() {
   switch (Tok.GetKind()) {
-  default:
-    return ParseRuleDecl();
-  case tok::kw_func:
-  case tok::kw_function:
-    return ParseFunctionDecl();
+  default: {
+    auto Pattern = ParsePattern();
+    auto Action = Tok.Is(tok::l_brace) ? ParseAction() : nullptr;
+    return RuleDecl::Create(Pattern, Action);
   }
-}
-
-RuleDecl *Parser::ParseRuleDecl() {
-  auto Pattern = [this] -> Expr * {
-    switch (Tok.GetKind()) {
-    default:
-      return ParseExpr();
-    case tok::kw_BEGIN:
-    case tok::kw_END:
-      auto T = Tok;
-      Lex.Next(Tok);
-      return StringLiteral::Create(T);
-    }
-  }();
-
-  auto Action = Tok.Is(tok::l_brace) ? ParseCompoundStmt() : nullptr;
-
-  return RuleDecl::Create(Pattern, Action);
-}
-
-FunctionDecl *Parser::ParseFunctionDecl() {
-  ExpectOneOf(tok::kw_func, tok::kw_function);
-
-  auto Iden = Tok;
-  Expect(tok::identifier, tok::l_paren);
-
-  std::vector<std::string> Params;
-
-  if (Tok.Is(tok::identifier)) {
-    Params.emplace_back(Tok.GetLiteralData());
+  case tok::kw_BEGIN:
+  case tok::kw_END: {
+    auto Pattern = Tok;
     Lex.Next(Tok);
-
-    for (; Consume(tok::comma);) {
-      Params.emplace_back(Tok.GetLiteralData());
-      Expect(tok::identifier);
-    }
+    return RuleDecl::Create(DeclRefExpr::Create(Pattern), ParseAction());
   }
-
-  Expect(tok::r_paren);
-
-  return nullptr;
-}
-
-CompoundStmt *Parser::ParseCompoundStmt() {
-  Expect(tok::l_brace);
-  std::vector<Stmt *> Body;
-
-  for (; !Tok.Is(tok::r_brace, tok::eof);)
-    Body.push_back(ParseStmt());
-
-  Expect(tok::r_brace);
-
-  return CompoundStmt::Create(Body);
-}
-
-Stmt *Parser::ParseStmt() {
-  Skip(tok::newline);
-
-  switch (Tok.GetKind()) {
-  default:
-    return ParseSimpleStmt();
-  case tok::kw_do:
-    return ParseDoStmt();
-  case tok::kw_for:
-    return ParseForStmt();
-  case tok::kw_if:
-    return ParseIfStmt();
-  case tok::kw_while:
-    return ParseWhileStmt();
-  }
-
-  return nullptr;
-}
-
-Stmt *Parser::ParseSimpleStmt() {
-  switch (Tok.GetKind()) {
-  default:
-    return nullptr;
-  case tok::kw_print:
-    return nullptr;
-  }
-}
-
-DoStmt *Parser::ParseDoStmt() {
-  Expect(tok::kw_do);
-  auto Body = ParseStmt();
-  Expect(tok::kw_while, tok::l_paren);
-  auto Cond = ParseExpr();
-  Expect(tok::r_paren);
-  return DoStmt::Create(Cond, Body);
-}
-
-Stmt *Parser::ParseForStmt() {
-  Expect(tok::kw_for, tok::l_paren);
-  if (Tok.Is(tok::identifier) && Peek(1).Is(tok::kw_in)) {
-    auto LoopVar = Tok;
-    Expect(tok::kw_in);
-    auto Range = Tok;
+  case tok::kw_function: {
+    Expect(tok::kw_function);
+    auto Identifier = Tok;
     Expect(tok::identifier, tok::l_paren);
-    auto Body = ParseStmt();
-    return ForRangeStmt::Create(DeclRefExpr::Create(LoopVar),
-                                DeclRefExpr::Create(Range), Body);
-  } else {
-    auto Init = Tok.Is(tok::semi) ? nullptr : ParseSimpleStmt();
+    auto Params = ParseParamList();
+    Expect(tok::r_paren);
+    Skip(tok::newline);
+    auto Body = ParseAction();
+    return FunctionDecl::Create(Identifier, Params, Body);
   }
-
-  return nullptr;
+  }
 }
 
-IfStmt *Parser::ParseIfStmt() {
-  Expect(tok::kw_if, tok::l_paren);
-  auto Cond = ParseExpr();
-  Expect(tok::l_paren);
-  auto Then = ParseStmt();
-  auto Else = Consume(tok::kw_else) ? ParseStmt() : nullptr;
-  return IfStmt::Create(Cond, Then, Else);
+std::vector<ParamVarDecl *> Parser::ParseParamList() {
+  std::vector<ParamVarDecl *> Params;
+
+  auto Param = Tok;
+  if (!Consume(tok::identifier))
+    return Params;
+
+  Params.push_back(ParamVarDecl::Create(Param));
+
+  for (; Consume(tok::comma);) {
+    Params.push_back(ParamVarDecl::Create(Tok));
+    Expect(tok::identifier);
+  }
+
+  return Params;
+}
+
+Expr *Parser::ParsePattern() {
+  switch (Tok.GetKind()) {
+  default:
+    return ParseNormalPattern();
+  case tok::kw_BEGIN:
+  case tok::kw_END: {
+    auto Pattern = Tok;
+    ExpectOneOf(tok::kw_BEGIN, tok::kw_END);
+    return DeclRefExpr::Create(Pattern);
+  }
+  }
 }
 
 } // namespace cawk

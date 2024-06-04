@@ -58,18 +58,13 @@ private:
       ;
   }
 
-  TranslationUnitDecl *ParseTranslationUnitDecl();
-  Decl *ParseGlobalDecl();
-  RuleDecl *ParseRuleDecl();
-  FunctionDecl *ParseFunctionDecl();
-  CompoundStmt *ParseCompoundStmt();
-  Stmt *ParseStmt();
-  Stmt *ParseSimpleStmt();
-  IfStmt *ParseIfStmt();
-  Stmt *ParseForStmt();
-  WhileStmt *ParseWhileStmt();
-  DoStmt *ParseDoStmt();
-  PrintStmt *ParsePrintStmt();
-  Expr *ParseExpr();
+  TranslationUnitDecl *ParseProgram();
+  Decl *ParseItem();
+  std::vector<ParamVarDecl *> ParseParamList();
+  Expr *ParsePattern();
+  Expr *ParseNormalPattern();
+  Expr *ParseSpecialPattern();
+  CompoundStmt *ParseAction();
+  bool ParseTerminator();
 };
 } // namespace cawk
