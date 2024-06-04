@@ -2,6 +2,7 @@
 
 #include "Lexer/Lexer.h"
 #include <vector>
+#include <string>
 
 namespace cawk {
 

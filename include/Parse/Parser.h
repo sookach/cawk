@@ -27,10 +27,10 @@ private:
       return true;
     }
 
-    if constexpr (sizeof...(Ks) == 0)
-      return false;
+    if constexpr (sizeof...(Ks) != 0)
+      return Consume(Ks...);
 
-    return Consume(Ks...);
+    return false;
   }
 
   template <typename... Ts> void Expect(tok::TokenKind K, Ts... Ks) {
@@ -47,8 +47,8 @@ private:
 
     if constexpr (sizeof...(Ks) == 0)
       exit(EXIT_FAILURE); // TODO: error handling
-
-    ExpectOneOf(Ks...);
+    else
+      ExpectOneOf(Ks...);
   }
 
   template <typename... Ts> void Skip(Ts... Ks) {

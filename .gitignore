@@ -1,3 +1,2 @@
 build/
-.vscode
-include/cawk_code.h
+.cache
