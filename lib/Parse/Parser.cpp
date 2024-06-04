@@ -66,12 +66,19 @@ Expr *Parser::ParsePattern() {
   default:
     return ParseNormalPattern();
   case tok::kw_BEGIN:
-  case tok::kw_END: {
-    auto Pattern = Tok;
-    ExpectOneOf(tok::kw_BEGIN, tok::kw_END);
-    return DeclRefExpr::Create(Pattern);
+  case tok::kw_END:
+    return ParseSpecialPattern();
   }
-  }
+}
+
+Expr *Parser::ParseNormalPattern() {
+
+}
+
+DeclRefExpr *Parser::ParseSpecialPattern() {
+  auto Pattern = Tok;
+  ExpectOneOf(tok::kw_BEGIN, tok::kw_END);
+  return DeclRefExpr::Create(Pattern);
 }
 
 } // namespace cawk

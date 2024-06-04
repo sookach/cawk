@@ -63,7 +63,7 @@ private:
   std::vector<ParamVarDecl *> ParseParamList();
   Expr *ParsePattern();
   Expr *ParseNormalPattern();
-  Expr *ParseSpecialPattern();
+  DeclRefExpr *ParseSpecialPattern();
   CompoundStmt *ParseAction();
   bool ParseTerminator();
 };
