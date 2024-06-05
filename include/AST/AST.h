@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Lexer/Lexer.h"
-#include <string>
 #include <vector>
 
 namespace cawk {
@@ -292,13 +291,15 @@ public:
 
 class PrintStmt : public Stmt {
   std::vector<Expr *> Args;
+  Expr *Output;
 
 protected:
-  PrintStmt(std::vector<Expr *> Args) : Stmt(SK_Print), Args(Args) {}
+  PrintStmt(std::vector<Expr *> Args, Expr *Output)
+      : Stmt(SK_Print), Args(Args), Output(Output) {}
 
 public:
-  static PrintStmt *Create(std::vector<Expr *> Args) {
-    return new PrintStmt(Args);
+  static PrintStmt *Create(std::vector<Expr *> Args, Expr *Output) {
+    return new PrintStmt(Args, Output);
   }
 };
 

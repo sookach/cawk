@@ -71,13 +71,11 @@ Expr *Parser::ParsePattern() {
   }
 }
 
-Expr *Parser::ParseNormalPattern() {
-
-}
+Expr *Parser::ParseNormalPattern() { return ParseExpr(); }
 
 DeclRefExpr *Parser::ParseSpecialPattern() {
   auto Pattern = Tok;
-  ExpectOneOf(tok::kw_BEGIN, tok::kw_END);
+ ExpectOneOf(tok::kw_BEGIN, tok::kw_END);
   return DeclRefExpr::Create(Pattern);
 }
 
