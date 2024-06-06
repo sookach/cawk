@@ -19,6 +19,7 @@ class CompoundStmt;
 class DeclStmt;
 class DoStmt;
 class ExprStmt;
+class ExitStmt;
 class ForStmt;
 class ForRangeStmt;
 class IfStmt;
@@ -139,6 +140,7 @@ public:
   enum StmtKind {
     SK_Break,
     SK_Continue,
+    SK_Exit,
     SK_Next,
     SK_Nextfile,
     SK_For,
@@ -200,17 +202,17 @@ public:
 class ForStmt : public Stmt {
   Stmt *Init;
   Expr *Cond;
-  Expr *Inc;
+  Stmt *Inc;
   Stmt *Body;
 
 protected:
   ForStmt() : Stmt(SK_For) {}
 
-  ForStmt(Stmt *Init, Expr *Cond, Expr *Inc, Stmt *Body)
+  ForStmt(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body)
       : Stmt(SK_For), Init(Init), Cond(Cond), Inc(Inc), Body(Body) {}
 
 public:
-  static ForStmt *Create(Stmt *Init, Expr *Cond, Expr *Inc, Stmt *Body) {
+  static ForStmt *Create(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body) {
     return new ForStmt(Init, Cond, Inc, Body);
   }
 };
@@ -245,6 +247,16 @@ protected:
 
 public:
   static ContinueStmt *Create() { return new ContinueStmt; }
+};
+
+class ExitStmt : public Stmt {
+  Expr *Cond;
+
+protected:
+  ExitStmt(Expr *Cond) : Stmt(SK_Exit), Cond(Cond) {}
+
+public:
+  static ExitStmt *Create(Expr *Cond) { return new ExitStmt(Cond); }
 };
 
 class NextStmt : public Stmt {
