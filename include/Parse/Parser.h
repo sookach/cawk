@@ -3,6 +3,7 @@
 #include "AST/AST.h"
 #include "Basic/TokenKinds.h"
 #include "Lexer/Lexer.h"
+#include <algorithm>
 #include <bitset>
 #include <cstdlib>
 
@@ -118,11 +119,32 @@ private:
   Stmt *ParseStmt() {
     switch (Tok.GetKind()) {
     default:
-      return nullptr;
+      return ParseSimpleStmt();
     case tok::kw_break:
       return ParseBreakStmt();
     case tok::kw_continue:
       return ParseContinueStmt();
+    case tok::kw_do:
+      return ParseDoStmt();
+    case tok::kw_exit:
+      return ParseExitStmt();
+    case tok::kw_for:
+      return ParseForStmt();
+    case tok::kw_if:
+      return ParseIfStmt();
+    case tok::l_brace:
+      return ParseCompoundStmt();
+    case tok::kw_next:
+      return ParseNextStmt();
+    case tok::kw_nextfile:
+      return ParseNextfileStmt();
+    case tok::kw_return:
+      return ParseReturnStmt();
+    case tok::kw_while:
+      return ParseWhileStmt();
+    case tok::semi:
+      Expect(tok::semi);
+      Skip(tok::newline);
     }
     return nullptr;
   }
@@ -186,9 +208,100 @@ private:
     }
   }
 
-  Stmt *ParseSimpleStmt() { return nullptr; }
+  IfStmt *ParseIfStmt() {
+    Expect(tok::kw_if, tok::l_paren);
+    auto Cond = ParseExpr();
+    Expect(tok::r_paren);
+    auto Then = ParseStmt();
+    auto Else =
+        Consume(tok::kw_else) ? (Skip(tok::newline), ParseStmt()) : nullptr;
+    return IfStmt::Create(Cond, Then, Else);
+  }
+
+  NextStmt *ParseNextStmt() {
+    Expect(tok::kw_next);
+    St();
+    return NextStmt::Create();
+  }
+
+  NextfileStmt *ParseNextfileStmt() {
+    Expect(tok::kw_next);
+    St();
+    return NextfileStmt::Create();
+  }
+
+  ReturnStmt *ParseReturnStmt() {
+    Expect(tok::kw_return);
+    auto Value = ParseExpr();
+    St();
+    return ReturnStmt::Create(Value);
+  }
+
+  WhileStmt *ParseWhileStmt() {
+    Expect(tok::kw_while, tok::l_paren);
+    auto Cond = ParseExpr();
+    Expect(tok::r_paren);
+    Skip(tok::newline);
+    auto Body = ParseStmt();
+    return WhileStmt::Create(Cond, Body);
+  }
+
+  Stmt *ParseSimpleStmt() {
+    switch (Tok.GetKind()) {
+    default:
+      return ValueStmt::Create(ParseExpr());
+    case tok::kw_print:
+    case tok::kw_printf:
+      return ParsePrintStmt();
+    }
+
+    return nullptr;
+  }
+
+  PrintStmt *ParsePrintStmt() {
+    auto Kind = Tok;
+    Expect(tok::kw_print, tok::kw_printf);
+    auto Args = ParsePrintArgs();
+
+    return nullptr;
+  }
+
+  std::vector<Expr *> ParsePrintArgs() {
+    if (Consume(tok::l_paren)) {
+      auto Args = ParseExprList();
+      Expect(tok::r_paren);
+      return Args;
+    }
+    return ParsePrintExprList();
+  }
+
+  std::vector<Expr *> ParseExprList() {
+    std::vector Exprs = {ParseExpr()};
+
+    for (; Consume(tok::comma);) {
+      Skip(tok::newline);
+      Exprs.push_back(ParseExpr());
+      assert(Exprs.back() != nullptr);
+    }
+
+    return Exprs;
+  }
+
+  std::vector<Expr *> ParsePrintExprList() {
+    std::vector Exprs = {ParsePrintExpr()};
+
+    for (; Consume(tok::comma);) {
+      Skip(tok::newline);
+      Exprs.push_back(ParsePrintExpr());
+      assert(Exprs.back() != nullptr);
+    }
+
+    return Exprs;
+  }
 
   Expr *ParseExpr() { return nullptr; }
+
+  Expr *ParsePrintExpr() { return nullptr; }
 
   void St() {
     ExpectOneOf(tok::newline, tok::semi);

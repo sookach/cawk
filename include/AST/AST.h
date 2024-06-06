@@ -18,7 +18,6 @@ class ContinueStmt;
 class CompoundStmt;
 class DeclStmt;
 class DoStmt;
-class ExprStmt;
 class ExitStmt;
 class ForStmt;
 class ForRangeStmt;
@@ -26,6 +25,7 @@ class IfStmt;
 class NextStmt;
 class NextfileStmt;
 class PrintStmt;
+class ReturnStmt;
 class ValueStmt;
 class WhileStmt;
 
@@ -139,19 +139,21 @@ class Stmt {
 public:
   enum StmtKind {
     SK_Break,
+    SK_Compound,
     SK_Continue,
+    SK_Decl,
+    SK_Do,
     SK_Exit,
-    SK_Next,
-    SK_Nextfile,
+    SK_Expr,
     SK_For,
     SK_ForRange,
     SK_If,
-    SK_While,
-    SK_Do,
-    SK_Decl,
-    SK_Expr,
-    SK_Compound,
-    SK_Print
+    SK_Next,
+    SK_Nextfile,
+    SK_Print,
+    SK_Return,
+    SK_Value,
+    SK_While
   };
 
 private:
@@ -250,13 +252,13 @@ public:
 };
 
 class ExitStmt : public Stmt {
-  Expr *Cond;
+  Expr *Value;
 
 protected:
-  ExitStmt(Expr *Cond) : Stmt(SK_Exit), Cond(Cond) {}
+  ExitStmt(Expr *Value) : Stmt(SK_Exit), Value(Value) {}
 
 public:
-  static ExitStmt *Create(Expr *Cond) { return new ExitStmt(Cond); }
+  static ExitStmt *Create(Expr *Value) { return new ExitStmt(Value); }
 };
 
 class NextStmt : public Stmt {
@@ -302,17 +304,43 @@ public:
 };
 
 class PrintStmt : public Stmt {
+public:
+  enum PrintKind { PK_Print, PK_Printf };
+
+private:
+  PrintKind PKind;
   std::vector<Expr *> Args;
   Expr *Output;
 
 protected:
-  PrintStmt(std::vector<Expr *> Args, Expr *Output)
-      : Stmt(SK_Print), Args(Args), Output(Output) {}
+  PrintStmt(PrintKind PKind, std::vector<Expr *> Args, Expr *Output)
+      : Stmt(SK_Print), PKind(PKind), Args(Args), Output(Output) {}
 
 public:
-  static PrintStmt *Create(std::vector<Expr *> Args, Expr *Output) {
-    return new PrintStmt(Args, Output);
+  static PrintStmt *Create(PrintKind PKind, std::vector<Expr *> Args,
+                           Expr *Output) {
+    return new PrintStmt(PKind, Args, Output);
   }
+};
+
+class ReturnStmt : public Stmt {
+  Expr *Value;
+
+protected:
+  ReturnStmt(Expr *Value) : Stmt(SK_Return), Value(Value) {}
+
+public:
+  static ReturnStmt *Create(Expr *Value) { return new ReturnStmt(Value); }
+};
+
+class ValueStmt : public Stmt {
+  Expr *Value;
+
+protected:
+  ValueStmt(Expr *Value) : Stmt(SK_Value), Value(Value) {}
+
+public:
+  static ValueStmt *Create(Expr *Value) { return new ValueStmt(Value); }
 };
 
 class Expr {
