@@ -46,7 +46,11 @@ void Lexer::SetBufferPtr(std::string_view::const_iterator Ptr) {
   BufferPtr = Ptr;
 }
 
+void Lexer::Undo() { BufferPtr = BufferPrev; }
+
 void Lexer::Next(Token &T, bool Regex) {
+  BufferPrev = BufferPtr;
+
   for (; BufferPtr != BufferEnd && charinfo::IsWhitespace(*BufferPtr);
        ++BufferPtr)
     ;

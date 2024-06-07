@@ -3,7 +3,11 @@
 #include "Basic/TokenKinds.h"
 
 namespace cawk {
-void Parser::Advance(bool Regex) { Lex.Next(Tok, Regex); }
+Token Parser::Advance(bool Regex) {
+  auto Prev = Tok;
+  Lex.Next(Tok, Regex);
+  return Prev;
+}
 
 Token Parser::Peek(std::size_t N, bool Regex) const {
   Token T;
@@ -15,8 +19,6 @@ Token Parser::Peek(std::size_t N, bool Regex) const {
   Lex.SetBufferPtr(BufferPtr);
   return T;
 }
-
-
 
 } // namespace cawk
 

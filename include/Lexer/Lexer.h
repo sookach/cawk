@@ -11,6 +11,7 @@ class Lexer {
   std::string_view::const_iterator BufferStart;
   std::string_view::const_iterator BufferEnd;
   std::string_view::const_iterator BufferPtr;
+  std::string_view::const_iterator BufferPrev;
 
   std::unordered_map<std::string_view, tok::TokenKind> Keywords;
 
@@ -26,6 +27,7 @@ public:
   std::string_view::const_iterator GetBufferPtr() const;
   void SetBufferPtr(std::string_view::const_iterator);
   void Next(Token &, bool = false);
+  void Undo();
 
 private:
   void FormToken(Token &, std::string_view::const_iterator, tok::TokenKind);

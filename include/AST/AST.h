@@ -350,6 +350,7 @@ public:
     EK_Call,
     EK_DeclRef,
     EK_FloatingLiteral,
+    EK_RegexLiteral,
     EK_StringLiteral,
     EK_UnaryOperator
   };
@@ -412,6 +413,16 @@ public:
   static FloatingLiteral *Create(Token Value) {
     return new FloatingLiteral(Value);
   }
+};
+
+class RegexLiteral : public Expr {
+  Token Value;
+
+protected:
+  RegexLiteral(Token Value) : Expr(EK_RegexLiteral), Value(Value) {}
+
+public:
+  static RegexLiteral *Create(Token Value) { return new RegexLiteral(Value); }
 };
 
 class StringLiteral : public Expr {

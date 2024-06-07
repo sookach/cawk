@@ -19,7 +19,7 @@ public:
   TranslationUnitDecl *Parse();
 
 private:
-  void Advance(bool = false);
+  Token Advance(bool = false);
   Token Peek(std::size_t, bool = false) const;
 
   template <typename... Ts> bool Consume(tok::TokenKind K, Ts... Ks) {
@@ -272,7 +272,7 @@ private:
       Expect(tok::r_paren);
       return Args;
     }
-    return ParsePrintExprList();
+    return ParseExprList();
   }
 
   std::vector<Expr *> ParseExprList() {
@@ -287,21 +287,83 @@ private:
     return Exprs;
   }
 
-  std::vector<Expr *> ParsePrintExprList() {
-    std::vector Exprs = {ParsePrintExpr()};
+  Expr *ParseExpr(int RBP = 0) {
+    auto LBP = [](tok::TokenKind K) {
+      switch (K) {
+      default:
+        return 0;
+      case tok::equal:
+      case tok::plusequal:
+      case tok::minusequal:
+      case tok::starequal:
+      case tok::slashequal:
+      case tok::percentequal:
+      case tok::caretequal:
+        return 1;
+      case tok::question:
+        return 2;
+      case tok::pipepipe:
+        return 3;
+      case tok::ampamp:
+        return 4;
+      case tok::kw_in:
+        return 5;
+      case tok::less:
+      case tok::lessequal:
+      case tok::equalequal:
+      case tok::exclaimequal:
+      case tok::greaterequal:
+      case tok::greater:
+        return 6;
+      case tok::identifier:
+      case tok::string_literal:
+        return 7;
+      case tok::plus:
+      case tok::minus:
+        return 8;
+      case tok::star:
+      case tok::slash:
+      case tok::percent:
+        return 9;
+      case tok::caret:
+        return 10;
+      }
+    };
 
-    for (; Consume(tok::comma);) {
-      Skip(tok::newline);
-      Exprs.push_back(ParsePrintExpr());
-      assert(Exprs.back() != nullptr);
-    }
-
-    return Exprs;
+    auto LHS = [this] -> Expr * {
+      switch (Tok.GetKind()) {
+      default:
+        assert("undefined nud");
+        return nullptr;
+      case tok::slash:
+        Lex.Undo();
+        Lex.Next(Tok, true);
+        return RegexLiteral::Create(Advance());
+      case tok::numeric_constant:
+        return FloatingLiteral::Create(Advance());
+      case tok::string_literal:
+        return StringLiteral::Create(Advance());
+      case tok::identifier:
+        return DeclRefExpr::Create(Advance());
+      case tok::plus:
+      case tok::minus:
+      case tok::plusplus:
+      case tok::minusminus:
+      case tok::exclaim:
+      case tok::dollar: {
+        auto OpCode = Advance();
+        return UnaryOperator::Create(
+            OpCode, ParseExpr(std::numeric_limits<int>::max()));
+      }
+      case tok::l_paren: {
+        Expect(tok::l_paren);
+        auto E = ParseExpr();
+        Expect(tok::r_paren);
+        return E;
+      }
+      }
+    }();
   }
-
-  Expr *ParseExpr() { return nullptr; }
-
-  Expr *ParsePrintExpr() { return nullptr; }
 
   void St() {
     ExpectOneOf(tok::newline, tok::semi);
