@@ -20,6 +20,8 @@ Token Parser::Peek(std::size_t N, bool Regex) const {
   return T;
 }
 
+TranslationUnitDecl *Parser::Parse() { return ParseTranslationUnitDecl(); }
+
 } // namespace cawk
 
 #if 0

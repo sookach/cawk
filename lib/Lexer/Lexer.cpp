@@ -48,6 +48,15 @@ void Lexer::SetBufferPtr(std::string_view::const_iterator Ptr) {
 
 void Lexer::Undo() { BufferPtr = BufferPrev; }
 
+void Lexer::FormToken(Token &T, std::string_view::const_iterator End,
+                      tok::TokenKind Kind) {
+  T.Kind = Kind;
+  T.Ptr = BufferPtr;
+  T.Length = End - BufferPtr;
+  T.Kind = Kind;
+  BufferPtr = End;
+}
+
 void Lexer::Next(Token &T, bool Regex) {
   BufferPrev = BufferPtr;
 

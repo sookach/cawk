@@ -288,7 +288,7 @@ private:
   }
 
   Expr *ParseExpr(int RBP = 0) {
-    auto LBP = [](tok::TokenKind K) {
+    auto BindingPower = [](tok::TokenKind K) {
       switch (K) {
       default:
         return 0;
@@ -363,6 +363,28 @@ private:
       }
       }
     }();
+
+    for (; BindingPower(Tok.GetKind()) > RBP;) {
+      auto OpCode = Advance();
+      auto BP = BindingPower(OpCode.GetKind()) - [](tok::TokenKind Kind) {
+        switch (Kind) {
+        default:
+          return 0;
+        case tok::caret:
+        case tok::equal:
+        case tok::plusequal:
+        case tok::minusequal:
+        case tok::starequal:
+        case tok::slashequal:
+        case tok::percentequal:
+        case tok::caretequal:
+          return 1;
+        }
+      }(OpCode.GetKind());
+      LHS = BinaryOperator::Create(LHS, ParseExpr(BP), OpCode);
+    }
+
+    return LHS;
   }
 
   void St() {
