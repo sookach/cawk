@@ -1,6 +1,7 @@
 #include <algorithm>
 #include <array>
-#include <stdexcept>
+#include <initializer_list>
+#include <iterator>
 
 template <typename T> class Sequence {
 public:
@@ -23,15 +24,44 @@ private:
   std::size_t Size;
 
 public:
+  constexpr Sequence() noexcept = default;
+
+  constexpr Sequence(size_type count, const T &value) { assign(count, value); }
+
+  explicit constexpr Sequence(size_type count) : Sequence(count, {}) {}
+
+  constexpr Sequence(std::input_iterator auto first,
+                     std::input_iterator auto last) {
+    assign(first, last);
+  }
+
+  constexpr Sequence(const Sequence &) = default;
+
+  constexpr Sequence(Sequence &&) = default;
+
+  constexpr Sequence(std::initializer_list<T> init)
+      : Sequence(std::cbegin(init), std::cend(init)) {}
+
+  constexpr ~Sequence() = default;
+
+  constexpr Sequence &operator=(const Sequence &) = default;
+
+  constexpr Sequence &operator=(Sequence &&) = default;
+
+  constexpr Sequence &operator=(std::initializer_list<T> init) {
+    return *this = Sequence(init);
+  }
+
   constexpr void assign(size_type count, const T &value) {
     std::fill_n(std::begin(Elems), count, value);
     Destroy(std::begin(Elems) + count, std::end(Elems));
     Size = count;
   }
 
-  constexpr void assign(iterator first, iterator last) {
+  constexpr void assign(std::input_iterator auto first,
+                        std::input_iterator auto last) {
     std::copy(first, last, std::begin(Elems));
-    Destroy(last, std::end(Elems));
+    Destroy(begin() + std::distance(first, last), end());
     Size = last - first;
   }
 
@@ -195,22 +225,14 @@ public:
 private:
   constexpr void Destroy() { Destroy(begin(), end()); }
 
-  constexpr void Destroy(iterator pos, size_type count = 0) {
-    Destroy(pos, pos + count);
+  constexpr void Destroy(iterator Pos, size_type Count = 0) {
+    Destroy(Pos, Pos + Count);
   }
 
-  constexpr void Destroy(iterator first, iterator last) {
-    std::for_each(first, last, [](auto &&X) constexpr { ~X.T(); });
+  constexpr void Destroy(iterator First, iterator Last) {
+    std::for_each(First, Last, [](auto &&X) constexpr {
+      if constexpr (!std::is_pointer_v<T>)
+        ~X.T();
+    });
   }
-
-#if 0
-void assign( size_type count, const T& value );
-(1)	(constexpr since C++20)
-template< class InputIt >
-void assign( InputIt first, InputIt last );
-(2)	(constexpr since C++20)
-void assign( std::initializer_list<T> ilist );
-(3)	(since C++11)
-(constexpr since C++20)
-#endif
 };

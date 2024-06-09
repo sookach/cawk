@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Lexer/Lexer.h"
-#include <vector>
+#include "Support/Sequence.h"
 
 namespace cawk {
 
@@ -58,37 +58,36 @@ public:
 };
 
 class TranslationUnitDecl : public Decl {
-  std::vector<Decl *> Decls;
+  Sequence<Decl *> Decls;
 
 protected:
   TranslationUnitDecl() : Decl(DK_TranslationUnit) {}
-  TranslationUnitDecl(std::vector<Decl *> D)
+  TranslationUnitDecl(Sequence<Decl *> D)
       : Decl(DK_TranslationUnit), Decls(D) {}
 
 public:
-  static TranslationUnitDecl *Create(std::vector<Decl *> Decls) {
+  static TranslationUnitDecl *Create(Sequence<Decl *> Decls) {
     return new TranslationUnitDecl(Decls);
   }
   static TranslationUnitDecl *CreateEmpty() { return new TranslationUnitDecl; }
 
-  const std::vector<Decl *> &GetDecls() const { return Decls; }
+  const Sequence<Decl *> &GetDecls() const { return Decls; }
 };
 
 class FunctionDecl : public Decl {
   Token Identifier;
-  std::vector<ParamVarDecl *> Params;
+  Sequence<ParamVarDecl *> Params;
   CompoundStmt *Body;
 
 protected:
   FunctionDecl() : Decl(DK_Function) {}
 
-  FunctionDecl(Token Identifier, std::vector<ParamVarDecl *> Params,
+  FunctionDecl(Token Identifier, Sequence<ParamVarDecl *> Params,
                CompoundStmt *Body)
       : Decl(DK_Function), Identifier(Identifier), Params(Params), Body(Body) {}
 
 public:
-  static FunctionDecl *Create(Token Identifier,
-                              std::vector<ParamVarDecl *> Params,
+  static FunctionDecl *Create(Token Identifier, Sequence<ParamVarDecl *> Params,
                               CompoundStmt *Body) {
     return new FunctionDecl(Identifier, Params, Body);
   }
@@ -167,21 +166,21 @@ public:
 };
 
 class CompoundStmt : public Stmt {
-  std::vector<Stmt *> Body{};
+  Sequence<Stmt *> Body{};
 
 protected:
   CompoundStmt() : Stmt(SK_Compound) {}
 
-  CompoundStmt(std::vector<Stmt *> Body) : Stmt(SK_Compound), Body(Body) {}
+  CompoundStmt(Sequence<Stmt *> Body) : Stmt(SK_Compound), Body(Body) {}
 
 public:
-  static CompoundStmt *Create(std::vector<Stmt *> Body) {
+  static CompoundStmt *Create(Sequence<Stmt *> Body) {
     return new CompoundStmt(Body);
   }
 
   static CompoundStmt *CreateEmpty() { return new CompoundStmt; }
 
-  std::vector<Stmt *> GetBody() const { return Body; }
+  Sequence<Stmt *> GetBody() const { return Body; }
 };
 
 class IfStmt : public Stmt {
@@ -309,15 +308,15 @@ public:
 
 private:
   PrintKind PKind;
-  std::vector<Expr *> Args;
+  Sequence<Expr *> Args;
   Expr *Output;
 
 protected:
-  PrintStmt(PrintKind PKind, std::vector<Expr *> Args, Expr *Output)
+  PrintStmt(PrintKind PKind, Sequence<Expr *> Args, Expr *Output)
       : Stmt(SK_Print), PKind(PKind), Args(Args), Output(Output) {}
 
 public:
-  static PrintStmt *Create(PrintKind PKind, std::vector<Expr *> Args,
+  static PrintStmt *Create(PrintKind PKind, Sequence<Expr *> Args,
                            Expr *Output) {
     return new PrintStmt(PKind, Args, Output);
   }
@@ -379,14 +378,14 @@ public:
 
 class CallExpr : public Expr {
   Expr *Callee;
-  std::vector<Expr *> Args;
+  Sequence<Expr *> Args;
 
 protected:
-  CallExpr(Expr *Callee, std::vector<Expr *> Args)
+  CallExpr(Expr *Callee, Sequence<Expr *> Args)
       : Expr(EK_Call), Callee(Callee), Args(Args) {}
 
 public:
-  static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args) {
+  static CallExpr *Create(Expr *Callee, Sequence<Expr *> Args) {
     return new CallExpr(Callee, Args);
   }
 };

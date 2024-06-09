@@ -6,6 +6,8 @@
 #include <algorithm>
 #include <bitset>
 #include <cstdlib>
+#include <initializer_list>
+#include <iostream>
 
 namespace cawk {
 class Parser {
@@ -14,7 +16,7 @@ class Parser {
   bool HasError;
 
 public:
-  Parser(Lexer &Lex) : Lex(Lex), HasError(false) {}
+  Parser(Lexer &Lex) : Lex(Lex), HasError(false) { Lex.Next(Tok); }
 
   TranslationUnitDecl *Parse();
 
@@ -60,7 +62,7 @@ private:
   }
 
   TranslationUnitDecl *ParseTranslationUnitDecl() {
-    std::vector<Decl *> Decls;
+    Sequence<Decl *> Decls;
     for (Skip(tok::newline); !Consume(tok::eof); Skip(tok::newline))
       Decls.push_back(ParseGlobalDecl());
     return TranslationUnitDecl::Create(Decls);
@@ -77,7 +79,7 @@ private:
     auto Identifier = Tok;
     Advance();
     Expect(tok::l_paren);
-    auto Params = [this] -> std::vector<ParamVarDecl *> {
+    auto Params = [this] -> Sequence<ParamVarDecl *> {
       if (Tok.Is(tok::r_paren))
         return {};
       return ParseParamList();
@@ -96,8 +98,8 @@ private:
     return RuleDecl::Create(Pattern, Action);
   }
 
-  std::vector<ParamVarDecl *> ParseParamList() {
-    std::vector Params = {ParamVarDecl::Create(Tok)};
+  Sequence<ParamVarDecl *> ParseParamList() {
+    Sequence Params = {ParamVarDecl::Create(Tok)};
 
     for (Expect(tok::identifier); Consume(tok::comma); Expect(tok::identifier))
       Params.push_back(ParamVarDecl::Create(Tok));
