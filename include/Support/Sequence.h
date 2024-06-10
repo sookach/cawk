@@ -1,3 +1,5 @@
+#pragma once
+
 #include <algorithm>
 #include <array>
 #include <initializer_list>
@@ -21,7 +23,7 @@ public:
 private:
   static constexpr size_type N = 8'000 / sizeof(T);
   std::array<T, N> Elems;
-  std::size_t Size;
+  std::size_t Size = 0;
 
 public:
   constexpr Sequence() noexcept = default;

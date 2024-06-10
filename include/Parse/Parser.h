@@ -90,9 +90,15 @@ private:
 
   RuleDecl *ParseRuleDecl() {
     auto Pattern = [this] -> Expr * {
-      if (Tok.Is(tok::l_brace))
+      switch (Tok.GetKind()) {
+      default:
+        return ParseExpr();
+      case tok::l_brace:
         return nullptr;
-      return ParseExpr();
+      case tok::kw_BEGIN:
+      case tok::kw_END:
+        return DeclRefExpr::Create(Advance());
+      }
     }();
     auto Action = Tok.Is(tok::l_brace) ? ParseCompoundStmt() : nullptr;
     return RuleDecl::Create(Pattern, Action);
@@ -262,7 +268,7 @@ private:
 
   PrintStmt *ParsePrintStmt() {
     auto Kind = Tok;
-    Expect(tok::kw_print, tok::kw_printf);
+    ExpectOneOf(tok::kw_print, tok::kw_printf);
     auto Args = ParsePrintArgs();
 
     return nullptr;

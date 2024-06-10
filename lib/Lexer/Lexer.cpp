@@ -118,6 +118,8 @@ void Lexer::Next(Token &T, bool Regex) {
     CASE(']', tok::r_square);
     CASE('(', tok::l_paren);
     CASE(')', tok::r_paren);
+    CASE('{', tok::l_brace);
+    CASE('}', tok::r_brace);
     CASE('?', tok::question);
     CASE(':', tok::colon);
     CASE(';', tok::semi);
