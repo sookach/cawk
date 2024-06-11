@@ -67,6 +67,10 @@ protected:
       : Decl(DK_TranslationUnit), Decls(D) {}
 
 public:
+  static bool classof(const Decl *D) {
+    return D->GetKind() == DK_TranslationUnit;
+  }
+
   static TranslationUnitDecl *Create(Sequence<Decl *> Decls) {
     return new TranslationUnitDecl(Decls);
   }
@@ -88,6 +92,8 @@ protected:
       : Decl(DK_Function), Identifier(Identifier), Params(Params), Body(Body) {}
 
 public:
+  static bool classof(const Decl *D) { return D->GetKind() == DK_Function; }
+
   Token GetIdentifier() { return Identifier; }
 
   Sequence<ParamVarDecl *> GetParams() { return Params; }
@@ -113,6 +119,8 @@ protected:
       : Decl(DK_Rule), Pattern(Pattern), Action(Action) {}
 
 public:
+  static bool classof(const Decl *D) { return D->GetKind() == DK_Rule; }
+
   Expr *GetPattern() const { return Pattern; }
 
   CompoundStmt *GetAction() const { return Action; }
@@ -130,6 +138,16 @@ protected:
       : Decl(Kind), Identifier(Identifier) {}
 
 public:
+  static bool classof(const Decl *D) {
+    switch (D->GetKind()) {
+    default:
+      return false;
+    case DK_Var:
+    case DK_ParamVar:
+      return true;
+    };
+  }
+
   Token GetIdentifier() { return Identifier; }
 
   static VarDecl *Create(Token Identifier) {
@@ -142,6 +160,8 @@ protected:
   ParamVarDecl(Token Identifier) : VarDecl(DK_ParamVar, Identifier) {}
 
 public:
+  static bool classof(const Decl *D) { return D->GetKind() == DK_ParamVar; }
+
   static ParamVarDecl *Create(Token Identifier) {
     return new ParamVarDecl(Identifier);
   }
@@ -187,6 +207,8 @@ protected:
   CompoundStmt(Sequence<Stmt *> Body) : Stmt(SK_Compound), Body(Body) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Compound; }
+
   Sequence<Stmt *> GetBody() { return Body; }
 
   static CompoundStmt *Create(Sequence<Stmt *> Body) {
@@ -210,6 +232,8 @@ protected:
       : Stmt(SK_If), Cond(Cond), Then(Then), Else(Else) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_If; }
+
   Expr *GetCond() { return Cond; }
 
   Stmt *GetThen() { return Then; }
@@ -234,6 +258,8 @@ protected:
       : Stmt(SK_For), Init(Init), Cond(Cond), Inc(Inc), Body(Body) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_For; }
+
   Stmt *GetInit() { return Init; }
 
   Expr *GetCond() { return Cond; }
@@ -257,6 +283,8 @@ protected:
       : Stmt(SK_ForRange), LoopVar(LoopVar), Range(Range), Body(Body) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_ForRange; }
+
   DeclRefExpr *GetLoopVar() { return LoopVar; }
 
   DeclRefExpr *GetRange() { return Range; }
@@ -274,6 +302,8 @@ protected:
   BreakStmt() : Stmt(SK_Break) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Break; }
+
   static BreakStmt *Create() { return new BreakStmt; }
 };
 
@@ -292,6 +322,8 @@ protected:
   ExitStmt(Expr *Value) : Stmt(SK_Exit), Value(Value) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Exit; }
+
   Expr *GetValue() { return Value; }
 
   static ExitStmt *Create(Expr *Value) { return new ExitStmt(Value); }
@@ -302,6 +334,8 @@ protected:
   NextStmt() : Stmt(SK_Next) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Next; }
+
   static NextStmt *Create() { return new NextStmt; }
 };
 
@@ -310,6 +344,8 @@ protected:
   NextfileStmt() : Stmt(SK_Nextfile) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Nextfile; }
+
   static NextfileStmt *Create() { return new NextfileStmt; }
 };
 
@@ -321,6 +357,8 @@ protected:
   WhileStmt(Expr *Cond, Stmt *Body) : Stmt(SK_While), Cond(Cond), Body(Body) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_While; }
+
   Expr *GetCond() { return Cond; }
 
   Stmt *GetBody() { return Body; }
@@ -338,6 +376,8 @@ protected:
   DoStmt(Expr *Cond, Stmt *Body) : Stmt(SK_Do), Cond(Cond), Body(Body) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Do; }
+
   Expr *GetCond() { return Cond; }
 
   Stmt *GetBody() { return Body; }
@@ -361,6 +401,8 @@ protected:
       : Stmt(SK_Print), PKind(PKind), Args(Args), Output(Output) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Print; }
+
   PrintKind GetPKind() { return PKind; }
 
   Sequence<Expr *> GetArgs() { return Args; }
@@ -380,6 +422,8 @@ protected:
   ReturnStmt(Expr *Value) : Stmt(SK_Return), Value(Value) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Return; }
+
   Expr *GetValue() { return Value; }
 
   static ReturnStmt *Create(Expr *Value) { return new ReturnStmt(Value); }
@@ -392,6 +436,8 @@ protected:
   ValueStmt(Expr *Value) : Stmt(SK_Value), Value(Value) {}
 
 public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Value; }
+
   Expr *GetValue() { return Value; }
 
   static ValueStmt *Create(Expr *Value) { return new ValueStmt(Value); }
@@ -429,6 +475,10 @@ protected:
       : Expr(EK_BinaryOperator), LHS(LHS), RHS(RHS), Opcode(Opcode) {}
 
 public:
+  static bool classof(const Expr *E) {
+    return E->GetKind() == EK_BinaryOperator;
+  }
+
   Expr *GetLHS() { return LHS; }
 
   Expr *GetRHS() { return RHS; }
@@ -449,6 +499,8 @@ protected:
       : Expr(EK_Call), Callee(Callee), Args(Args) {}
 
 public:
+  static bool classof(const Expr *E) { return E->GetKind() == EK_Call; }
+
   Expr *GetCallee() { return Callee; }
 
   Sequence<Expr *> GetArgs() { return Args; }
@@ -465,6 +517,8 @@ protected:
   DeclRefExpr(Token Identifier) : Expr(EK_DeclRef), Identifier(Identifier) {}
 
 public:
+  static bool classof(const Expr *E) { return E->GetKind() == EK_DeclRef; }
+
   Token GetIdentifier() { return Identifier; }
 
   static DeclRefExpr *Create(Token Identifier) {
@@ -479,6 +533,10 @@ protected:
   FloatingLiteral(Token Value) : Expr(EK_FloatingLiteral), Value(Value) {}
 
 public:
+  static bool classof(const Expr *E) {
+    return E->GetKind() == EK_FloatingLiteral;
+  }
+
   Token GetValue() { return Value; }
 
   static FloatingLiteral *Create(Token Value) {
@@ -493,6 +551,8 @@ protected:
   RegexLiteral(Token Value) : Expr(EK_RegexLiteral), Value(Value) {}
 
 public:
+  static bool classof(const Expr *E) { return E->GetKind() == EK_RegexLiteral; }
+
   Token GetValue() { return Value; }
 
   static RegexLiteral *Create(Token Value) { return new RegexLiteral(Value); }
@@ -505,6 +565,10 @@ protected:
   StringLiteral(Token Value) : Expr(EK_StringLiteral), Value(Value) {}
 
 public:
+  static bool classof(const Expr *E) {
+    return E->GetKind() == EK_StringLiteral;
+  }
+
   Token GetValue() { return Value; }
 
   static StringLiteral *Create(Token Value) { return new StringLiteral(Value); }
