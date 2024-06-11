@@ -34,6 +34,7 @@ class BinaryOperator;
 class CallExpr;
 class DeclRefExpr;
 class FloatingLiteral;
+class RegexLiteral;
 class StringLiteral;
 class UnaryOperator;
 
@@ -87,6 +88,12 @@ protected:
       : Decl(DK_Function), Identifier(Identifier), Params(Params), Body(Body) {}
 
 public:
+  Token GetIdentifier() { return Identifier; }
+
+  Sequence<ParamVarDecl *> GetParams() { return Params; }
+
+  CompoundStmt *GetBody() { return Body; }
+
   static FunctionDecl *Create(Token Identifier, Sequence<ParamVarDecl *> Params,
                               CompoundStmt *Body) {
     return new FunctionDecl(Identifier, Params, Body);
@@ -106,6 +113,10 @@ protected:
       : Decl(DK_Rule), Pattern(Pattern), Action(Action) {}
 
 public:
+  Expr *GetPattern() const { return Pattern; }
+
+  CompoundStmt *GetAction() const { return Action; }
+
   static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action) {
     return new RuleDecl(Pattern, Action);
   }
@@ -119,6 +130,8 @@ protected:
       : Decl(Kind), Identifier(Identifier) {}
 
 public:
+  Token GetIdentifier() { return Identifier; }
+
   static VarDecl *Create(Token Identifier) {
     return new VarDecl(DK_Var, Identifier);
   }
@@ -174,6 +187,8 @@ protected:
   CompoundStmt(Sequence<Stmt *> Body) : Stmt(SK_Compound), Body(Body) {}
 
 public:
+  Sequence<Stmt *> GetBody() { return Body; }
+
   static CompoundStmt *Create(Sequence<Stmt *> Body) {
     return new CompoundStmt(Body);
   }
@@ -195,6 +210,12 @@ protected:
       : Stmt(SK_If), Cond(Cond), Then(Then), Else(Else) {}
 
 public:
+  Expr *GetCond() { return Cond; }
+
+  Stmt *GetThen() { return Then; }
+
+  Stmt *GetElse() { return Else; }
+
   static IfStmt *Create(Expr *Cond, Stmt *Then, Stmt *Else) {
     return new IfStmt(Cond, Then, Else);
   }
@@ -213,6 +234,14 @@ protected:
       : Stmt(SK_For), Init(Init), Cond(Cond), Inc(Inc), Body(Body) {}
 
 public:
+  Stmt *GetInit() { return Init; }
+
+  Expr *GetCond() { return Cond; }
+
+  Stmt *GetInc() { return Inc; }
+
+  Stmt *GetBody() { return Body; }
+
   static ForStmt *Create(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body) {
     return new ForStmt(Init, Cond, Inc, Body);
   }
@@ -228,6 +257,12 @@ protected:
       : Stmt(SK_ForRange), LoopVar(LoopVar), Range(Range), Body(Body) {}
 
 public:
+  DeclRefExpr *GetLoopVar() { return LoopVar; }
+
+  DeclRefExpr *GetRange() { return Range; }
+
+  Stmt *GetBody() { return Body; }
+
   static ForRangeStmt *Create(DeclRefExpr *LoopVar, DeclRefExpr *Range,
                               Stmt *Body) {
     return new ForRangeStmt(LoopVar, Range, Body);
@@ -257,6 +292,8 @@ protected:
   ExitStmt(Expr *Value) : Stmt(SK_Exit), Value(Value) {}
 
 public:
+  Expr *GetValue() { return Value; }
+
   static ExitStmt *Create(Expr *Value) { return new ExitStmt(Value); }
 };
 
@@ -284,6 +321,10 @@ protected:
   WhileStmt(Expr *Cond, Stmt *Body) : Stmt(SK_While), Cond(Cond), Body(Body) {}
 
 public:
+  Expr *GetCond() { return Cond; }
+
+  Stmt *GetBody() { return Body; }
+
   static WhileStmt *Create(Expr *Cond, Stmt *Body) {
     return new WhileStmt(Cond, Body);
   }
@@ -297,6 +338,10 @@ protected:
   DoStmt(Expr *Cond, Stmt *Body) : Stmt(SK_Do), Cond(Cond), Body(Body) {}
 
 public:
+  Expr *GetCond() { return Cond; }
+
+  Stmt *GetBody() { return Body; }
+
   static DoStmt *Create(Expr *Cond, Stmt *Body) {
     return new DoStmt(Cond, Body);
   }
@@ -316,6 +361,12 @@ protected:
       : Stmt(SK_Print), PKind(PKind), Args(Args), Output(Output) {}
 
 public:
+  PrintKind GetPKind() { return PKind; }
+
+  Sequence<Expr *> GetArgs() { return Args; }
+
+  Expr *GetOutput() { return Output; }
+
   static PrintStmt *Create(PrintKind PKind, Sequence<Expr *> Args,
                            Expr *Output) {
     return new PrintStmt(PKind, Args, Output);
@@ -329,6 +380,8 @@ protected:
   ReturnStmt(Expr *Value) : Stmt(SK_Return), Value(Value) {}
 
 public:
+  Expr *GetValue() { return Value; }
+
   static ReturnStmt *Create(Expr *Value) { return new ReturnStmt(Value); }
 };
 
@@ -339,6 +392,8 @@ protected:
   ValueStmt(Expr *Value) : Stmt(SK_Value), Value(Value) {}
 
 public:
+  Expr *GetValue() { return Value; }
+
   static ValueStmt *Create(Expr *Value) { return new ValueStmt(Value); }
 };
 
@@ -359,6 +414,9 @@ protected:
 
 private:
   const ExprKind Kind;
+
+public:
+  ExprKind GetKind() const { return Kind; }
 };
 
 class BinaryOperator : public Expr {
@@ -371,6 +429,12 @@ protected:
       : Expr(EK_BinaryOperator), LHS(LHS), RHS(RHS), Opcode(Opcode) {}
 
 public:
+  Expr *GetLHS() { return LHS; }
+
+  Expr *GetRHS() { return RHS; }
+
+  Token GetOpcode() { return Opcode; }
+
   static BinaryOperator *Create(Expr *LHS, Expr *RHS, Token Opcode) {
     return new BinaryOperator(LHS, RHS, Opcode);
   }
@@ -385,6 +449,10 @@ protected:
       : Expr(EK_Call), Callee(Callee), Args(Args) {}
 
 public:
+  Expr *GetCallee() { return Callee; }
+
+  Sequence<Expr *> GetArgs() { return Args; }
+
   static CallExpr *Create(Expr *Callee, Sequence<Expr *> Args) {
     return new CallExpr(Callee, Args);
   }
@@ -397,6 +465,8 @@ protected:
   DeclRefExpr(Token Identifier) : Expr(EK_DeclRef), Identifier(Identifier) {}
 
 public:
+  Token GetIdentifier() { return Identifier; }
+
   static DeclRefExpr *Create(Token Identifier) {
     return new DeclRefExpr(Identifier);
   }
@@ -409,6 +479,8 @@ protected:
   FloatingLiteral(Token Value) : Expr(EK_FloatingLiteral), Value(Value) {}
 
 public:
+  Token GetValue() { return Value; }
+
   static FloatingLiteral *Create(Token Value) {
     return new FloatingLiteral(Value);
   }
@@ -421,6 +493,8 @@ protected:
   RegexLiteral(Token Value) : Expr(EK_RegexLiteral), Value(Value) {}
 
 public:
+  Token GetValue() { return Value; }
+
   static RegexLiteral *Create(Token Value) { return new RegexLiteral(Value); }
 };
 
@@ -431,6 +505,8 @@ protected:
   StringLiteral(Token Value) : Expr(EK_StringLiteral), Value(Value) {}
 
 public:
+  Token GetValue() { return Value; }
+
   static StringLiteral *Create(Token Value) { return new StringLiteral(Value); }
 };
 
@@ -443,19 +519,13 @@ protected:
       : Expr(EK_UnaryOperator), Opcode(Opcode), SubExpr(SubExpr) {}
 
 public:
+  Token GetOpcode() { return Opcode; }
+
+  Expr *GetSubExpr() { return SubExpr; }
+
   static UnaryOperator *Create(Token Opcode, Expr *SubExpr) {
     return new UnaryOperator(Opcode, SubExpr);
   }
 };
 
 } // namespace cawk
-
-#if 0
-class Expr;
-class BinaryExpr;
-class CallExpr;
-class DeclRefExpr;
-class FloatingLiteral;
-class StringLiteral;
-class UnaryExpr;
-#endif
