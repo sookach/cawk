@@ -4,7 +4,9 @@
 #include "Exec/Value.h"
 #include "Support/Support.h"
 
+#include <cmath>
 #include <ranges>
+#include <regex>
 
 namespace cawk {
 class Exec {
@@ -13,7 +15,7 @@ class Exec {
 public:
   void Visit(TranslationUnitDecl *T) {
     for (Decl *D : T->GetDecls() | std::views::filter([](Decl *D) {
-                     return isa<RuleDecl>(*D);
+                     return isa<RuleDecl>(D);
                    }))
       Visit(static_cast<RuleDecl *>(D));
   }
@@ -22,6 +24,8 @@ public:
     if (Visit(R->GetPattern()))
       Visit(R->GetAction());
   }
+
+  void Visit(Stmt *S) {}
 
   Value *Visit(Expr *E) {
     switch (E->GetKind()) {
@@ -47,9 +51,31 @@ public:
     switch (B->GetOpcode().GetKind()) {
     default:
       std::terminate();
-    case tok::plus: {
-      auto LHS = cast<double>(Visit(B->GetLHS()));
-    }
+    case tok::plus:
+      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) +
+                            raw_cast<double>(Visit(B->GetRHS())));
+    case tok::minus:
+      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) -
+                            raw_cast<double>(Visit(B->GetRHS())));
+    case tok::star:
+      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) *
+                            raw_cast<double>(Visit(B->GetRHS())));
+    case tok::slash:
+      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) /
+                            raw_cast<double>(Visit(B->GetRHS())));
+    case tok::caret:
+      return Number::Create(std::pow(raw_cast<double>(Visit(B->GetLHS())),
+                                     raw_cast<double>(Visit(B->GetRHS()))));
+    case tok::tilde:
+      return Number::Create(std::regex_search(
+          raw_cast<std::string>(Visit(B->GetLHS())),
+          std::regex(raw_cast<std::string>(Visit(B->GetRHS())))));
+    case tok::ampamp:
+      return Number::Create(raw_cast<bool>(Visit(B->GetLHS())) &&
+                            raw_cast<bool>(Visit(B->GetRHS())));
+    case tok::pipepipe:
+      return Number::Create(raw_cast<bool>(Visit(B->GetLHS())) ||
+                            raw_cast<bool>(Visit(B->GetRHS())));
     }
   }
 

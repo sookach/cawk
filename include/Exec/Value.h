@@ -45,10 +45,10 @@ protected:
 public:
   static bool classof(auto &&X) { return X->GetKind() == V; }
 
-  static ValueType Create(T Data) { return ValueType(Data); }
-  static ValueType CreateEmpty() { return ValueType(); }
+  static ValueType *Create(T Data) { return new ValueType(Data); }
+  static ValueType *CreateEmpty() { return new ValueType; }
 
-  T GetData() const { return Data; }
+  const T &GetData() const { return Data; }
   void SetData(T D) { Data = D; }
 };
 
@@ -74,6 +74,43 @@ template <typename T> T *value_cast(Value *V) {
     return String::Create(std::to_string(static_cast<Number *>(V)->GetData()));
   else
     static_assert(false && "invalid conversion target");
+}
+
+template <typename T> T raw_cast(Value *V) {
+  if constexpr (std::is_same_v<T, bool>) {
+    switch (V->GetKind()) {
+    default:
+      assert(false && "invalid raw cast target");
+      std::terminate();
+    case Value::VK_String:
+      return !std::empty(static_cast<String *>(V)->GetData());
+    case Value::VK_Number:
+      return static_cast<Number *>(V)->GetData();
+    }
+  } else if constexpr (std::is_same_v<T, double>) {
+    switch (V->GetKind()) {
+    default:
+      assert(false && "invalid raw cast target");
+      std::terminate();
+    case Value::VK_String: {
+      char *Ptr;
+      auto X = std::strtod(static_cast<String *>(V)->GetData().data(), &Ptr);
+      return Ptr == static_cast<String *>(V)->GetData().data() ? 0 : X;
+    }
+    case Value::VK_Number:
+      return static_cast<Number *>(V)->GetData();
+    }
+  } else if constexpr (std::is_same_v<T, std::string>) {
+    switch (V->GetKind()) {
+    default:
+      assert(false && "invalid raw cast target");
+      std::terminate();
+    case Value::VK_String:
+      return static_cast<String *>(V)->GetData();
+    case Value::VK_Number:
+      return std::to_string(static_cast<Number *>(V)->GetData());
+    }
+  }
 }
 
 } // namespace cawk

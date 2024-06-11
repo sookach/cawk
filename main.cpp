@@ -1,3 +1,4 @@
+#include "Exec/Exec.h"
 #include "Lexer/Lexer.h"
 #include "Parse/Parser.h"
 #include "Support/SourceSpan.h"
