@@ -54,9 +54,9 @@ public:
 
 using Number = ValueType<double, Primitive, Value::VK_Number>;
 using String = ValueType<std::string, Primitive, Value::VK_Number>;
-using Array = ValueType<std::unordered_map<Primitive *, Primitive *>, Composite,
-                        Value::VK_Array>;
-using Vector = ValueType<Sequence<Primitive *>, Composite, Value::VK_Vector>;
+using Array =
+    ValueType<std::unordered_map<Value *, Value *>, Composite, Value::VK_Array>;
+using Vector = ValueType<Sequence<Value *>, Composite, Value::VK_Vector>;
 
 template <typename T> T *value_cast(Value *V) {
   if (isa<T>(V))

@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <initializer_list>
 #include <iostream>
+#include <ranges>
 
 namespace cawk {
 class Parser {
@@ -283,7 +284,7 @@ private:
     return ParseExprList();
   }
 
-  Sequence<Expr *> ParseExprList() {
+  template <bool IsPrint = false> Sequence<Expr *> ParseExprList() {
     Sequence Exprs = {ParseExpr()};
 
     for (; Consume(tok::comma);) {
@@ -295,7 +296,7 @@ private:
     return Exprs;
   }
 
-  Expr *ParseExpr(int RBP = 0) {
+  template <bool IsPrintExpr = false> Expr *ParseExpr(int RBP = 0) {
     auto BindingPower = [](tok::TokenKind K) {
       switch (K) {
       default:
@@ -322,6 +323,9 @@ private:
       case tok::exclaimequal:
       case tok::greaterequal:
       case tok::greater:
+      case tok::pipe:
+        if constexpr (IsPrintExpr)
+          return 0;
         return 6;
       case tok::identifier:
       case tok::string_literal:
@@ -343,25 +347,40 @@ private:
       default:
         assert("undefined nud");
         return nullptr;
-      case tok::slash:
+      case tok::slash: {
         Lex.Undo();
         Lex.Next(Tok, true);
-        return RegexLiteral::Create(Advance());
-      case tok::numeric_constant:
-        return FloatingLiteral::Create(Advance());
-      case tok::string_literal:
-        return StringLiteral::Create(Advance());
-      case tok::identifier:
-        return DeclRefExpr::Create(Advance());
+        auto T = Tok;
+        Expect(tok::regex_literal);
+        return RegexLiteral::Create(T);
+      }
+      case tok::numeric_constant: {
+        auto T = Tok;
+        Expect(tok::numeric_constant);
+        return FloatingLiteral::Create(T);
+      }
+      case tok::string_literal: {
+        auto T = Tok;
+        Expect(tok::string_literal);
+        return StringLiteral::Create(T);
+      }
+      case tok::identifier: {
+        auto T = Tok;
+        Expect(tok::identifier);
+        return DeclRefExpr::Create(T);
+      }
       case tok::plus:
       case tok::minus:
       case tok::plusplus:
       case tok::minusminus:
       case tok::exclaim:
       case tok::dollar: {
-        auto OpCode = Advance();
-        return UnaryOperator::Create(
-            OpCode, ParseExpr(std::numeric_limits<int>::max()));
+        auto OpCode = Tok;
+        ExpectOneOf(tok::plus, tok::minus, tok::plusplus, tok::minusminus,
+                    tok::exclaim, tok::dollar);
+        return UnaryOperator::Create(OpCode,
+                                     ParseExpr(std::numeric_limits<int>::max()),
+                                     UnaryOperator::FixKind::Prefix);
       }
       case tok::l_paren: {
         Expect(tok::l_paren);
@@ -371,6 +390,32 @@ private:
       }
       }
     }();
+
+    switch (Tok.GetKind()) {
+    default:
+      break;
+    case tok::l_square: {
+      Expect(tok::l_square);
+      LHS = std::ranges::fold_left(
+          ParseExprList(), LHS, [](Expr *LHS, Expr *Idx) {
+            return static_cast<Expr *>(ArraySubscriptExpr::Create(LHS, Idx));
+          });
+      Expect(tok::r_square);
+      break;
+    }
+    case tok::l_paren: {
+      Expect(tok::l_paren);
+      LHS = CallExpr::Create(LHS, ParseExprList());
+      Expect(tok::r_paren);
+      break;
+    }
+    case tok::plusplus:
+    case tok::minusminus: {
+      auto Opcode = Tok;
+      ExpectOneOf(tok::plusplus, tok::minusminus);
+      LHS = UnaryOperator::Create(Tok, LHS, UnaryOperator::FixKind::Postfix);
+    }
+    }
 
     for (; BindingPower(Tok.GetKind()) > RBP;) {
       auto OpCode = Advance();

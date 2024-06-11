@@ -443,6 +443,7 @@ public:
 class Expr {
 public:
   enum ExprKind {
+    EK_ArraySubscript,
     EK_BinaryOperator,
     EK_Call,
     EK_DeclRef,
@@ -460,6 +461,32 @@ private:
 
 public:
   ExprKind GetKind() const { return Kind; }
+};
+
+class ArraySubscriptExpr : public Expr {
+  Expr *LHS;
+  Expr *RHS;
+
+protected:
+  ArraySubscriptExpr(Expr *LHS, Expr *RHS)
+      : Expr(EK_ArraySubscript), LHS(LHS), RHS(RHS) {}
+
+public:
+  static bool classof(const Expr *E) {
+    return E->GetKind() == EK_ArraySubscript;
+  }
+
+  Expr *GetLHS() const { return LHS; }
+
+  void SetLHS(Expr *E) { LHS = E; }
+
+  Expr *GetRHS() const { return RHS; }
+
+  void SetRHS(Expr *E) { RHS = E; }
+
+  static ArraySubscriptExpr *Create(Expr *LHS, Expr *RHS) {
+    return new ArraySubscriptExpr(LHS, RHS);
+  }
 };
 
 class BinaryOperator : public Expr {
@@ -572,20 +599,25 @@ public:
 };
 
 class UnaryOperator : public Expr {
+public:
+  enum FixKind { Prefix, Postfix };
+
+private:
   Token Opcode;
   Expr *SubExpr;
+  FixKind Fix;
 
 protected:
-  UnaryOperator(Token Opcode, Expr *SubExpr)
-      : Expr(EK_UnaryOperator), Opcode(Opcode), SubExpr(SubExpr) {}
+  UnaryOperator(Token Opcode, Expr *SubExpr, FixKind Fix)
+      : Expr(EK_UnaryOperator), Opcode(Opcode), SubExpr(SubExpr), Fix(Fix) {}
 
 public:
   Token GetOpcode() { return Opcode; }
 
   Expr *GetSubExpr() { return SubExpr; }
 
-  static UnaryOperator *Create(Token Opcode, Expr *SubExpr) {
-    return new UnaryOperator(Opcode, SubExpr);
+  static UnaryOperator *Create(Token Opcode, Expr *SubExpr, FixKind Fix) {
+    return new UnaryOperator(Opcode, SubExpr, Fix);
   }
 };
 
