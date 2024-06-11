@@ -43,14 +43,16 @@ public:
     }
   }
 
+  Value *Visit(BinaryOperator *B) {
+    switch (B->GetOpcode().GetKind()) {
+    default:
+      std::terminate();
+    case tok::plus:
+    }
+  }
+
 #if 0
 
-class Decl;
-class TranslationUnitDecl;
-class RuleDecl;
-class FunctionDecl;
-class VarDecl;
-class ParamVarDecl;
 
 class Stmt;
 class BreakStmt;

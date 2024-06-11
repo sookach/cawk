@@ -15,28 +15,43 @@ private:
 protected:
   Value(ValueKind Kind) : Kind(Kind) {}
 
-  static Value *Create(ValueKind Kind) { return new Value(Kind); }
+  static Value Create(ValueKind Kind) { return Value(Kind); }
 
 public:
   ValueKind GetKind() const { return Kind; }
 };
 
-template <typename T, Value::ValueKind V> class Type : public Value {
+class Primitive : public Value {
+protected:
+  Primitive(ValueKind Kind) : Value(Kind) {}
+};
+
+class Composite : public Value {
+protected:
+  Composite(ValueKind Kind) : Value(Kind) {}
+};
+
+template <typename T, typename P, Value::ValueKind V> class Type : public P {
 private:
   T Data;
 
 protected:
-  Type(T Data) : Value(V), Data(Data) {}
-  Type() : Value(V), Data({}) {}
+  Type(T Data) : P(V), Data(Data) {}
+  Type() : P(V), Data({}) {}
 
 public:
-  static Type *Create(T Data) { return new Type(Data); }
-  static Type *CreateEmpty() { return new Type; }
+  static Type Create(T Data) { return Type(Data); }
+  static Type CreateEmpty() { return Type(); }
+
+  T GetData() const { return Data; }
+  void SetData(T D) { Data = D; }
 };
 
-using Number = Type<double, Value::VK_Number>;
-using String = Type<std::string, Value::VK_Number>;
-using Array = Type<std::unordered_map<Value *, Value *>, Value::VK_Array>;
-using Vector = Type<Sequence<Value *>, Value::VK_Vector>;
+using Number = Type<double, Primitive, Value::VK_Number>;
+using String = Type<std::string, Primitive, Value::VK_Number>;
+using Array =
+    Type<std::unordered_map<Primitive, Primitive>, Composite, Value::VK_Array>;
+using Vector = Type<Sequence<Primitive>, Composite, Value::VK_Vector>;
+
 
 } // namespace cawk
