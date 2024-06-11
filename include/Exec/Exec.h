@@ -25,7 +25,32 @@ public:
       Visit(R->GetAction());
   }
 
-  void Visit(Stmt *S) {}
+  void Visit(Stmt *S) {
+    switch (S->GetKind()) {
+#if defined(CASE)
+      static_assert(false);
+#else
+#define CASE(KIND, CLASS)                                                      \
+  case Stmt::SK_##KIND:                                                        \
+    return Visit(static_cast<CLASS *>(S));
+#endif
+      CASE(Break, BreakStmt)
+      CASE(Continue, ContinueStmt)
+      CASE(Compound, CompoundStmt)
+      CASE(Do, DoStmt);
+      CASE(Exit, ExitStmt)
+      CASE(For, ForStmt)
+      CASE(ForRange, ForRangeStmt)
+      CASE(If, IfStmt)
+      CASE(Next, NextStmt)
+      CASE(Nextfile, NextfileStmt)
+      CASE(Print, PrintStmt)
+      CASE(Return, ReturnStmt)
+      CASE(Value, ValueStmt)
+      CASE(While, WhileStmt)
+#undef CASE
+    }
+  }
 
   Value *Visit(Expr *E) {
     switch (E->GetKind()) {

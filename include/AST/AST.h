@@ -16,7 +16,6 @@ class Stmt;
 class BreakStmt;
 class ContinueStmt;
 class CompoundStmt;
-class DeclStmt;
 class DoStmt;
 class ExitStmt;
 class ForStmt;
@@ -173,10 +172,8 @@ public:
     SK_Break,
     SK_Compound,
     SK_Continue,
-    SK_Decl,
     SK_Do,
     SK_Exit,
-    SK_Expr,
     SK_For,
     SK_ForRange,
     SK_If,
