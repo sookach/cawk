@@ -115,7 +115,7 @@ private:
 
   CompoundStmt *ParseCompoundStmt() {
     Expect(tok::l_brace);
-    std::vector<Stmt *> Stmts;
+    Sequence<Stmt *> Stmts;
     for (Skip(tok::newline, tok::semi); !Tok.Is(tok::r_brace);
          Skip(tok::newline, tok::semi))
       Stmts.push_back(ParseStmt());
@@ -274,7 +274,7 @@ private:
     return nullptr;
   }
 
-  std::vector<Expr *> ParsePrintArgs() {
+  Sequence<Expr *> ParsePrintArgs() {
     if (Consume(tok::l_paren)) {
       auto Args = ParseExprList();
       Expect(tok::r_paren);
@@ -283,8 +283,8 @@ private:
     return ParseExprList();
   }
 
-  std::vector<Expr *> ParseExprList() {
-    std::vector Exprs = {ParseExpr()};
+  Sequence<Expr *> ParseExprList() {
+    Sequence Exprs = {ParseExpr()};
 
     for (; Consume(tok::comma);) {
       Skip(tok::newline);

@@ -13,7 +13,7 @@ class Exec {
 public:
   void Visit(TranslationUnitDecl *T) {
     for (Decl *D : T->GetDecls() | std::views::filter([](Decl *D) {
-                     return isa<Decl::DK_Rule>(*D);
+                     return isa<RuleDecl>(*D);
                    }))
       Visit(static_cast<RuleDecl *>(D));
   }
@@ -47,7 +47,9 @@ public:
     switch (B->GetOpcode().GetKind()) {
     default:
       std::terminate();
-    case tok::plus:
+    case tok::plus: {
+      auto LHS = cast<double>(Visit(B->GetLHS()));
+    }
     }
   }
 
