@@ -3,12 +3,11 @@
 #include "AST/AST.h"
 #include "Basic/TokenKinds.h"
 #include "Lexer/Lexer.h"
+
 #include <algorithm>
 #include <bitset>
 #include <cstdlib>
 #include <initializer_list>
-#include <iostream>
-#include <ranges>
 
 namespace cawk {
 class Parser {
@@ -262,6 +261,9 @@ private:
     case tok::kw_print:
     case tok::kw_printf:
       return ParsePrintStmt();
+    case tok::kw_delete:
+      Expect(tok::kw_delete);
+      return DeleteStmt::Create(ParseExpr());
     }
 
     return nullptr;
@@ -270,14 +272,36 @@ private:
   PrintStmt *ParsePrintStmt() {
     auto Kind = Tok;
     ExpectOneOf(tok::kw_print, tok::kw_printf);
-    auto Args = ParsePrintArgs();
+    auto Args = ParsePrintArg();
 
-    return nullptr;
+    auto [Opcode, Output] = [this] -> std::pair<Token, Expr *> {
+      switch (Tok.GetKind()) {
+      default:
+        return {};
+      case tok::pipe: {
+        auto T = Tok;
+        Expect(tok::pipe);
+        return {T, ParseExpr()};
+      }
+      case tok::greater: {
+        auto T = Tok;
+        Expect(tok::greater);
+        return {T, ParseExpr()};
+      }
+      case tok::greatergreater: {
+        auto T = Tok;
+        Expect(tok::greater);
+        return {T, ParseExpr()};
+      }
+      }
+    }();
+
+    return PrintStmt::Create(Kind, Args, Opcode, Output);
   }
 
-  Sequence<Expr *> ParsePrintArgs() {
+  Sequence<Expr *> ParsePrintArg() {
     if (Consume(tok::l_paren)) {
-      auto Args = ParseExprList();
+      auto Args = ParseExprList<true>();
       Expect(tok::r_paren);
       return Args;
     }

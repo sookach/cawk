@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "Basic/TokenKinds.h"
 #include "Exec/Value.h"
 #include "Support/Support.h"
 
@@ -10,7 +11,9 @@
 
 namespace cawk {
 class Exec {
-  std::unordered_map<std::string_view, Stmt *> Functions;
+  std::unordered_map<std::string, FunctionDecl> Functions;
+  std::unordered_map<std::string, Value> GlobalSymbolTable;
+  std::unordered_map<std::string, Value> LocalSymbolTable;
 
 public:
   void Visit(TranslationUnitDecl *T) {
@@ -61,6 +64,7 @@ public:
   case Expr::EK_##KIND:                                                        \
     return Visit(static_cast<CLASS *>(E));
 #endif
+      CASE(ArraySubscript, ArraySubscriptExpr)
       CASE(BinaryOperator, BinaryOperator)
       CASE(Call, CallExpr)
       CASE(DeclRef, DeclRefExpr)
@@ -95,6 +99,12 @@ public:
       return Number::Create(std::regex_search(
           raw_cast<std::string>(Visit(B->GetLHS())),
           std::regex(raw_cast<std::string>(Visit(B->GetRHS())))));
+    case tok::exclaimtilde:
+      return Number::Create(!std::regex_search(
+          raw_cast<std::string>(Visit(B->GetLHS())),
+          std::regex(raw_cast<std::string>(Visit(B->GetRHS())))));
+    case tok::kw_in:
+      break;
     case tok::ampamp:
       return Number::Create(raw_cast<bool>(Visit(B->GetLHS())) &&
                             raw_cast<bool>(Visit(B->GetRHS())));
@@ -105,32 +115,6 @@ public:
   }
 
 #if 0
-
-
-class Stmt;
-class BreakStmt;
-class ContinueStmt;
-class CompoundStmt;
-class DeclStmt;
-class DoStmt;
-class ExitStmt;
-class ForStmt;
-class ForRangeStmt;
-class IfStmt;
-class NextStmt;
-class NextfileStmt;
-class PrintStmt;
-class ReturnStmt;
-class ValueStmt;
-class WhileStmt;
-
-class Expr;
-class BinaryOperator;
-class CallExpr;
-class DeclRefExpr;
-class FloatingLiteral;
-class StringLiteral;
-class UnaryOperator;
 #endif
 };
 } // namespace cawk

@@ -16,6 +16,7 @@ class Stmt;
 class BreakStmt;
 class ContinueStmt;
 class CompoundStmt;
+class DeleteStmt;
 class DoStmt;
 class ExitStmt;
 class ForStmt;
@@ -172,6 +173,7 @@ public:
     SK_Break,
     SK_Compound,
     SK_Continue,
+    SK_Delete,
     SK_Do,
     SK_Exit,
     SK_For,
@@ -365,6 +367,20 @@ public:
   }
 };
 
+class DeleteStmt : public Stmt {
+  Expr *Argument;
+
+protected:
+  DeleteStmt(Expr *Argument) : Stmt(SK_Delete), Argument(Argument) {}
+
+public:
+  static bool classof(const Stmt *S) { return S->GetKind() == SK_Delete; }
+
+  Expr *GetArgument() { return Argument; }
+
+  static DeleteStmt *Create(Expr *Argument) { return new DeleteStmt(Argument); }
+};
+
 class DoStmt : public Stmt {
   Expr *Cond;
   Stmt *Body;
@@ -389,26 +405,31 @@ public:
   enum PrintKind { PK_Print, PK_Printf };
 
 private:
-  PrintKind PKind;
+  Token Iden;
   Sequence<Expr *> Args;
+  Token Opcode;
   Expr *Output;
 
 protected:
-  PrintStmt(PrintKind PKind, Sequence<Expr *> Args, Expr *Output)
-      : Stmt(SK_Print), PKind(PKind), Args(Args), Output(Output) {}
+  PrintStmt(Token Iden, Sequence<Expr *> Args, Token Opcode = {},
+            Expr *Output = nullptr)
+      : Stmt(SK_Print), Iden(Iden), Args(Args), Opcode(Opcode), Output(Output) {
+  }
 
 public:
   static bool classof(const Stmt *S) { return S->GetKind() == SK_Print; }
 
-  PrintKind GetPKind() { return PKind; }
+  Token GetIden() { return Iden; }
 
   Sequence<Expr *> GetArgs() { return Args; }
 
+  Token GetOpcode() { return Opcode; }
+
   Expr *GetOutput() { return Output; }
 
-  static PrintStmt *Create(PrintKind PKind, Sequence<Expr *> Args,
-                           Expr *Output) {
-    return new PrintStmt(PKind, Args, Output);
+  static PrintStmt *Create(Token Iden, Sequence<Expr *> Args, Token Opcode = {},
+                           Expr *Output = nullptr) {
+    return new PrintStmt(Iden, Args, Opcode, Output);
   }
 };
 
