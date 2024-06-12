@@ -564,7 +564,7 @@ protected:
 public:
   static bool classof(const Expr *E) { return E->GetKind() == EK_DeclRef; }
 
-  Token GetIdentifier() { return Identifier; }
+  Token GetIdentifier() const { return Identifier; }
 
   static DeclRefExpr *Create(Token Identifier) {
     return new DeclRefExpr(Identifier);
