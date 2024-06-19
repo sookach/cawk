@@ -2,19 +2,24 @@
 #include "Basic/TokenKinds.h"
 
 namespace charinfo {
-inline bool IsWhitespace(char c) {
+template <bool IncludeNewline = false> inline bool IsWhitespace(char c) {
   switch (c) {
   default:
+    if constexpr (IncludeNewline)
+      return c == '\n';
     return false;
   case ' ':
   case '\t':
   case '\f':
   case '\v':
   case '\r':
-    //  case '\n': Newline have syntactically important in AWK
+    //  case '\n': Newline has syntactic importance in AWK
     return true;
   }
 }
+
+template bool IsWhitespace<true>(char);
+template bool IsWhitespace<false>(char);
 
 inline bool IsDigit(char c) {
   switch (c) {
@@ -57,10 +62,11 @@ void Lexer::FormToken(Token &T, std::string_view::const_iterator End,
   BufferPtr = End;
 }
 
-void Lexer::Next(Token &T, bool Regex) {
+template <bool IgnoreNewline, bool LexRegex> void Lexer::Next(Token &T) {
   BufferPrev = BufferPtr;
 
-  for (; BufferPtr != BufferEnd && charinfo::IsWhitespace(*BufferPtr);
+  for (; BufferPtr != BufferEnd &&
+         charinfo::IsWhitespace<IgnoreNewline>(*BufferPtr);
        ++BufferPtr)
     ;
 
@@ -100,13 +106,15 @@ void Lexer::Next(Token &T, bool Regex) {
     return;
   }
 
-  if (*BufferPtr == '/' && Regex) {
-    auto End = BufferPtr + 1;
-    for (; End != BufferEnd && *End != '/'; ++End)
-      if (*End == '\\')
-        ++End;
-    FormToken(T, End + 1, tok::regex_literal);
-    return;
+  if constexpr (LexRegex) {
+    if (*BufferPtr == '/') {
+      auto End = BufferPtr + 1;
+      for (; End != BufferEnd && *End != '/'; ++End)
+        if (*End == '\\')
+          ++End;
+      FormToken(T, End + 1, tok::regex_literal);
+      return;
+    }
   }
 
   switch (*BufferPtr) {
@@ -214,5 +222,10 @@ void Lexer::Next(Token &T, bool Regex) {
     FormToken(T, BufferPtr + 1, tok::unknown);
   }
 }
+
+template void Lexer::Next<false, false>(Token &);
+template void Lexer::Next<false, true>(Token &);
+template void Lexer::Next<true, false>(Token &);
+template void Lexer::Next<true, true>(Token &);
 
 } // namespace cawk

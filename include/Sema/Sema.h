@@ -2,38 +2,40 @@
 
 #include "AST/AST.h"
 #include "Support/Support.h"
+#include <__algorithm/fold.h>
 #include <ranges>
 
 namespace cawk {
 class Sema {
-  std::unordered_map<std::string, FunctionDecl *> Functions;
-  std::unordered_map<std::string, Decl *> GlobalVars;
+  template <typename V> using StringMap = std::unordered_map<std::string, V>;
+
+  StringMap<FunctionDecl *> Functions;
+  StringMap<Decl *> GlobalVars;
 
   class CheckType {
   private:
     enum TypeKind { TK_Primitive, TK_Composite };
 
     using Result = std::pair<bool, TypeKind>;
+    template <typename V> using StringMap = std::unordered_map<std::string, V>;
 
-    std::unordered_map<std::string, FunctionDecl *> Functions;
-    std::unordered_map<std::string, Decl *> GlobalVars;
-    std::unordered_map<std::string, TypeKind> GlobalTypes;
-    std::unordered_map<std::string, TypeKind> LocalTypes;
-    std::unordered_map<std::string, std::pair<TypeKind, Sequence<TypeKind>>>
-        FunctionTypes;
+    StringMap<FunctionDecl *> Functions;
+    StringMap<Decl *> GlobalVars;
+    StringMap<TypeKind> GlobalTypes;
+    StringMap<TypeKind> LocalTypes;
+    StringMap<std::pair<TypeKind, std::vector<TypeKind>>> FunctionTypes;
 
     Result Check(Decl *D) {
       switch (D->GetKind()) {
-      case Decl::DK_TranslationUnit:
-        return Check(static_cast<TranslationUnitDecl *>(D));
-      case Decl::DK_Function:
-        return Check(static_cast<FunctionDecl *>(D));
-      case Decl::DK_Rule:
-        return Check(static_cast<RuleDecl *>(D));
-      case Decl::DK_Var:
-        return Check(static_cast<VarDecl *>(D));
-      case Decl::DK_ParamVar:
-        return Check(static_cast<ParamVarDecl *>(D));
+#define CASE(KIND, CLASS)                                                      \
+  case Decl::DK_##KIND:                                                        \
+    return Check(ptr_cast<CLASS>(D))
+        CASE(TranslationUnit, TranslationUnitDecl);
+        CASE(Rule, RuleDecl);
+        CASE(Function, FunctionDecl);
+        CASE(Var, VarDecl);
+        CASE(ParamVar, ParamVarDecl);
+#undef CASE
       }
     }
 
@@ -43,7 +45,7 @@ class Sema {
       switch (S->GetKind()) {
 #define CASE(KIND, CLASS)                                                      \
   case Stmt::SK_##KIND:                                                        \
-    return Check(static_cast<CLASS *>(S))
+    return Check(ptr_cast<CLASS>(S))
         CASE(Break, BreakStmt);
         CASE(Continue, ContinueStmt);
         CASE(Compound, CompoundStmt);

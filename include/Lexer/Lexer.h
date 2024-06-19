@@ -26,7 +26,7 @@ public:
 
   std::string_view::const_iterator GetBufferPtr() const;
   void SetBufferPtr(std::string_view::const_iterator);
-  void Next(Token &, bool = false);
+  template <bool = false, bool = false> void Next(Token &);
   void Undo();
 
 private:

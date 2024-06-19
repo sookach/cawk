@@ -11,6 +11,7 @@ enum TokenKind : unsigned short {
 };
 
 std::string_view GetTokenName(TokenKind Kind);
+std::string_view GetSpelling(TokenKind);
 std::string_view GetPunctuatorSpelling(TokenKind Kind);
 std::string_view GetKeywordSpelling(TokenKind Kind);
 } // namespace tok
