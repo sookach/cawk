@@ -1,26 +1,24 @@
 #include "Parse/Parser.h"
-#include "AST/AST.h"
-#include "Basic/TokenKinds.h"
 
 namespace cawk {
-Token Parser::Advance(bool Regex) {
+template <bool LexNewline, bool LexRegex> Token Parser::Advance() {
   auto Prev = Tok;
-  Lex.Next(Tok, Regex);
+  Lex.Next<LexNewline, LexRegex>(Tok);
   return Prev;
 }
 
-Token Parser::Peek(std::size_t N, bool Regex) const {
+template <bool LexNewLine, bool LexRegex>
+Token Parser::Peek(std::size_t N) const {
   Token T;
   auto BufferPtr = Lex.GetBufferPtr();
 
   for (; N != 0; --N)
-    Lex.Next(T, Regex);
+    Lex.Next<LexNewLine, LexRegex>(T);
 
   Lex.SetBufferPtr(BufferPtr);
   return T;
 }
 
-TranslationUnitDecl *Parser::Parse() { return ParseTranslationUnitDecl(); }
 
 } // namespace cawk
 

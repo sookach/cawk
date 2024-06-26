@@ -16,64 +16,70 @@ class Parser {
   bool HasError;
 
 public:
-  Parser(Lexer &Lex) : Lex(Lex), HasError(false) { Lex.Next(Tok); }
+  Parser(Lexer &Lex) : Lex(Lex), HasError(false) {
+    Lex.Next<false, false>(Tok);
+  }
 
   TranslationUnitDecl *Parse();
 
 private:
-  Token Advance(bool = false);
-  Token Peek(std::size_t, bool = false) const;
+  template <bool = false, bool = false> Token Advance();
+  template <bool = false, bool = false> Token Peek(std::size_t) const;
 
-  template <typename... Ts> bool Consume(tok::TokenKind K, Ts... Ks) {
+  template <bool NL = false, bool RE = false, typename... Ts>
+  bool Consume(tok::TokenKind K, Ts... Ks) {
     if (Tok.Is(K)) {
-      Lex.Next(Tok);
+      Lex.Next<NL, RE>(Tok);
       return true;
     }
 
     if constexpr (sizeof...(Ks) != 0)
-      return Consume(Ks...);
+      return Consume<NL, RE>(Ks...);
 
     return false;
   }
 
-  template <typename... Ts> bool ConsumeOneOf(tok::TokenKind K, Ts... Ks) {
-    if (Consume(K))
+  template <bool NL = false, bool RE = false, typename... Ts>
+  bool ConsumeOneOf(tok::TokenKind K, Ts... Ks) {
+    if (Consume<NL, RE>(K))
       return true;
 
     if constexpr (sizeof...(Ks) != 0)
-      return Consume(Ks...);
+      return Consume<NL, RE>(Ks...);
 
     return false;
   }
 
-  template <typename... Ts> void Expect(tok::TokenKind K, Ts... Ks) {
-    if (!Consume(K))
+  template <bool NL = false, bool RE = false, typename... Ts>
+  void Expect(tok::TokenKind K, Ts... Ks) {
+    if (!Consume<NL, RE>(K))
       exit(EXIT_FAILURE); // TODO: error handling
 
     if constexpr (sizeof...(Ks) != 0)
-      Expect(Ks...);
+      Expect<NL, RE>(Ks...);
   }
 
-  template <typename... Ts> void ExpectOneOf(tok::TokenKind K, Ts... Ks) {
-    if (Consume(K))
+  template <bool NL = false, bool RE = false, typename... Ts>
+  void ExpectOneOf(tok::TokenKind K, Ts... Ks) {
+    if (Consume<NL, RE>(K))
       return;
 
     if constexpr (sizeof...(Ks) == 0)
       exit(EXIT_FAILURE); // TODO: error handling
     else
-      ExpectOneOf(Ks...);
+      ExpectOneOf<NL, RE>(Ks...);
   }
 
-  template <typename... Ts> void Skip(Ts... Ks) {
+  template <tok::TokenKind... Ks> void Skip() {
     std::bitset<tok::NUM_TOKENS> Filter((0 | ... | Ks));
 
-    for (; Filter.test(Tok.GetKind()); Advance())
+    for (; Filter.test(Tok.GetKind()); Advance<false, false>())
       ;
   }
 
   TranslationUnitDecl *ParseTranslationUnit() {
     std::vector<Decl *> Decls;
-    for (; (Skip(tok::semi, tok::newline), !Tok.Is(tok::eof));) {
+    for (; (Skip<tok::newline, tok::semi>(), !Tok.Is(tok::eof));) {
       Decls.push_back(ParseDecl());
     }
     return TranslationUnitDecl::Create(Decls);
@@ -114,7 +120,7 @@ private:
         return ParseExpr();
       case tok::kw_BEGIN:
       case tok::kw_END:
-        return DeclRefExpr::Create(Advance());
+        return DeclRefExpr::Create(Advance<false>());
       }
     }();
 
@@ -124,7 +130,81 @@ private:
     return RuleDecl::Create(Pattern, Action);
   }
 
-  CompoundStmt *ParseCompoundStmt() { return nullptr; }
+  CompoundStmt *ParseCompoundStmt() {
+    Expect(tok::l_brace);
+    std::vector<Stmt *> Stmts;
+    for (; (Skip<tok::newline, tok::semi>(), !Tok.Is(tok::r_brace, tok::eof));)
+      Stmts.push_back(ParseStmt());
+
+    Expect(tok::r_brace);
+    return CompoundStmt::Create(Stmts);
+  }
+
+  Stmt *ParseStmt() {
+    switch (Tok.GetKind()) {
+    default:
+      return ParseSimpleStmt();
+    case tok::l_brace:
+      return ParseCompoundStmt();
+    case tok::kw_if:
+      return ParseIfStmt();
+    case tok::kw_for:
+      return ParseForStmt();
+    }
+  }
+
+  Stmt *ParseSimpleStmt() {
+    switch (Tok.GetKind()) {
+    default:
+      return ParseValueStmt();
+    case tok::kw_print:
+    case tok::kw_printf:
+      return ParsePrintStmt();
+    }
+  }
+
+  ValueStmt *ParseValueStmt() {
+    Expr *Value = ParseExpr();
+    ExpectOneOf(tok::semi, tok::newline);
+    return ValueStmt::Create(Value);
+  }
+
+  IfStmt *ParseIfStmt() {
+    Expect(tok::kw_if);
+    Expect(tok::l_paren);
+    Expr *Cond = ParseExpr();
+    Expect(tok::r_paren);
+    Stmt *Then = ParseStmt();
+    Stmt *Else = Consume(tok::kw_else) ? ParseStmt() : nullptr;
+    return IfStmt::Create(Cond, Then, Else);
+  }
+
+  Stmt *ParseForStmt() {
+    Expect(tok::kw_for);
+    Expect(tok::l_paren);
+
+    if (Peek(1).Is(tok::kw_in)) {
+      DeclRefExpr *LoopVar = DeclRefExpr::Create(Advance());
+      Expect(tok::kw_in);
+      DeclRefExpr *Range = DeclRefExpr::Create(Advance());
+      Expect(tok::l_paren);
+      return ForRangeStmt::Create(LoopVar, Range, ParseStmt());
+    }
+
+    Stmt *Init = Tok.Is(tok::semi) ? nullptr : ParseSimpleStmt();
+    Expect(tok::semi);
+    Expr *Cond = Tok.Is(tok::semi) ? nullptr : ParseExpr();
+    Expect(tok::semi);
+    Stmt *Inc = Tok.Is(tok::r_paren) ? nullptr : ParseSimpleStmt();
+    Expect(tok::r_paren);
+    return ForStmt::Create(Init, Cond, Inc, ParseStmt());
+  }
+
+  PrintStmt *ParsePrintStmt() {
+    auto OpCode = Tok;
+    ExpectOneOf<true>(tok::kw_print, tok::kw_printf);
+    
+  }
 
   Expr *ParseExpr() { return nullptr; }
 };

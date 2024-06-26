@@ -2,18 +2,19 @@
 #include "Basic/TokenKinds.h"
 
 namespace charinfo {
-template <bool IncludeNewline = false> inline bool IsWhitespace(char c) {
+template <bool Newline = false> inline bool IsWhitespace(char c) {
   switch (c) {
   default:
-    if constexpr (IncludeNewline)
-      return c == '\n';
     return false;
   case ' ':
   case '\t':
   case '\f':
   case '\v':
   case '\r':
-    //  case '\n': Newline has syntactic importance in AWK
+    return true;
+  case '\n': // Newline has syntactic importance in AWK
+    if constexpr (Newline)
+      return false;
     return true;
   }
 }
@@ -62,11 +63,10 @@ void Lexer::FormToken(Token &T, std::string_view::const_iterator End,
   BufferPtr = End;
 }
 
-template <bool IgnoreNewline, bool LexRegex> void Lexer::Next(Token &T) {
+template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
   BufferPrev = BufferPtr;
 
-  for (; BufferPtr != BufferEnd &&
-         charinfo::IsWhitespace<IgnoreNewline>(*BufferPtr);
+  for (; BufferPtr != BufferEnd && charinfo::IsWhitespace<Newline>(*BufferPtr);
        ++BufferPtr)
     ;
 
@@ -106,7 +106,7 @@ template <bool IgnoreNewline, bool LexRegex> void Lexer::Next(Token &T) {
     return;
   }
 
-  if constexpr (LexRegex) {
+  if constexpr (Regex) {
     if (*BufferPtr == '/') {
       auto End = BufferPtr + 1;
       for (; End != BufferEnd && *End != '/'; ++End)
