@@ -201,9 +201,37 @@ private:
   }
 
   PrintStmt *ParsePrintStmt() {
-    auto OpCode = Tok;
+    Token Iden = Tok;
     ExpectOneOf<true>(tok::kw_print, tok::kw_printf);
-    
+
+    std::vector<Expr *> Args = [this] -> std::vector<Expr *> {
+      if (ConsumeOneOf(tok::newline, tok::semi))
+        return {};
+
+      std::vector Args = {ParseExpr()};
+
+      for (; Consume(tok::comma);)
+        Args.push_back(ParseExpr());
+
+      return Args;
+    }();
+
+    auto [OpCode, Output] = [this] -> std::pair<Token, Expr *> {
+      switch (Tok.GetKind()) {
+      default:
+        return {};
+      case tok::greater:
+      case tok::greatergreater:
+      case tok::pipe:
+        break;
+      }
+
+      Token OpCode = Tok;
+      ExpectOneOf(tok::greater, tok::greatergreater, tok::pipe);
+      return {Tok, ParseExpr()};
+    }();
+
+    return PrintStmt::Create(Iden, Args, OpCode, Output);
   }
 
   Expr *ParseExpr() { return nullptr; }
