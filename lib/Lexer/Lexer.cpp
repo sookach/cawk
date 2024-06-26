@@ -145,6 +145,8 @@ template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
   case '|':
     if (*(BufferPtr + 1) == '|')
       FormToken(T, BufferPtr + 2, tok::pipepipe);
+    else if (*(BufferPtr + 1) == '&')
+      FormToken(T, BufferPtr + 2, tok::pipeamp);
     else
       FormToken(T, BufferPtr + 1, tok::pipe);
     break;
@@ -193,12 +195,16 @@ template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
       FormToken(T, BufferPtr + 1, tok::minus);
     break;
   case '*':
-    if (*(BufferPtr + 1) == '*')
-      FormToken(T, BufferPtr + 2, tok::starstar);
-    else if (*(BufferPtr + 1) == '=')
+    if (*(BufferPtr + 1) == '*') {
+      if (*(BufferPtr + 2) == '=')
+        FormToken(T, BufferPtr + 3, tok::starstarequal);
+      else
+        FormToken(T, BufferPtr + 2, tok::starstar);
+    } else if (*(BufferPtr + 1) == '=') {
       FormToken(T, BufferPtr + 2, tok::starequal);
-    else
+    } else {
       FormToken(T, BufferPtr + 1, tok::star);
+    }
     break;
   case '^':
     if (*(BufferPtr + 1) == '=')
