@@ -17,7 +17,8 @@ enum Level {
   StringConcat = 8,    // No designated operator.
   Additive = 9,        // -, +
   Multiplicative = 10, // *, /, %
-  Exponentiation = 11  // ^, **
+  Exponentiation = 11, // ^, **
+  Maximum
 };
 }
 

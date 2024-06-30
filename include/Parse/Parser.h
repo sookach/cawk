@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "Basic/OperatorPrecedence.h"
 #include "Basic/TokenKinds.h"
 #include "Lexer/Lexer.h"
 
@@ -234,6 +235,80 @@ private:
     return PrintStmt::Create(Iden, Args, OpCode, Output);
   }
 
-  Expr *ParseExpr() { return nullptr; }
+  Expr *ParseExpr(prec::Level MinPrec = prec::Unknown) {
+    auto NUD = [this] -> Expr * {
+      switch (Tok.GetKind()) {
+      default:
+        // TODO: handle error
+        return nullptr;
+      case tok::identifier:
+        return DeclRefExpr::Create(Advance());
+      case tok::numeric_constant:
+        return FloatingLiteral::Create(Advance());
+      case tok::string_literal:
+        return StringLiteral::Create(Advance());
+      case tok::plusplus:
+      case tok::minusminus:
+      case tok::exclaim:
+      case tok::plus:
+      case tok::minus:
+      case tok::dollar: {
+        auto OpCode = Advance();
+        return UnaryOperator::Create(OpCode, ParseExpr(prec::Maximum),
+                                     UnaryOperator::Prefix);
+      }
+      }
+    };
+
+    auto LHS = [this](Expr *LHS) -> Expr * {
+      for (;;) {
+        switch (Tok.GetKind()) {
+        default:
+          return LHS;
+        case tok::plusplus:
+        case tok::minusminus: {
+          auto OpCode = Advance();
+          return UnaryOperator::Create(OpCode, LHS, UnaryOperator::Prefix);
+        }
+        case tok::l_paren: {
+          std::vector<Expr *> Args;
+
+          if (!Tok.Is(tok::r_paren))
+            Args.push_back(ParseExpr());
+
+          for (; Consume(tok::comma);)
+            Args.push_back(ParseExpr());
+
+          Expect(tok::r_paren);
+
+          LHS = CallExpr::Create(LHS, Args);
+        }
+        }
+      }
+    }(NUD());
+
+    for (; GetBinOpPrecedence(Tok.GetKind()) > MinPrec;) {
+      auto OpCode = Advance();
+      switch (OpCode.GetKind()) {
+      default:
+        LHS = BinaryOperator::Create(
+            LHS, ParseExpr(GetBinOpPrecedence(OpCode.GetKind())), OpCode);
+        break;
+      case tok::equal:
+      case tok::plusequal:
+      case tok::minusequal:
+      case tok::starequal:
+      case tok::slashequal:
+      case tok::caretequal:
+      case tok::starstarequal:
+        LHS = BinaryOperator::Create(
+            LHS,
+            ParseExpr(prec::Level(GetBinOpPrecedence(OpCode.GetKind()) - 1)),
+            OpCode);
+      }
+    }
+
+    return LHS;
+  }
 };
 } // namespace cawk
