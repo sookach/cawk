@@ -2,7 +2,7 @@
 #include "Basic/TokenKinds.h"
 
 namespace charinfo {
-template <bool Newline = false> inline bool IsWhitespace(char c) {
+template <bool Newline = false> inline bool isWhitespace(char c) {
   switch (c) {
   default:
     return false;
@@ -19,10 +19,10 @@ template <bool Newline = false> inline bool IsWhitespace(char c) {
   }
 }
 
-template bool IsWhitespace<true>(char);
-template bool IsWhitespace<false>(char);
+template bool isWhitespace<true>(char);
+template bool isWhitespace<false>(char);
 
-inline bool IsDigit(char c) {
+inline bool isDigit(char c) {
   switch (c) {
   default:
     return false;
@@ -31,7 +31,7 @@ inline bool IsDigit(char c) {
   }
 }
 
-inline bool IsLetter(char c) {
+inline bool isLetter(char c) {
   switch (c) {
   default:
     return false;
@@ -44,17 +44,17 @@ inline bool IsLetter(char c) {
 
 namespace cawk {
 
-std::string_view::const_iterator Lexer::GetBufferPtr() const {
+std::string_view::const_iterator Lexer::getBufferPtr() const {
   return BufferPtr;
 }
 
-void Lexer::SetBufferPtr(std::string_view::const_iterator Ptr) {
+void Lexer::setBufferPtr(std::string_view::const_iterator Ptr) {
   BufferPtr = Ptr;
 }
 
-void Lexer::Undo() { BufferPtr = BufferPrev; }
+void Lexer::undo() { BufferPtr = BufferPrev; }
 
-void Lexer::FormToken(Token &T, std::string_view::const_iterator End,
+void Lexer::formToken(Token &T, std::string_view::const_iterator End,
                       tok::TokenKind Kind) {
   T.Kind = Kind;
   T.Ptr = BufferPtr;
@@ -63,10 +63,10 @@ void Lexer::FormToken(Token &T, std::string_view::const_iterator End,
   BufferPtr = End;
 }
 
-template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
+template <bool Newline, bool Regex> void Lexer::next(Token &T) {
   BufferPrev = BufferPtr;
 
-  for (; BufferPtr != BufferEnd && charinfo::IsWhitespace<Newline>(*BufferPtr);
+  for (; BufferPtr != BufferEnd && charinfo::isWhitespace<Newline>(*BufferPtr);
        ++BufferPtr)
     ;
 
@@ -75,25 +75,25 @@ template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
     return;
   }
 
-  if (charinfo::IsLetter(*BufferPtr)) {
+  if (charinfo::isLetter(*BufferPtr)) {
     auto End = BufferPtr + 1;
-    for (; charinfo::IsLetter(*End); ++End)
+    for (; charinfo::isLetter(*End); ++End)
       ;
     std::string_view Name(BufferPtr, End);
     tok::TokenKind Kind =
         Keywords.contains(Name) ? Keywords.at(Name) : tok::identifier;
-    FormToken(T, End, Kind);
+    formToken(T, End, Kind);
     return;
   }
 
-  if (charinfo::IsDigit(*BufferPtr)) {
+  if (charinfo::isDigit(*BufferPtr)) {
     auto End = BufferPtr + 1;
-    for (; charinfo::IsDigit(*End); ++End)
+    for (; charinfo::isDigit(*End); ++End)
       ;
     if (*BufferPtr == '.')
-      for (++BufferPtr; charinfo::IsDigit(*BufferPtr); ++BufferPtr)
+      for (++BufferPtr; charinfo::isDigit(*BufferPtr); ++BufferPtr)
         ;
-    FormToken(T, End, tok::numeric_constant);
+    formToken(T, End, tok::numeric_constant);
     return;
   }
 
@@ -102,7 +102,7 @@ template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
     for (; End != BufferEnd && *End != '"'; ++End)
       if (*End == '\\')
         ++End;
-    FormToken(T, End + 1, tok::string_literal);
+    formToken(T, End + 1, tok::string_literal);
     return;
   }
 
@@ -112,7 +112,7 @@ template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
       for (; End != BufferEnd && *End != '/'; ++End)
         if (*End == '\\')
           ++End;
-      FormToken(T, End + 1, tok::regex_literal);
+      formToken(T, End + 1, tok::regex_literal);
       return;
     }
   }
@@ -120,7 +120,7 @@ template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
   switch (*BufferPtr) {
 #define CASE(CH, TOK)                                                          \
   case CH:                                                                     \
-    FormToken(T, BufferPtr + 1, TOK);                                          \
+    formToken(T, BufferPtr + 1, TOK);                                          \
     break
     CASE('[', tok::l_square);
     CASE(']', tok::r_square);
@@ -138,100 +138,98 @@ template <bool Newline, bool Regex> void Lexer::Next(Token &T) {
 #undef CASE
   case '&':
     if (*(BufferPtr + 1) == '&')
-      FormToken(T, BufferPtr + 2, tok::ampamp);
+      formToken(T, BufferPtr + 2, tok::ampamp);
     else
-      FormToken(T, BufferPtr + 1, tok::amp);
+      formToken(T, BufferPtr + 1, tok::amp);
     break;
   case '|':
     if (*(BufferPtr + 1) == '|')
-      FormToken(T, BufferPtr + 2, tok::pipepipe);
+      formToken(T, BufferPtr + 2, tok::pipepipe);
     else if (*(BufferPtr + 1) == '&')
-      FormToken(T, BufferPtr + 2, tok::pipeamp);
+      formToken(T, BufferPtr + 2, tok::pipeamp);
     else
-      FormToken(T, BufferPtr + 1, tok::pipe);
+      formToken(T, BufferPtr + 1, tok::pipe);
     break;
   case '=':
     if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::equalequal);
+      formToken(T, BufferPtr + 2, tok::equalequal);
     else
-      FormToken(T, BufferPtr + 1, tok::equal);
+      formToken(T, BufferPtr + 1, tok::equal);
     break;
   case '!':
     if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::exclaimequal);
+      formToken(T, BufferPtr + 2, tok::exclaimequal);
     else if (*(BufferPtr + 1) == '~')
-      FormToken(T, BufferPtr + 2, tok::exclaimtilde);
+      formToken(T, BufferPtr + 2, tok::exclaimtilde);
     else
-      FormToken(T, BufferPtr + 1, tok::exclaim);
+      formToken(T, BufferPtr + 1, tok::exclaim);
     break;
   case '<':
     if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::lessequal);
+      formToken(T, BufferPtr + 2, tok::lessequal);
     else
-      FormToken(T, BufferPtr + 1, tok::less);
+      formToken(T, BufferPtr + 1, tok::less);
     break;
   case '>':
     if (*(BufferPtr + 1) == '>')
-      FormToken(T, BufferPtr + 2, tok::greatergreater);
+      formToken(T, BufferPtr + 2, tok::greatergreater);
     else if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::greaterequal);
+      formToken(T, BufferPtr + 2, tok::greaterequal);
     else
-      FormToken(T, BufferPtr + 1, tok::greater);
+      formToken(T, BufferPtr + 1, tok::greater);
     break;
   case '+':
     if (*(BufferPtr + 1) == '+')
-      FormToken(T, BufferPtr + 2, tok::plusplus);
+      formToken(T, BufferPtr + 2, tok::plusplus);
     else if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::plusequal);
-    else
-      FormToken(T, BufferPtr + 1, tok::plus);
+      formToken(T, BufferPtr + 1, tok::plus);
     break;
   case '-':
     if (*(BufferPtr + 1) == '-')
-      FormToken(T, BufferPtr + 2, tok::minusminus);
+      formToken(T, BufferPtr + 2, tok::minusminus);
     else if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::minusequal);
+      formToken(T, BufferPtr + 2, tok::minusequal);
     else
-      FormToken(T, BufferPtr + 1, tok::minus);
+      formToken(T, BufferPtr + 1, tok::minus);
     break;
   case '*':
     if (*(BufferPtr + 1) == '*') {
       if (*(BufferPtr + 2) == '=')
-        FormToken(T, BufferPtr + 3, tok::starstarequal);
+        formToken(T, BufferPtr + 3, tok::starstarequal);
       else
-        FormToken(T, BufferPtr + 2, tok::starstar);
+        formToken(T, BufferPtr + 2, tok::starstar);
     } else if (*(BufferPtr + 1) == '=') {
-      FormToken(T, BufferPtr + 2, tok::starequal);
+      formToken(T, BufferPtr + 2, tok::starequal);
     } else {
-      FormToken(T, BufferPtr + 1, tok::star);
+      formToken(T, BufferPtr + 1, tok::star);
     }
     break;
   case '^':
     if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::caretequal);
+      formToken(T, BufferPtr + 2, tok::caretequal);
     else
-      FormToken(T, BufferPtr + 1, tok::caret);
+      formToken(T, BufferPtr + 1, tok::caret);
     break;
   case '%':
     if (*(BufferPtr + 1) == '=')
-      FormToken(T, BufferPtr + 2, tok::percentequal);
+      formToken(T, BufferPtr + 2, tok::percentequal);
     else
-      FormToken(T, BufferPtr + 1, tok::percent);
+      formToken(T, BufferPtr + 1, tok::percent);
     break;
   case '\n':
-    FormToken(T, BufferPtr + 1, tok::newline);
+    formToken(T, BufferPtr + 1, tok::newline);
     // condense successive newlines
     for (; BufferPtr != BufferEnd && *BufferPtr == '\n'; ++BufferPtr)
       ;
     break;
   default:
-    FormToken(T, BufferPtr + 1, tok::unknown);
+    formToken(T, BufferPtr + 1, tok::unknown);
   }
 }
 
-template void Lexer::Next<false, false>(Token &);
-template void Lexer::Next<false, true>(Token &);
-template void Lexer::Next<true, false>(Token &);
-template void Lexer::Next<true, true>(Token &);
+template void Lexer::next<false, false>(Token &);
+template void Lexer::next<false, true>(Token &);
+template void Lexer::next<true, false>(Token &);
+template void Lexer::next<true, true>(Token &);
 
 } // namespace cawk

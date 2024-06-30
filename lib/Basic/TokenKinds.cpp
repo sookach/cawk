@@ -11,9 +11,9 @@ constexpr std::array<std::string_view, tok::NUM_TOKENS + 1> TokNames = {
 #include "Basic/TokenKinds.def"
     ""};
 
-std::string_view tok::GetTokenName(TokenKind Kind) { return TokNames[Kind]; }
+std::string_view tok::getTokenName(TokenKind Kind) { return TokNames[Kind]; }
 
-std::string_view tok::GetSpelling(TokenKind Kind) {
+std::string_view tok::getSpelling(TokenKind Kind) {
   switch (Kind) {
 #define PUNCTUATOR(ID, SP)                                                     \
   case ID:                                                                     \
@@ -27,7 +27,7 @@ std::string_view tok::GetSpelling(TokenKind Kind) {
   }
 }
 
-std::string_view tok::GetPunctuatorSpelling(TokenKind Kind) {
+std::string_view tok::getPunctuatorSpelling(TokenKind Kind) {
   switch (Kind) {
 #define PUNCTUATOR(ID, SP)                                                     \
   case ID:                                                                     \
@@ -38,7 +38,7 @@ std::string_view tok::GetPunctuatorSpelling(TokenKind Kind) {
   return {};
 }
 
-std::string_view tok::GetKeywordSpelling(TokenKind Kind) {
+std::string_view tok::getKeywordSpelling(TokenKind Kind) {
   switch (Kind) {
 #define KEYWORD(ID, FLAG)                                                      \
   case kw_##ID:                                                                \

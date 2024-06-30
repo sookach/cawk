@@ -10,9 +10,9 @@ enum TokenKind : unsigned short {
   NUM_TOKENS
 };
 
-std::string_view GetTokenName(TokenKind Kind);
-std::string_view GetSpelling(TokenKind);
-std::string_view GetPunctuatorSpelling(TokenKind Kind);
-std::string_view GetKeywordSpelling(TokenKind Kind);
+std::string_view getTokenName(TokenKind Kind);
+std::string_view getSpelling(TokenKind);
+std::string_view getPunctuatorSpelling(TokenKind Kind);
+std::string_view getKeywordSpelling(TokenKind Kind);
 } // namespace tok
 } // namespace cawk

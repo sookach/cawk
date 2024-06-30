@@ -29,7 +29,7 @@ private:
 
   template <bool NL = false, bool RE = false, typename... Ts>
   bool Consume(tok::TokenKind K, Ts... Ks) {
-    if (Tok.Is(K)) {
+    if (Tok.is(K)) {
       Lex.Next<NL, RE>(Tok);
       return true;
     }
@@ -74,20 +74,20 @@ private:
   template <tok::TokenKind... Ks> void Skip() {
     std::bitset<tok::NUM_TOKENS> Filter((0 | ... | Ks));
 
-    for (; Filter.test(Tok.GetKind()); Advance<false, false>())
+    for (; Filter.test(Tok.getKind()); Advance<false, false>())
       ;
   }
 
   TranslationUnitDecl *ParseTranslationUnit() {
     std::vector<Decl *> Decls;
-    for (; (Skip<tok::newline, tok::semi>(), !Tok.Is(tok::eof));) {
+    for (; (Skip<tok::newline, tok::semi>(), !Tok.is(tok::eof));) {
       Decls.push_back(ParseDecl());
     }
     return TranslationUnitDecl::Create(Decls);
   }
 
   Decl *ParseDecl() {
-    if (Tok.Is(tok::kw_func))
+    if (Tok.is(tok::kw_func))
       return ParseFunctionDecl();
     return ParseRuleDecl();
   }
@@ -100,7 +100,7 @@ private:
     auto Params = [this] {
       std::vector<ParamVarDecl *> Params;
 
-      if (Tok.Is(tok::identifier))
+      if (Tok.is(tok::identifier))
         Params.push_back(ParamVarDecl::Create(Advance()));
 
       for (; Consume(tok::comma);) {
@@ -116,7 +116,7 @@ private:
 
   RuleDecl *ParseRuleDecl() {
     auto Pattern = [this] -> Expr * {
-      switch (Tok.GetKind()) {
+      switch (Tok.getKind()) {
       default:
         return ParseExpr();
       case tok::kw_BEGIN:
@@ -134,7 +134,7 @@ private:
   CompoundStmt *ParseCompoundStmt() {
     Expect(tok::l_brace);
     std::vector<Stmt *> Stmts;
-    for (; (Skip<tok::newline, tok::semi>(), !Tok.Is(tok::r_brace, tok::eof));)
+    for (; (Skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));)
       Stmts.push_back(ParseStmt());
 
     Expect(tok::r_brace);
@@ -142,7 +142,7 @@ private:
   }
 
   Stmt *ParseStmt() {
-    switch (Tok.GetKind()) {
+    switch (Tok.getKind()) {
     default:
       return ParseSimpleStmt();
     case tok::l_brace:
@@ -155,7 +155,7 @@ private:
   }
 
   Stmt *ParseSimpleStmt() {
-    switch (Tok.GetKind()) {
+    switch (Tok.getKind()) {
     default:
       return ParseValueStmt();
     case tok::kw_print:
@@ -184,7 +184,7 @@ private:
     Expect(tok::kw_for);
     Expect(tok::l_paren);
 
-    if (Peek(1).Is(tok::kw_in)) {
+    if (Peek(1).is(tok::kw_in)) {
       DeclRefExpr *LoopVar = DeclRefExpr::Create(Advance());
       Expect(tok::kw_in);
       DeclRefExpr *Range = DeclRefExpr::Create(Advance());
@@ -192,11 +192,11 @@ private:
       return ForRangeStmt::Create(LoopVar, Range, ParseStmt());
     }
 
-    Stmt *Init = Tok.Is(tok::semi) ? nullptr : ParseSimpleStmt();
+    Stmt *Init = Tok.is(tok::semi) ? nullptr : ParseSimpleStmt();
     Expect(tok::semi);
-    Expr *Cond = Tok.Is(tok::semi) ? nullptr : ParseExpr();
+    Expr *Cond = Tok.is(tok::semi) ? nullptr : ParseExpr();
     Expect(tok::semi);
-    Stmt *Inc = Tok.Is(tok::r_paren) ? nullptr : ParseSimpleStmt();
+    Stmt *Inc = Tok.is(tok::r_paren) ? nullptr : ParseSimpleStmt();
     Expect(tok::r_paren);
     return ForStmt::Create(Init, Cond, Inc, ParseStmt());
   }
@@ -218,7 +218,7 @@ private:
     }();
 
     auto [OpCode, Output] = [this] -> std::pair<Token, Expr *> {
-      switch (Tok.GetKind()) {
+      switch (Tok.getKind()) {
       default:
         return {};
       case tok::greater:
@@ -237,7 +237,7 @@ private:
 
   Expr *ParseExpr(prec::Level MinPrec = prec::Unknown) {
     auto NUD = [this] -> Expr * {
-      switch (Tok.GetKind()) {
+      switch (Tok.getKind()) {
       default:
         // TODO: handle error
         return nullptr;
@@ -262,7 +262,7 @@ private:
 
     auto LHS = [this](Expr *LHS) -> Expr * {
       for (;;) {
-        switch (Tok.GetKind()) {
+        switch (Tok.getKind()) {
         default:
           return LHS;
         case tok::plusplus:
@@ -273,7 +273,7 @@ private:
         case tok::l_paren: {
           std::vector<Expr *> Args;
 
-          if (!Tok.Is(tok::r_paren))
+          if (!Tok.is(tok::r_paren))
             Args.push_back(ParseExpr());
 
           for (; Consume(tok::comma);)
@@ -287,12 +287,12 @@ private:
       }
     }(NUD());
 
-    for (; GetBinOpPrecedence(Tok.GetKind()) > MinPrec;) {
+    for (; getBinOpPrecedence(Tok.getKind()) > MinPrec;) {
       auto OpCode = Advance();
-      switch (OpCode.GetKind()) {
+      switch (OpCode.getKind()) {
       default:
         LHS = BinaryOperator::Create(
-            LHS, ParseExpr(GetBinOpPrecedence(OpCode.GetKind())), OpCode);
+            LHS, ParseExpr(getBinOpPrecedence(OpCode.getKind())), OpCode);
         break;
       case tok::equal:
       case tok::plusequal:
@@ -303,7 +303,7 @@ private:
       case tok::starstarequal:
         LHS = BinaryOperator::Create(
             LHS,
-            ParseExpr(prec::Level(GetBinOpPrecedence(OpCode.GetKind()) - 1)),
+            ParseExpr(prec::Level(getBinOpPrecedence(OpCode.getKind()) - 1)),
             OpCode);
       }
     }

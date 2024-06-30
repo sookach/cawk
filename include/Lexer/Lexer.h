@@ -24,15 +24,15 @@ public:
 #undef KEYWORD
   }
 
-  std::string_view::const_iterator GetBufferPtr() const;
-  void SetBufferPtr(std::string_view::const_iterator);
-  template <bool, bool> void Next(Token &);
-  void Undo();
+  std::string_view::const_iterator getBufferPtr() const;
+  void setBufferPtr(std::string_view::const_iterator);
+  template <bool, bool> void next(Token &);
+  void undo();
 
 private:
-  void FormToken(Token &, std::string_view::const_iterator, tok::TokenKind);
-  void Identifier(Token &);
-  void Number(Token &);
-  void String(Token &);
+  void formToken(Token &, std::string_view::const_iterator, tok::TokenKind);
+  void identifier(Token &);
+  void number(Token &);
+  void string(Token &);
 };
 } // namespace cawk

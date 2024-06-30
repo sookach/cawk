@@ -56,7 +56,7 @@ protected:
   Decl(DeclKind K) : Kind(K) {}
 
 public:
-  DeclKind GetKind() const { return Kind; }
+  DeclKind getKind() const { return Kind; }
 };
 
 class TranslationUnitDecl : public Decl {
@@ -69,7 +69,7 @@ protected:
 
 public:
   static bool classof(const Decl *D) {
-    return D->GetKind() == DK_TranslationUnit;
+    return D->getKind() == DK_TranslationUnit;
   }
 
   static TranslationUnitDecl *Create(std::vector<Decl *> Decls) {
@@ -77,7 +77,7 @@ public:
   }
   static TranslationUnitDecl *CreateEmpty() { return new TranslationUnitDecl; }
 
-  const std::vector<Decl *> &GetDecls() const { return Decls; }
+  const std::vector<Decl *> &getDecls() const { return Decls; }
 };
 
 class FunctionDecl : public Decl {
@@ -93,15 +93,15 @@ protected:
       : Decl(DK_Function), Identifier(Identifier), Params(Params), Body(Body) {}
 
 public:
-  static bool classof(const Decl *D) { return D->GetKind() == DK_Function; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_Function; }
 
-  Token GetIdentifier() const { return Identifier; }
+  Token getIdentifier() const { return Identifier; }
 
-  std::vector<ParamVarDecl *> GetParams() const { return Params; }
+  std::vector<ParamVarDecl *> getParams() const { return Params; }
 
-  CompoundStmt *GetBody() { return Body; }
+  CompoundStmt *getBody() { return Body; }
 
-  const CompoundStmt *GetBody() const { return Body; }
+  const CompoundStmt *getBody() const { return Body; }
 
   static FunctionDecl *Create(Token Identifier,
                               std::vector<ParamVarDecl *> Params,
@@ -123,11 +123,11 @@ protected:
       : Decl(DK_Rule), Pattern(Pattern), Action(Action) {}
 
 public:
-  static bool classof(const Decl *D) { return D->GetKind() == DK_Rule; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_Rule; }
 
-  Expr *GetPattern() const { return Pattern; }
+  Expr *getPattern() const { return Pattern; }
 
-  CompoundStmt *GetAction() const { return Action; }
+  CompoundStmt *getAction() const { return Action; }
 
   static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action) {
     return new RuleDecl(Pattern, Action);
@@ -143,7 +143,7 @@ protected:
 
 public:
   static bool classof(const Decl *D) {
-    switch (D->GetKind()) {
+    switch (D->getKind()) {
     default:
       return false;
     case DK_Var:
@@ -152,7 +152,7 @@ public:
     };
   }
 
-  Token GetIdentifier() { return Identifier; }
+  Token getIdentifier() { return Identifier; }
 
   static VarDecl *Create(Token Identifier) {
     return new VarDecl(DK_Var, Identifier);
@@ -164,7 +164,7 @@ protected:
   ParamVarDecl(Token Identifier) : VarDecl(DK_ParamVar, Identifier) {}
 
 public:
-  static bool classof(const Decl *D) { return D->GetKind() == DK_ParamVar; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_ParamVar; }
 
   static ParamVarDecl *Create(Token Identifier) {
     return new ParamVarDecl(Identifier);
@@ -198,7 +198,7 @@ protected:
   Stmt(StmtKind Kind) : Kind(Kind) {}
 
 public:
-  StmtKind GetKind() const { return Kind; }
+  StmtKind getKind() const { return Kind; }
 };
 
 class CompoundStmt : public Stmt {
@@ -210,9 +210,9 @@ protected:
   CompoundStmt(std::vector<Stmt *> Body) : Stmt(SK_Compound), Body(Body) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Compound; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Compound; }
 
-  std::vector<Stmt *> GetBody() { return Body; }
+  std::vector<Stmt *> getBody() { return Body; }
 
   static CompoundStmt *Create(std::vector<Stmt *> Body) {
     return new CompoundStmt(Body);
@@ -220,7 +220,7 @@ public:
 
   static CompoundStmt *CreateEmpty() { return new CompoundStmt; }
 
-  std::vector<Stmt *> GetBody() const { return Body; }
+  std::vector<Stmt *> getBody() const { return Body; }
 };
 
 class IfStmt : public Stmt {
@@ -235,13 +235,13 @@ protected:
       : Stmt(SK_If), Cond(Cond), Then(Then), Else(Else) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_If; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_If; }
 
-  Expr *GetCond() { return Cond; }
+  Expr *getCond() { return Cond; }
 
-  Stmt *GetThen() { return Then; }
+  Stmt *getThen() { return Then; }
 
-  Stmt *GetElse() { return Else; }
+  Stmt *getElse() { return Else; }
 
   static IfStmt *Create(Expr *Cond, Stmt *Then, Stmt *Else) {
     return new IfStmt(Cond, Then, Else);
@@ -261,15 +261,15 @@ protected:
       : Stmt(SK_For), Init(Init), Cond(Cond), Inc(Inc), Body(Body) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_For; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_For; }
 
-  Stmt *GetInit() { return Init; }
+  Stmt *getInit() { return Init; }
 
-  Expr *GetCond() { return Cond; }
+  Expr *getCond() { return Cond; }
 
-  Stmt *GetInc() { return Inc; }
+  Stmt *getInc() { return Inc; }
 
-  Stmt *GetBody() { return Body; }
+  Stmt *getBody() { return Body; }
 
   static ForStmt *Create(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body) {
     return new ForStmt(Init, Cond, Inc, Body);
@@ -286,13 +286,13 @@ protected:
       : Stmt(SK_ForRange), LoopVar(LoopVar), Range(Range), Body(Body) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_ForRange; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_ForRange; }
 
-  DeclRefExpr *GetLoopVar() { return LoopVar; }
+  DeclRefExpr *getLoopVar() { return LoopVar; }
 
-  DeclRefExpr *GetRange() { return Range; }
+  DeclRefExpr *getRange() { return Range; }
 
-  Stmt *GetBody() { return Body; }
+  Stmt *getBody() { return Body; }
 
   static ForRangeStmt *Create(DeclRefExpr *LoopVar, DeclRefExpr *Range,
                               Stmt *Body) {
@@ -305,7 +305,7 @@ protected:
   BreakStmt() : Stmt(SK_Break) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Break; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Break; }
 
   static BreakStmt *Create() { return new BreakStmt; }
 };
@@ -325,9 +325,9 @@ protected:
   ExitStmt(Expr *Value) : Stmt(SK_Exit), Value(Value) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Exit; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Exit; }
 
-  Expr *GetValue() { return Value; }
+  Expr *getValue() { return Value; }
 
   static ExitStmt *Create(Expr *Value) { return new ExitStmt(Value); }
 };
@@ -337,7 +337,7 @@ protected:
   NextStmt() : Stmt(SK_Next) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Next; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Next; }
 
   static NextStmt *Create() { return new NextStmt; }
 };
@@ -347,7 +347,7 @@ protected:
   NextfileStmt() : Stmt(SK_Nextfile) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Nextfile; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Nextfile; }
 
   static NextfileStmt *Create() { return new NextfileStmt; }
 };
@@ -360,11 +360,11 @@ protected:
   WhileStmt(Expr *Cond, Stmt *Body) : Stmt(SK_While), Cond(Cond), Body(Body) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_While; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_While; }
 
-  Expr *GetCond() { return Cond; }
+  Expr *getCond() { return Cond; }
 
-  Stmt *GetBody() { return Body; }
+  Stmt *getBody() { return Body; }
 
   static WhileStmt *Create(Expr *Cond, Stmt *Body) {
     return new WhileStmt(Cond, Body);
@@ -378,9 +378,9 @@ protected:
   DeleteStmt(Expr *Argument) : Stmt(SK_Delete), Argument(Argument) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Delete; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Delete; }
 
-  Expr *GetArgument() { return Argument; }
+  Expr *getArgument() { return Argument; }
 
   static DeleteStmt *Create(Expr *Argument) { return new DeleteStmt(Argument); }
 };
@@ -393,11 +393,11 @@ protected:
   DoStmt(Expr *Cond, Stmt *Body) : Stmt(SK_Do), Cond(Cond), Body(Body) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Do; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Do; }
 
-  Expr *GetCond() { return Cond; }
+  Expr *getCond() { return Cond; }
 
-  Stmt *GetBody() { return Body; }
+  Stmt *getBody() { return Body; }
 
   static DoStmt *Create(Expr *Cond, Stmt *Body) {
     return new DoStmt(Cond, Body);
@@ -421,15 +421,15 @@ protected:
   }
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Print; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Print; }
 
-  Token GetIden() { return Iden; }
+  Token getIden() { return Iden; }
 
-  std::vector<Expr *> GetArgs() { return Args; }
+  std::vector<Expr *> getArgs() { return Args; }
 
-  Token GetOpcode() { return Opcode; }
+  Token getOpcode() { return Opcode; }
 
-  Expr *GetOutput() { return Output; }
+  Expr *getOutput() { return Output; }
 
   static PrintStmt *Create(Token Iden, std::vector<Expr *> Args,
                            Token Opcode = {}, Expr *Output = nullptr) {
@@ -444,9 +444,9 @@ protected:
   ReturnStmt(Expr *Value) : Stmt(SK_Return), Value(Value) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Return; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Return; }
 
-  Expr *GetValue() { return Value; }
+  Expr *getValue() { return Value; }
 
   static ReturnStmt *Create(Expr *Value) { return new ReturnStmt(Value); }
 };
@@ -458,9 +458,9 @@ protected:
   ValueStmt(Expr *Value) : Stmt(SK_Value), Value(Value) {}
 
 public:
-  static bool classof(const Stmt *S) { return S->GetKind() == SK_Value; }
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Value; }
 
-  Expr *GetValue() { return Value; }
+  Expr *getValue() { return Value; }
 
   static ValueStmt *Create(Expr *Value) { return new ValueStmt(Value); }
 };
@@ -485,7 +485,7 @@ private:
   const ExprKind Kind;
 
 public:
-  ExprKind GetKind() const { return Kind; }
+  ExprKind getKind() const { return Kind; }
 };
 
 class ArraySubscriptExpr : public Expr {
@@ -498,14 +498,14 @@ protected:
 
 public:
   static bool classof(const Expr *E) {
-    return E->GetKind() == EK_ArraySubscript;
+    return E->getKind() == EK_ArraySubscript;
   }
 
-  Expr *GetLHS() const { return LHS; }
+  Expr *getLHS() const { return LHS; }
 
   void SetLHS(Expr *E) { LHS = E; }
 
-  Expr *GetRHS() const { return RHS; }
+  Expr *getRHS() const { return RHS; }
 
   void SetRHS(Expr *E) { RHS = E; }
 
@@ -525,14 +525,14 @@ protected:
 
 public:
   static bool classof(const Expr *E) {
-    return E->GetKind() == EK_BinaryOperator;
+    return E->getKind() == EK_BinaryOperator;
   }
 
-  Expr *GetLHS() { return LHS; }
+  Expr *getLHS() { return LHS; }
 
-  Expr *GetRHS() { return RHS; }
+  Expr *getRHS() { return RHS; }
 
-  Token GetOpcode() { return Opcode; }
+  Token getOpcode() { return Opcode; }
 
   static BinaryOperator *Create(Expr *LHS, Expr *RHS, Token Opcode) {
     return new BinaryOperator(LHS, RHS, Opcode);
@@ -548,11 +548,11 @@ protected:
       : Expr(EK_Call), Callee(Callee), Args(Args) {}
 
 public:
-  static bool classof(const Expr *E) { return E->GetKind() == EK_Call; }
+  static bool classof(const Expr *E) { return E->getKind() == EK_Call; }
 
-  Expr *GetCallee() { return Callee; }
+  Expr *getCallee() { return Callee; }
 
-  std::vector<Expr *> GetArgs() { return Args; }
+  std::vector<Expr *> getArgs() { return Args; }
 
   static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args) {
     return new CallExpr(Callee, Args);
@@ -566,9 +566,9 @@ protected:
   DeclRefExpr(Token Identifier) : Expr(EK_DeclRef), Identifier(Identifier) {}
 
 public:
-  static bool classof(const Expr *E) { return E->GetKind() == EK_DeclRef; }
+  static bool classof(const Expr *E) { return E->getKind() == EK_DeclRef; }
 
-  Token GetIdentifier() const { return Identifier; }
+  Token getIdentifier() const { return Identifier; }
 
   static DeclRefExpr *Create(Token Identifier) {
     return new DeclRefExpr(Identifier);
@@ -583,10 +583,10 @@ protected:
 
 public:
   static bool classof(const Expr *E) {
-    return E->GetKind() == EK_FloatingLiteral;
+    return E->getKind() == EK_FloatingLiteral;
   }
 
-  Token GetValue() { return Value; }
+  Token getValue() { return Value; }
 
   static FloatingLiteral *Create(Token Value) {
     return new FloatingLiteral(Value);
@@ -600,9 +600,9 @@ protected:
   RegexLiteral(Token Value) : Expr(EK_RegexLiteral), Value(Value) {}
 
 public:
-  static bool classof(const Expr *E) { return E->GetKind() == EK_RegexLiteral; }
+  static bool classof(const Expr *E) { return E->getKind() == EK_RegexLiteral; }
 
-  Token GetValue() { return Value; }
+  Token getValue() { return Value; }
 
   static RegexLiteral *Create(Token Value) { return new RegexLiteral(Value); }
 };
@@ -615,10 +615,10 @@ protected:
 
 public:
   static bool classof(const Expr *E) {
-    return E->GetKind() == EK_StringLiteral;
+    return E->getKind() == EK_StringLiteral;
   }
 
-  Token GetValue() { return Value; }
+  Token getValue() { return Value; }
 
   static StringLiteral *Create(Token Value) { return new StringLiteral(Value); }
 };
@@ -637,9 +637,9 @@ protected:
       : Expr(EK_UnaryOperator), Opcode(Opcode), SubExpr(SubExpr), Fix(Fix) {}
 
 public:
-  Token GetOpcode() { return Opcode; }
+  Token getOpcode() { return Opcode; }
 
-  Expr *GetSubExpr() { return SubExpr; }
+  Expr *getSubExpr() { return SubExpr; }
 
   static UnaryOperator *Create(Token Opcode, Expr *SubExpr, FixKind Fix) {
     return new UnaryOperator(Opcode, SubExpr, Fix);

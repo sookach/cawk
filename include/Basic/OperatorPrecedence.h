@@ -22,5 +22,5 @@ enum Level {
 };
 }
 
-prec::Level GetBinOpPrecedence(tok::TokenKind Kind);
+prec::Level getBinOpPrecedence(tok::TokenKind Kind);
 } // namespace cawk
