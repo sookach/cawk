@@ -21,198 +21,198 @@ public:
     Lex.Next<false, false>(Tok);
   }
 
-  TranslationUnitDecl *Parse();
+  TranslationUnitDecl *parse();
 
 private:
-  template <bool = false, bool = false> Token Advance();
-  template <bool = false, bool = false> Token Peek(std::size_t) const;
+  template <bool = false, bool = false> Token advance();
+  template <bool = false, bool = false> Token peek(std::size_t) const;
 
   template <bool NL = false, bool RE = false, typename... Ts>
-  bool Consume(tok::TokenKind K, Ts... Ks) {
+  bool consume(tok::TokenKind K, Ts... Ks) {
     if (Tok.is(K)) {
       Lex.Next<NL, RE>(Tok);
       return true;
     }
 
     if constexpr (sizeof...(Ks) != 0)
-      return Consume<NL, RE>(Ks...);
+      return consume<NL, RE>(Ks...);
 
     return false;
   }
 
   template <bool NL = false, bool RE = false, typename... Ts>
-  bool ConsumeOneOf(tok::TokenKind K, Ts... Ks) {
-    if (Consume<NL, RE>(K))
+  bool consumeOneOf(tok::TokenKind K, Ts... Ks) {
+    if (consume<NL, RE>(K))
       return true;
 
     if constexpr (sizeof...(Ks) != 0)
-      return Consume<NL, RE>(Ks...);
+      return consume<NL, RE>(Ks...);
 
     return false;
   }
 
   template <bool NL = false, bool RE = false, typename... Ts>
-  void Expect(tok::TokenKind K, Ts... Ks) {
-    if (!Consume<NL, RE>(K))
+  void expect(tok::TokenKind K, Ts... Ks) {
+    if (!consume<NL, RE>(K))
       exit(EXIT_FAILURE); // TODO: error handling
 
     if constexpr (sizeof...(Ks) != 0)
-      Expect<NL, RE>(Ks...);
+      expect<NL, RE>(Ks...);
   }
 
   template <bool NL = false, bool RE = false, typename... Ts>
-  void ExpectOneOf(tok::TokenKind K, Ts... Ks) {
-    if (Consume<NL, RE>(K))
+  void expectOneOf(tok::TokenKind K, Ts... Ks) {
+    if (consume<NL, RE>(K))
       return;
 
     if constexpr (sizeof...(Ks) == 0)
       exit(EXIT_FAILURE); // TODO: error handling
     else
-      ExpectOneOf<NL, RE>(Ks...);
+      expectOneOf<NL, RE>(Ks...);
   }
 
-  template <tok::TokenKind... Ks> void Skip() {
+  template <tok::TokenKind... Ks> void skip() {
     std::bitset<tok::NUM_TOKENS> Filter((0 | ... | Ks));
 
-    for (; Filter.test(Tok.getKind()); Advance<false, false>())
+    for (; Filter.test(Tok.getKind()); advance<false, false>())
       ;
   }
 
-  TranslationUnitDecl *ParseTranslationUnit() {
+  TranslationUnitDecl *parseTranslationUnit() {
     std::vector<Decl *> Decls;
     for (; (Skip<tok::newline, tok::semi>(), !Tok.is(tok::eof));) {
-      Decls.push_back(ParseDecl());
+      Decls.push_back(parseDecl());
     }
     return TranslationUnitDecl::Create(Decls);
   }
 
-  Decl *ParseDecl() {
+  Decl *parseDecl() {
     if (Tok.is(tok::kw_func))
-      return ParseFunctionDecl();
-    return ParseRuleDecl();
+      return parseFunctionDecl();
+    return parseRuleDecl();
   }
 
-  FunctionDecl *ParseFunctionDecl() {
-    Expect(tok::kw_function);
+  FunctionDecl *parseFunctionDecl() {
+    expect(tok::kw_function);
     auto Identifier = Tok;
-    Expect(tok::identifier);
+    expect(tok::identifier);
     Expect(tok::l_paren);
     auto Params = [this] {
       std::vector<ParamVarDecl *> Params;
 
       if (Tok.is(tok::identifier))
-        Params.push_back(ParamVarDecl::Create(Advance()));
+        Params.push_back(ParamVarDecl::Create(advance()));
 
-      for (; Consume(tok::comma);) {
+      for (; consume(tok::comma);) {
         Params.push_back(ParamVarDecl::Create(Tok));
-        Expect(tok::identifier);
+        expect(tok::identifier);
       }
 
       return Params;
     }();
-    auto Body = ParseCompoundStmt();
+    auto Body = parseCompoundStmt();
     return FunctionDecl::Create(Identifier, Params, Body);
   }
 
-  RuleDecl *ParseRuleDecl() {
+  RuleDecl *parseRuleDecl() {
     auto Pattern = [this] -> Expr * {
       switch (Tok.getKind()) {
       default:
-        return ParseExpr();
+        return parseExpr();
       case tok::kw_BEGIN:
       case tok::kw_END:
-        return DeclRefExpr::Create(Advance<false>());
+        return DeclRefExpr::Create(advance<false>());
       }
     }();
 
     auto Action =
-        ConsumeOneOf(tok::semi, tok::newline) ? nullptr : ParseCompoundStmt();
+        consumeOneOf(tok::semi, tok::newline) ? nullptr : parseCompoundStmt();
 
     return RuleDecl::Create(Pattern, Action);
   }
 
-  CompoundStmt *ParseCompoundStmt() {
-    Expect(tok::l_brace);
+  CompoundStmt *parseCompoundStmt() {
+    expect(tok::l_brace);
     std::vector<Stmt *> Stmts;
-    for (; (Skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));)
-      Stmts.push_back(ParseStmt());
+    for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));)
+      Stmts.push_back(parseStmt());
 
-    Expect(tok::r_brace);
+    expect(tok::r_brace);
     return CompoundStmt::Create(Stmts);
   }
 
-  Stmt *ParseStmt() {
+  Stmt *parseStmt() {
     switch (Tok.getKind()) {
     default:
-      return ParseSimpleStmt();
+      return parseSimpleStmt();
     case tok::l_brace:
-      return ParseCompoundStmt();
+      return parseCompoundStmt();
     case tok::kw_if:
-      return ParseIfStmt();
+      return parseIfStmt();
     case tok::kw_for:
-      return ParseForStmt();
+      return parseForStmt();
     }
   }
 
-  Stmt *ParseSimpleStmt() {
+  Stmt *parseSimpleStmt() {
     switch (Tok.getKind()) {
     default:
-      return ParseValueStmt();
+      return parseValueStmt();
     case tok::kw_print:
     case tok::kw_printf:
-      return ParsePrintStmt();
+      return parsePrintStmt();
     }
   }
 
-  ValueStmt *ParseValueStmt() {
-    Expr *Value = ParseExpr();
-    ExpectOneOf(tok::semi, tok::newline);
+  ValueStmt *parseValueStmt() {
+    Expr *Value = parseExpr();
+    expectOneOf(tok::semi, tok::newline);
     return ValueStmt::Create(Value);
   }
 
-  IfStmt *ParseIfStmt() {
-    Expect(tok::kw_if);
-    Expect(tok::l_paren);
-    Expr *Cond = ParseExpr();
-    Expect(tok::r_paren);
-    Stmt *Then = ParseStmt();
-    Stmt *Else = Consume(tok::kw_else) ? ParseStmt() : nullptr;
+  IfStmt *parseIfStmt() {
+    expect(tok::kw_if);
+    expect(tok::l_paren);
+    Expr *Cond = parseExpr();
+    expect(tok::r_paren);
+    Stmt *Then = parseStmt();
+    Stmt *Else = consume(tok::kw_else) ? parseStmt() : nullptr;
     return IfStmt::Create(Cond, Then, Else);
   }
 
-  Stmt *ParseForStmt() {
-    Expect(tok::kw_for);
-    Expect(tok::l_paren);
+  Stmt *parseForStmt() {
+    expect(tok::kw_for);
+    expect(tok::l_paren);
 
-    if (Peek(1).is(tok::kw_in)) {
-      DeclRefExpr *LoopVar = DeclRefExpr::Create(Advance());
-      Expect(tok::kw_in);
-      DeclRefExpr *Range = DeclRefExpr::Create(Advance());
-      Expect(tok::l_paren);
-      return ForRangeStmt::Create(LoopVar, Range, ParseStmt());
+    if (peek(1).is(tok::kw_in)) {
+      DeclRefExpr *LoopVar = DeclRefExpr::Create(advance());
+      expect(tok::kw_in);
+      DeclRefExpr *Range = DeclRefExpr::Create(advance());
+      expect(tok::l_paren);
+      return ForRangeStmt::Create(LoopVar, Range, parseStmt());
     }
 
-    Stmt *Init = Tok.is(tok::semi) ? nullptr : ParseSimpleStmt();
-    Expect(tok::semi);
-    Expr *Cond = Tok.is(tok::semi) ? nullptr : ParseExpr();
-    Expect(tok::semi);
-    Stmt *Inc = Tok.is(tok::r_paren) ? nullptr : ParseSimpleStmt();
+    Stmt *Init = Tok.is(tok::semi) ? nullptr : parseSimpleStmt();
+    expect(tok::semi);
+    Expr *Cond = Tok.is(tok::semi) ? nullptr : parseExpr();
+    expect(tok::semi);
+    Stmt *Inc = Tok.is(tok::r_paren) ? nullptr : parseSimpleStmt();
     Expect(tok::r_paren);
-    return ForStmt::Create(Init, Cond, Inc, ParseStmt());
+    return ForStmt::Create(Init, Cond, Inc, parseStmt());
   }
 
-  PrintStmt *ParsePrintStmt() {
+  PrintStmt *parsePrintStmt() {
     Token Iden = Tok;
-    ExpectOneOf<true>(tok::kw_print, tok::kw_printf);
+    expectOneOf<true>(tok::kw_print, tok::kw_printf);
 
     std::vector<Expr *> Args = [this] -> std::vector<Expr *> {
-      if (ConsumeOneOf(tok::newline, tok::semi))
+      if (consumeOneOf(tok::newline, tok::semi))
         return {};
 
-      std::vector Args = {ParseExpr()};
+      std::vector Args = {parseExpr()};
 
-      for (; Consume(tok::comma);)
-        Args.push_back(ParseExpr());
+      for (; consume(tok::comma);)
+        Args.push_back(parseExpr());
 
       return Args;
     }();
@@ -228,33 +228,33 @@ private:
       }
 
       Token OpCode = Tok;
-      ExpectOneOf(tok::greater, tok::greatergreater, tok::pipe);
-      return {Tok, ParseExpr()};
+      expectOneOf(tok::greater, tok::greatergreater, tok::pipe);
+      return {Tok, parseExpr()};
     }();
 
     return PrintStmt::Create(Iden, Args, OpCode, Output);
   }
 
-  Expr *ParseExpr(prec::Level MinPrec = prec::Unknown) {
+  Expr *parseExpr(prec::Level MinPrec = prec::Unknown) {
     auto NUD = [this] -> Expr * {
       switch (Tok.getKind()) {
       default:
         // TODO: handle error
         return nullptr;
       case tok::identifier:
-        return DeclRefExpr::Create(Advance());
+        return DeclRefExpr::Create(advance());
       case tok::numeric_constant:
-        return FloatingLiteral::Create(Advance());
+        return FloatingLiteral::Create(advance());
       case tok::string_literal:
-        return StringLiteral::Create(Advance());
+        return StringLiteral::Create(advance());
       case tok::plusplus:
       case tok::minusminus:
       case tok::exclaim:
       case tok::plus:
       case tok::minus:
       case tok::dollar: {
-        auto OpCode = Advance();
-        return UnaryOperator::Create(OpCode, ParseExpr(prec::Maximum),
+        auto OpCode = advance();
+        return UnaryOperator::Create(OpCode, parseExpr(prec::Maximum),
                                      UnaryOperator::Prefix);
       }
       }
@@ -267,19 +267,19 @@ private:
           return LHS;
         case tok::plusplus:
         case tok::minusminus: {
-          auto OpCode = Advance();
+          auto OpCode = advance();
           return UnaryOperator::Create(OpCode, LHS, UnaryOperator::Prefix);
         }
         case tok::l_paren: {
           std::vector<Expr *> Args;
 
           if (!Tok.is(tok::r_paren))
-            Args.push_back(ParseExpr());
+            Args.push_back(parseExpr());
 
-          for (; Consume(tok::comma);)
-            Args.push_back(ParseExpr());
+          for (; consume(tok::comma);)
+            Args.push_back(parseExpr());
 
-          Expect(tok::r_paren);
+          expect(tok::r_paren);
 
           LHS = CallExpr::Create(LHS, Args);
         }
@@ -288,11 +288,11 @@ private:
     }(NUD());
 
     for (; getBinOpPrecedence(Tok.getKind()) > MinPrec;) {
-      auto OpCode = Advance();
+      auto OpCode = advance();
       switch (OpCode.getKind()) {
       default:
         LHS = BinaryOperator::Create(
-            LHS, ParseExpr(getBinOpPrecedence(OpCode.getKind())), OpCode);
+            LHS, parseExpr(getBinOpPrecedence(OpCode.getKind())), OpCode);
         break;
       case tok::equal:
       case tok::plusequal:
@@ -303,7 +303,7 @@ private:
       case tok::starstarequal:
         LHS = BinaryOperator::Create(
             LHS,
-            ParseExpr(prec::Level(getBinOpPrecedence(OpCode.getKind()) - 1)),
+            parseExpr(prec::Level(getBinOpPrecedence(OpCode.getKind()) - 1)),
             OpCode);
       }
     }
