@@ -17,19 +17,19 @@ class Exec {
 
 public:
   void Visit(TranslationUnitDecl *T) {
-    for (Decl *D : T->GetDecls() | std::views::filter([](Decl *D) {
+    for (Decl *D : T->getDecls() | std::views::filter([](Decl *D) {
                      return isa<RuleDecl>(D);
                    }))
       Visit(static_cast<RuleDecl *>(D));
   }
 
   void Visit(RuleDecl *R) {
-    if (Visit(R->GetPattern()))
-      Visit(R->GetAction());
+    if (Visit(R->getPattern()))
+      Visit(R->getAction());
   }
 
   void Visit(Stmt *S) {
-    switch (S->GetKind()) {
+    switch (S->getKind()) {
 #if defined(CASE)
       static_assert(false);
 #else
@@ -56,7 +56,7 @@ public:
   }
 
   Value *Visit(Expr *E) {
-    switch (E->GetKind()) {
+    switch (E->getKind()) {
 #if defined(CASE)
       static_assert(false);
 #else
@@ -77,40 +77,40 @@ public:
   }
 
   Value *Visit(BinaryOperator *B) {
-    switch (B->GetOpcode().GetKind()) {
+    switch (B->getOpcode().getKind()) {
     default:
       std::terminate();
     case tok::plus:
-      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) +
-                            raw_cast<double>(Visit(B->GetRHS())));
+      return Number::Create(raw_cast<double>(Visit(B->getLHS())) +
+                            raw_cast<double>(Visit(B->getRHS())));
     case tok::minus:
-      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) -
-                            raw_cast<double>(Visit(B->GetRHS())));
+      return Number::Create(raw_cast<double>(Visit(B->getLHS())) -
+                            raw_cast<double>(Visit(B->getRHS())));
     case tok::star:
-      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) *
-                            raw_cast<double>(Visit(B->GetRHS())));
+      return Number::Create(raw_cast<double>(Visit(B->getLHS())) *
+                            raw_cast<double>(Visit(B->getRHS())));
     case tok::slash:
-      return Number::Create(raw_cast<double>(Visit(B->GetLHS())) /
-                            raw_cast<double>(Visit(B->GetRHS())));
+      return Number::Create(raw_cast<double>(Visit(B->getLHS())) /
+                            raw_cast<double>(Visit(B->getRHS())));
     case tok::caret:
-      return Number::Create(std::pow(raw_cast<double>(Visit(B->GetLHS())),
-                                     raw_cast<double>(Visit(B->GetRHS()))));
+      return Number::Create(std::pow(raw_cast<double>(Visit(B->getLHS())),
+                                     raw_cast<double>(Visit(B->getRHS()))));
     case tok::tilde:
       return Number::Create(std::regex_search(
-          raw_cast<std::string>(Visit(B->GetLHS())),
-          std::regex(raw_cast<std::string>(Visit(B->GetRHS())))));
+          raw_cast<std::string>(Visit(B->getLHS())),
+          std::regex(raw_cast<std::string>(Visit(B->getRHS())))));
     case tok::exclaimtilde:
       return Number::Create(!std::regex_search(
-          raw_cast<std::string>(Visit(B->GetLHS())),
-          std::regex(raw_cast<std::string>(Visit(B->GetRHS())))));
+          raw_cast<std::string>(Visit(B->getLHS())),
+          std::regex(raw_cast<std::string>(Visit(B->getRHS())))));
     case tok::kw_in:
       break;
     case tok::ampamp:
-      return Number::Create(raw_cast<bool>(Visit(B->GetLHS())) &&
-                            raw_cast<bool>(Visit(B->GetRHS())));
+      return Number::Create(raw_cast<bool>(Visit(B->getLHS())) &&
+                            raw_cast<bool>(Visit(B->getRHS())));
     case tok::pipepipe:
-      return Number::Create(raw_cast<bool>(Visit(B->GetLHS())) ||
-                            raw_cast<bool>(Visit(B->GetRHS())));
+      return Number::Create(raw_cast<bool>(Visit(B->getLHS())) ||
+                            raw_cast<bool>(Visit(B->getRHS())));
     }
   }
 

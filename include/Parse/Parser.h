@@ -18,7 +18,7 @@ class Parser {
 
 public:
   Parser(Lexer &Lex) : Lex(Lex), HasError(false) {
-    Lex.Next<false, false>(Tok);
+    Lex.next<false, false>(Tok);
   }
 
   TranslationUnitDecl *parse();
@@ -30,7 +30,7 @@ private:
   template <bool NL = false, bool RE = false, typename... Ts>
   bool consume(tok::TokenKind K, Ts... Ks) {
     if (Tok.is(K)) {
-      Lex.Next<NL, RE>(Tok);
+      Lex.next<NL, RE>(Tok);
       return true;
     }
 
@@ -80,7 +80,7 @@ private:
 
   TranslationUnitDecl *parseTranslationUnit() {
     std::vector<Decl *> Decls;
-    for (; (Skip<tok::newline, tok::semi>(), !Tok.is(tok::eof));) {
+    for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::eof));) {
       Decls.push_back(parseDecl());
     }
     return TranslationUnitDecl::Create(Decls);
@@ -96,7 +96,7 @@ private:
     expect(tok::kw_function);
     auto Identifier = Tok;
     expect(tok::identifier);
-    Expect(tok::l_paren);
+    expect(tok::l_paren);
     auto Params = [this] {
       std::vector<ParamVarDecl *> Params;
 
@@ -197,7 +197,7 @@ private:
     Expr *Cond = Tok.is(tok::semi) ? nullptr : parseExpr();
     expect(tok::semi);
     Stmt *Inc = Tok.is(tok::r_paren) ? nullptr : parseSimpleStmt();
-    Expect(tok::r_paren);
+    expect(tok::r_paren);
     return ForStmt::Create(Init, Cond, Inc, parseStmt());
   }
 
