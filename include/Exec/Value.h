@@ -1,116 +1,143 @@
 #pragma once
 
-#include "Support/Sequence.h"
 #include "Support/Support.h"
+
 #include <cassert>
+#include <string>
 #include <unordered_map>
 
 namespace cawk {
 
 class Value {
-public:
-  enum ValueKind { VK_Number, VK_String, VK_Array, VK_Vector };
-
-private:
-  const ValueKind Kind;
-
-protected:
-  Value(ValueKind Kind) : Kind(Kind) {}
-
-  static Value Create(ValueKind Kind) { return Value(Kind); }
+  enum ValueKind { VK_Number, VK_String, VK_Array };
+  ValueKind Kind;
+  double NumberValue;
+  std::string StringValue;
+  std::unordered_map<Value *, Value *> ArrayValue;
 
 public:
-  ValueKind GetKind() const { return Kind; }
-};
+  Value(double Value) : Kind(VK_Number), NumberValue(Value) {}
 
-class Primitive : public Value {
-protected:
-  Primitive(ValueKind Kind) : Value(Kind) {}
-};
+  Value(std::string_view Value) : Kind(VK_String), StringValue(Value) {}
 
-class Composite : public Value {
-protected:
-  Composite(ValueKind Kind) : Value(Kind) {}
-};
+  Value(Value *Key, Value *Val) : Kind(VK_Array) { ArrayValue[Key] = Val; }
 
-template <typename T, typename P, Value::ValueKind V>
-class ValueType : public P {
-private:
-  T Data;
+  ValueKind getKind() const { return Kind; }
 
-protected:
-  ValueType(T Data) : P(V), Data(Data) {}
-  ValueType() : P(V), Data({}) {}
+  double getNumber() const { return NumberValue; }
 
-public:
-  static bool classof(auto &&X) { return X->GetKind() == V; }
+  std::string getString() const { return StringValue; }
 
-  static ValueType *Create(T Data) { return new ValueType(Data); }
-  static ValueType *CreateEmpty() { return new ValueType; }
+  std::unordered_map<Value *, Value *> getArray() const { return ArrayValue; }
 
-  const T &GetData() const { return Data; }
-  void SetData(T D) { Data = D; }
-};
+  Value &operator+=(const Value &V) {
+    makeNumber();
+    if (V.getKind() == VK_Number) {
+      NumberValue += V.getNumber();
+    } else {
+      auto Temp = V;
+      Temp.makeNumber();
+      NumberValue += Temp.getNumber();
+    }
 
-using Number = ValueType<double, Primitive, Value::VK_Number>;
-using String = ValueType<std::string, Primitive, Value::VK_Number>;
-using Array =
-    ValueType<std::unordered_map<Value *, Value *>, Composite, Value::VK_Array>;
-using Vector = ValueType<Sequence<Value *>, Composite, Value::VK_Vector>;
-
-template <typename T> T *value_cast(Value *V) {
-  if (isa<T>(V))
-    return static_cast<T *>(V);
-
-  if (!isa<Number>(V) && !isa<String>(V)) {
-    assert(false && "invalid conversion source");
-    return nullptr;
+    return *this;
   }
 
-  if constexpr (std::is_same_v<T, Number>)
-    return Number::Create(
-        ToFloat(static_cast<String *>(V)->GetData()).value_or(0));
-  else if (std::is_same_v<T, String>)
-    return String::Create(std::to_string(static_cast<Number *>(V)->GetData()));
-  else
-    static_assert(false && "invalid conversion target");
+  Value &operator-=(const Value &V) {
+    makeNumber();
+    if (V.getKind() == VK_Number) {
+      NumberValue -= V.getNumber();
+    } else {
+      auto Temp = V;
+      Temp.makeNumber();
+      NumberValue -= Temp.getNumber();
+    }
+
+    return *this;
+  }
+
+  Value &operator*=(const Value &V) {
+    makeNumber();
+    if (V.getKind() == VK_Number) {
+      NumberValue *= V.getNumber();
+    } else {
+      auto Temp = V;
+      Temp.makeNumber();
+      NumberValue *= Temp.getNumber();
+    }
+
+    return *this;
+  }
+
+  Value &operator/=(const Value &V) {
+    makeNumber();
+    if (V.getKind() == VK_Number) {
+      NumberValue /= V.getNumber();
+    } else {
+      auto Temp = V;
+      Temp.makeNumber();
+      NumberValue /= Temp.getNumber();
+    }
+
+    return *this;
+  }
+
+  friend Value operator+(const Value &, const Value &);
+  friend Value operator-(const Value &, const Value &);
+  friend Value operator*(const Value &, const Value &);
+  friend Value operator/(const Value &, const Value &);
+
+  void makeNumber() {
+    switch (Kind) {
+    case VK_Number:
+      return;
+    case VK_String:
+      try {
+        Kind = VK_Number;
+        NumberValue = std::stod(StringValue);
+      } catch (...) {
+        NumberValue = 0;
+      }
+      return;
+    case VK_Array:
+      assert("Cannot convert non-scalar to scalar value");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  void makeString() {
+    switch (Kind) {
+    case VK_Number:
+      Kind = VK_String;
+      StringValue = std::to_string(NumberValue);
+      return;
+    case VK_String:
+      return;
+    case VK_Array:
+      assert("Cannot convert non-scalar to scalar value");
+      exit(EXIT_FAILURE);
+    }
+  }
+};
+
+inline Value operator+(const Value &V1, const Value &V2) {
+  auto V3 = V1;
+  return V3 += V2;
 }
 
-template <typename T> T raw_cast(Value *V) {
-  if constexpr (std::is_same_v<T, bool>) {
-    switch (V->GetKind()) {
-    default:
-      assert(false && "invalid raw cast target");
-      std::terminate();
-    case Value::VK_String:
-      return !std::empty(static_cast<String *>(V)->GetData());
-    case Value::VK_Number:
-      return static_cast<Number *>(V)->GetData();
-    }
-  } else if constexpr (std::is_same_v<T, double>) {
-    switch (V->GetKind()) {
-    default:
-      assert(false && "invalid raw cast target");
-      std::terminate();
-    case Value::VK_String: {
-      char *Ptr;
-      auto X = std::strtod(static_cast<String *>(V)->GetData().data(), &Ptr);
-      return Ptr == static_cast<String *>(V)->GetData().data() ? 0 : X;
-    }
-    case Value::VK_Number:
-      return static_cast<Number *>(V)->GetData();
-    }
-  } else if constexpr (std::is_same_v<T, std::string>) {
-    switch (V->GetKind()) {
-    default:
-      assert(false && "invalid raw cast target");
-      std::terminate();
-    case Value::VK_String:
-      return static_cast<String *>(V)->GetData();
-    case Value::VK_Number:
-      return std::to_string(static_cast<Number *>(V)->GetData());
-    }
-  }
+inline Value operator-(const Value &V1, const Value &V2) {
+  auto V3 = V1;
+  return V3 -= V2;
+}
+
+inline Value operator*(const Value &V1, const Value &V2) {
+  auto V3 = V1;
+  return V3 *= V2;
+}
+
+inline Value operator/(const Value &V1, const Value &V2) {
+  auto V3 = V1;
+  return V3 /= V2;
 }
 
 } // namespace cawk
