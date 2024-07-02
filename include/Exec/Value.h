@@ -30,6 +30,35 @@ public:
 
   std::unordered_map<Value *, Value *> getArray() const { return ArrayValue; }
 
+  double toNumber() {
+    switch (Kind) {
+    case VK_Number:
+      return NumberValue;
+    case VK_String:
+      try {
+        return std::stod(StringValue);
+      } catch (...) {
+        return 0;
+      }
+      return NumberValue;
+    case VK_Array:
+      assert("Cannot convert non-scalar to scalar value");
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  std::string toString() {
+    switch (Kind) {
+    case VK_Number:
+      return std::to_string(NumberValue);
+    case VK_String:
+      return StringValue;
+    case VK_Array:
+      assert("Cannot convert non-scalar to scalar value");
+      exit(EXIT_FAILURE);
+    }
+  }
+
   Value &operator+=(const Value &V) {
     makeNumber();
     if (V.getKind() == VK_Number) {
@@ -87,22 +116,20 @@ public:
   friend Value operator*(const Value &, const Value &);
   friend Value operator/(const Value &, const Value &);
 
-  void makeNumber() {
+  operator bool() const {
     switch (Kind) {
     case VK_Number:
-      return;
+      return NumberValue != 0;
     case VK_String:
-      try {
-        Kind = VK_Number;
-        NumberValue = std::stod(StringValue);
-      } catch (...) {
-        NumberValue = 0;
-      }
-      return;
+      return !std::empty(StringValue);
     case VK_Array:
-      assert("Cannot convert non-scalar to scalar value");
-      exit(EXIT_FAILURE);
+      return true;
     }
+  }
+
+  void makeNumber() {
+    toNumber();
+    Kind = VK_Number;
   }
 
   void makeString() {

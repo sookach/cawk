@@ -5,7 +5,6 @@
 #include "Basic/TokenKinds.h"
 #include "Lexer/Lexer.h"
 
-#include <algorithm>
 #include <bitset>
 #include <cstdlib>
 #include <initializer_list>
