@@ -7,7 +7,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <ranges>
+#include <utility>
 
 namespace cawk {
 class Exec {
