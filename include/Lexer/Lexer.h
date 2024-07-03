@@ -31,8 +31,5 @@ public:
 
 private:
   void formToken(Token &, std::string_view::const_iterator, tok::TokenKind);
-  void identifier(Token &);
-  void number(Token &);
-  void string(Token &);
 };
 } // namespace cawk
