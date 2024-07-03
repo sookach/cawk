@@ -9,8 +9,8 @@
 namespace cawk {
 
 class Value {
-  enum ValueKind { VK_Number, VK_String, VK_Array };
-  ValueKind Kind;
+  enum ValueKind { VK_Null, VK_Number, VK_String, VK_Array };
+  ValueKind Kind = VK_Null;
   double NumberValue;
   std::string StringValue;
   struct Hash {
@@ -122,12 +122,21 @@ public:
     return *this;
   }
 
-  Value &operator[](const Value *V) {
-    return *getArray()[V];
+  Value &operator[](const Value *V) { return *getArray()[V]; }
+
+  Value &operator[](const Value &V) { return operator[](&V); }
+
+  Value &operator++() {
+    makeNumber();
+    ++NumberValue;
+    return *this;
   }
 
-  Value &operator[](const Value& V) {
-    return operator[](&V);
+  Value operator++(int) {
+    makeNumber();
+    auto Temp = *this;
+    ++NumberValue;
+    return Temp;
   }
 
   friend Value operator+(const Value &, const Value &);

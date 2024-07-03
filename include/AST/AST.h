@@ -641,6 +641,8 @@ public:
 
   Expr *getSubExpr() { return SubExpr; }
 
+  FixKind getFix() { return Fix; }
+
   static UnaryOperator *Create(Token Opcode, Expr *SubExpr, FixKind Fix) {
     return new UnaryOperator(Opcode, SubExpr, Fix);
   }

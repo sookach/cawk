@@ -13,6 +13,8 @@ class Exec {
   std::unordered_map<std::string, FunctionDecl> Functions;
   std::unordered_map<std::string, Value> GlobalSymbolTable;
   std::unordered_map<std::string, Value> LocalSymbolTable;
+  std::vector<Value> Fields;
+  Value NullValue;
   Value ReturnValue;
 
 public:
@@ -84,7 +86,7 @@ public:
   Value visit(BinaryOperator *B) {
     switch (B->getOpcode().getKind()) {
     default:
-      assert(0 && "unimplemented operation");
+      assert(0 && "Invalid binary operation");
       exit(EXIT_FAILURE);
 #define CASE(TOK, OP)                                                          \
   case TOK:                                                                    \
@@ -93,13 +95,14 @@ public:
       CASE(tok::minus, -);
       CASE(tok::star, *);
       CASE(tok::slash, /);
+#undef CASE
     }
   }
 
   Value visit(CallExpr *C) {
     assert(isa<DeclRefExpr>(C->getCallee()) && "Invalid function call.");
     auto Callee =
-        ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().GetLiteralData();
+        ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getLiteralData();
     assert(Functions.contains(Callee.data()) &&
            "awk: calling undefined function");
     const auto &Fn = Functions[Callee.data()];
@@ -112,9 +115,13 @@ public:
     auto Save = std::move(LocalSymbolTable);
     LocalSymbolTable = {};
 
-    for (int i{}; Expr * E : Args)
-      LocalSymbolTamble[Params[i++]->getIdentifier().GetLiteralData().data()] =
+    int I{};
+    for (Expr *E : Args)
+      LocalSymbolTable[Params[I++]->getIdentifier().getLiteralData().data()] =
           visit(E);
+
+    for (const auto N = std::size(Params); I < N; ++I)
+      LocalSymbolTable[Params[I]->getIdentifier().getLiteralData().data()] = {};
 
     visit(Fn.getBody());
 
@@ -123,7 +130,66 @@ public:
     return std::move(ReturnValue);
   }
 
+  Value visit(DeclRefExpr *D) {
+    return lookup(D->getIdentifier().getLiteralData());
+  }
+
+  Value visit(FloatingLiteral *F) {
+    return std::stod(F->getValue().GetLiteralData());
+  }
+
+  Value visit(RegexLiteral *R) { return Value(0); }
+
+  Value visit(StringLiteral *S) {
+    return Value(S->getValue().getLiteralData());
+  }
+
+  Value visit(UnaryOperator *U) {
+    switch (U->getOpcode()) {
+    default:
+      assert(0 && "Invalid Unary Operation.");
+      exit(EXIT_FAILURE);
+    case tok::plusplus: {
+      assert(isa<DeclRefExpr>(U->getSubExpr()) &&
+             "++ can only be performed on variables.");
+      auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
+                      ->getIdentifier()
+                      .getLiteralData();
+      return U->getFix == UnaryOperator::Prefix ? ++lookup(Name)
+                                                : lookup(Name)++;
+    }
+    case tok::minusminus: {
+      assert(isa<DeclRefExpr>(U->getSubExpr()) &&
+             "-- can only be performed on variables.");
+      auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
+                      ->getIdentifier()
+                      .getLiteralData();
+      return U->getFix == UnaryOperator::Prefix ? --lookup(Name)
+                                                : lookup(Name)--;
+    }
+    case tok::exclaim:
+      return !visit(U->getSubExpr());
+    case tok::dollar:
+      return getField(visit(U->getSubExpr()).toNumber())
+    }
+  }
+
 #if 0
+      CASE(DeclRef, DeclRefExpr)
+      CASE(FloatingLiteral, FloatingLiteral)
+      CASE(RegexLiteral, RegexLiteral);
+      CASE(StringLiteral, StringLiteral)
+      CASE(UnaryOperator, UnaryOperator)
 #endif
+
+  Value &lookup(std::string_view Name) {
+    return LocalSymbolTable.contains(Name.data())
+               ? LocalSymbolTable[Name.data()]
+               : GlobalSymbolTable[Name.data()];
+  }
+
+  Value &getField(std::size_t I) {
+    return std::clamp(I, 0, std::size(Fields) - 1) == I ? Fields[I] : NullValue;
+  }
 };
 } // namespace cawk

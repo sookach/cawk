@@ -24,7 +24,7 @@ public:
     return {Ptr, Length};
   }
 
-  std::string_view GetLiteralData() const {
+  std::string_view getLiteralData() const {
     assert(is(tok::numeric_constant, tok::string_literal) &&
            "Cannot get literal data of non-literal");
     return {Ptr, Length};
