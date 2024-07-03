@@ -8,5 +8,5 @@ int main(int argc, char **argv) {
   Sources.AddSource(argv[1]);
   cawk::Lexer Lex(Sources.GetSource(argv[1]));
   cawk::Parser Parse(Lex);
-  Parse.Parse();
+  Parse.parse();
 }

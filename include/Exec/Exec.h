@@ -207,7 +207,7 @@ CASE(Do, DoStmt);
         ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getLiteralData();
     assert(Functions.contains(Callee.data()) &&
            "awk: calling undefined function");
-    const auto &Fn = Functions[Callee.data()];
+    const auto &Fn = Functions.at(Callee.data());
     const auto &Params = Fn.getParams();
     const auto &Args = C->getArgs();
 
