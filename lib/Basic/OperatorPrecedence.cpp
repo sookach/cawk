@@ -1,8 +1,9 @@
 #include "Basic/OperatorPrecedence.h"
 #include "Basic/TokenKinds.h"
 
-namespace cawk {
-prec::Level GetBinOpPrecedence(tok::TokenKind Kind) {
+using namespace cawk;
+
+prec::Level cawk::getBinOpPrecedence(tok::TokenKind Kind) {
   switch (Kind) {
   default:
     return prec::Unknown;
@@ -40,4 +41,3 @@ prec::Level GetBinOpPrecedence(tok::TokenKind Kind) {
     return prec::Redirect;
   }
 }
-} // namespace cawk

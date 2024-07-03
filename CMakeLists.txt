@@ -10,4 +10,4 @@ add_subdirectory(lib)
 
 add_executable(main main.cpp)
 target_include_directories(main PRIVATE include)
-target_link_libraries(main PRIVATE Lexer Basic Parser)
+target_link_libraries(main PRIVATE Basic Lexer Parser)
