@@ -405,10 +405,6 @@ public:
 };
 
 class PrintStmt : public Stmt {
-public:
-  enum PrintKind { PK_Print, PK_Printf };
-
-private:
   Token Iden;
   std::vector<Expr *> Args;
   Token Opcode;

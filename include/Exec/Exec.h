@@ -134,10 +134,14 @@ public:
   void visit(NextfileStmt *N) { assert(0 && "unimplemented"); }
 
   void visit(PrintStmt *P) {
-    if (P->getIden() == PrintStmt::PK_Print) {
-      auto Result = std::ranges::fold_left(
-          P->getArgs(), std::string(),
-          [this](std::string S, Expr *E) { return S + visit(E).toString(); });
+    assert(P->getOpcode().is(tok::unknown) && P->getOutput() == nullptr &&
+           "unimplemented");
+    if (P->getIden().is(tok::kw_print)) {
+      std::puts(std::ranges::fold_left(P->getArgs(), std::string(),
+                                       [this](std::string S, Expr *E) {
+                                         return S + visit(E).toString();
+                                       })
+                    .c_str());
     } else {
     }
   }
@@ -221,7 +225,7 @@ CASE(Do, DoStmt);
     for (const auto N = std::size(Params); I < N; ++I)
       LocalSymbolTable[Params[I]->getIdentifier().getLiteralData().data()] = {};
 
-    visit(Fn.getBody());
+    visit(const_cast<CompoundStmt *>(Fn.getBody()));
 
     LocalSymbolTable = std::move(Save);
 
@@ -233,7 +237,7 @@ CASE(Do, DoStmt);
   }
 
   Value visit(FloatingLiteral *F) {
-    return std::stod(F->getValue().GetLiteralData());
+    return std::stod(F->getValue().getLiteralData().data());
   }
 
   Value visit(RegexLiteral *R) { return Value(0); }
@@ -243,7 +247,7 @@ CASE(Do, DoStmt);
   }
 
   Value visit(UnaryOperator *U) {
-    switch (U->getOpcode()) {
+    switch (U->getOpcode().getKind()) {
     default:
       assert(0 && "Invalid Unary Operation.");
       exit(EXIT_FAILURE);
@@ -253,8 +257,8 @@ CASE(Do, DoStmt);
       auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
                       ->getIdentifier()
                       .getLiteralData();
-      return U->getFix == UnaryOperator::Prefix ? ++lookup(Name)
-                                                : lookup(Name)++;
+      return U->getFix() == UnaryOperator::Prefix ? ++lookup(Name)
+                                                  : lookup(Name)++;
     }
     case tok::minusminus: {
       assert(isa<DeclRefExpr>(U->getSubExpr()) &&
@@ -262,13 +266,13 @@ CASE(Do, DoStmt);
       auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
                       ->getIdentifier()
                       .getLiteralData();
-      return U->getFix == UnaryOperator::Prefix ? --lookup(Name)
-                                                : lookup(Name)--;
+      return U->getFix() == UnaryOperator::Prefix ? --lookup(Name)
+                                                  : lookup(Name)--;
     }
     case tok::exclaim:
       return !visit(U->getSubExpr());
     case tok::dollar:
-      return getField(visit(U->getSubExpr()).toNumber())
+      return getField(visit(U->getSubExpr()).toNumber());
     }
   }
 
@@ -283,7 +287,11 @@ CASE(Do, DoStmt);
   }
 
   Value &getField(std::size_t I) {
-    return std::clamp(I, 0, std::size(Fields) - 1) == I ? Fields[I] : NullValue;
+    return std::clamp(I, 0UL, std::size(Fields) - 1) == I ? Fields[I]
+                                                          : NullValue;
   }
+
+  static void PrintF(std::vector<std::string> Args) {}
 };
+
 } // namespace cawk

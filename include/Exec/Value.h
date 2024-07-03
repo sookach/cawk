@@ -47,6 +47,8 @@ class Value {
   } Hash;
 
 public:
+  Value() = default;
+
   Value(double Value) : Kind(VK_Number), NumberValue(Value) {}
 
   Value(std::string_view Value) : Kind(VK_String), StringValue(Value) {}
@@ -184,6 +186,19 @@ public:
     makeNumber();
     auto Temp = *this;
     ++NumberValue;
+    return Temp;
+  }
+
+  Value &operator--() {
+    makeNumber();
+    --NumberValue;
+    return *this;
+  }
+
+  Value operator--(int) {
+    makeNumber();
+    auto Temp = *this;
+    --NumberValue;
     return Temp;
   }
 
