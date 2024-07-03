@@ -19,10 +19,4 @@ template <typename T> constexpr const T *ptr_cast(const auto *X) {
   return static_cast<const T *>(X);
 }
 
-constexpr std::optional<double> ToFloat(std::string_view S) {
-  char *Ptr;
-  auto Value = std::strtod(S.data(), &Ptr);
-  return Ptr == std::cend(S) ? std::make_optional(Value) : std::nullopt;
-}
-
 } // namespace cawk

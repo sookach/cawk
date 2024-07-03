@@ -1,2 +1,6 @@
-add_library(TokenKinds TokenKinds.cpp)
-target_include_directories(TokenKinds PRIVATE ${CMAKE_SOURCE_DIR}/include)
+add_library(
+    Basic
+    OperatorPrecedence.cpp
+    TokenKinds.cpp
+)
+target_include_directories(Basic PRIVATE ${CMAKE_SOURCE_DIR}/include)
