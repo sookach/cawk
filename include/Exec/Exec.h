@@ -13,28 +13,29 @@ class Exec {
   std::unordered_map<std::string, FunctionDecl> Functions;
   std::unordered_map<std::string, Value> GlobalSymbolTable;
   std::unordered_map<std::string, Value> LocalSymbolTable;
+  Value ReturnValue;
 
 public:
-  void Visit(TranslationUnitDecl *T) {
+  void visit(TranslationUnitDecl *T) {
     for (Decl *D : T->getDecls() | std::views::filter([](Decl *D) {
                      return isa<RuleDecl>(D);
                    }))
-      Visit(static_cast<RuleDecl *>(D));
+      visit(static_cast<RuleDecl *>(D));
   }
 
-  void Visit(RuleDecl *R) {
-    if (Visit(R->getPattern()))
-      Visit(R->getAction());
+  void visit(RuleDecl *R) {
+    if (visit(R->getPattern()))
+      visit(R->getAction());
   }
 
-  void Visit(Stmt *S) {
+  void visit(Stmt *S) {
     switch (S->getKind()) {
 #if defined(CASE)
       static_assert(false);
 #else
 #define CASE(KIND, CLASS)                                                      \
   case Stmt::SK_##KIND:                                                        \
-    return Visit(static_cast<CLASS *>(S))
+    return visit(static_cast<CLASS *>(S))
 #endif
       CASE(Break, BreakStmt);
       CASE(Continue, ContinueStmt);
@@ -55,14 +56,14 @@ public:
     }
   }
 
-  Value Visit(Expr *E) {
+  Value visit(Expr *E) {
     switch (E->getKind()) {
 #if defined(CASE)
       static_assert(false);
 #else
 #define CASE(KIND, CLASS)                                                      \
   case Expr::EK_##KIND:                                                        \
-    return Visit(static_cast<CLASS *>(E));
+    return visit(static_cast<CLASS *>(E));
 #endif
       CASE(ArraySubscript, ArraySubscriptExpr)
       CASE(BinaryOperator, BinaryOperator)
@@ -76,21 +77,50 @@ public:
     }
   }
 
-  Value Visit(ArraySubscriptExpr *A) { return A->getLHS()[A->getRHS()]; }
+  Value visit(ArraySubscriptExpr *A) {
+    return visit(A->getLHS())[visit(A->getRHS())];
+  }
 
-  Value Visit(BinaryOperator *B) {
+  Value visit(BinaryOperator *B) {
     switch (B->getOpcode().getKind()) {
     default:
       assert(0 && "unimplemented operation");
       exit(EXIT_FAILURE);
 #define CASE(TOK, OP)                                                          \
   case TOK:                                                                    \
-    return Visit(B->getLHS()) OP Visit(B->getRHS())
+    return visit(B->getLHS()) OP visit(B->getRHS())
       CASE(tok::plus, +);
       CASE(tok::minus, -);
       CASE(tok::star, *);
       CASE(tok::slash, /);
     }
+  }
+
+  Value visit(CallExpr *C) {
+    assert(isa<DeclRefExpr>(C->getCallee()) && "Invalid function call.");
+    auto Callee =
+        ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().GetLiteralData();
+    assert(Functions.contains(Callee.data()) &&
+           "awk: calling undefined function");
+    const auto &Fn = Functions[Callee.data()];
+    const auto &Params = Fn.getParams();
+    const auto &Args = C->getArgs();
+
+    assert(std::size(Args) <= std::size(Params) &&
+           "awk: function f called with x args, uses only y");
+
+    auto Save = std::move(LocalSymbolTable);
+    LocalSymbolTable = {};
+
+    for (int i{}; Expr * E : Args)
+      LocalSymbolTamble[Params[i++]->getIdentifier().GetLiteralData().data()] =
+          visit(E);
+
+    visit(Fn.getBody());
+
+    LocalSymbolTable = std::move(Save);
+
+    return std::move(ReturnValue);
   }
 
 #if 0
