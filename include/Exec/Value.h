@@ -10,7 +10,10 @@
 namespace cawk {
 
 class Value {
+public:
   enum ValueKind { VK_Null, VK_Number, VK_String, VK_Array };
+
+private:
   ValueKind Kind = VK_Null;
   double NumberValue;
   std::string StringValue;

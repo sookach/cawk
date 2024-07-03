@@ -291,7 +291,97 @@ CASE(Do, DoStmt);
                                                           : NullValue;
   }
 
-  static void PrintF(std::vector<std::string> Args) {}
+  static bool isConversionSpecifier(char C) {
+    switch (C) {
+    default:
+      return false;
+    case '%':
+    case 'c':
+    case 's':
+    case 'd':
+    case 'i':
+    case 'o':
+    case 'x':
+    case 'X':
+    case 'u':
+    case 'f':
+    case 'F':
+    case 'e':
+    case 'E':
+    case 'a':
+    case 'A':
+    case 'g':
+    case 'G':
+    case 'n':
+    case 'p':
+      return true;
+    }
+  }
+
+  std::string format(std::span<char> FormatString, std::vector<Value> Args) {
+    std::string String;
+    static constexpr auto MaxSize = 24'576;
+    String.reserve(MaxSize);
+
+    auto It = std::begin(FormatString);
+
+    for (Value &A : Args) {
+      It = std::find(It, std::end(FormatString), '%');
+      if (It == std::cend(FormatString)) {
+        assert(0 && "Invalid format string.");
+        exit(EXIT_FAILURE);
+      }
+
+      String.append(std::begin(FormatString), It);
+
+      auto Next =
+          std::find_if(It + 1, std::end(FormatString), isConversionSpecifier);
+      if (Next == std::end(FormatString)) {
+        assert(0 && "Invalid format string.");
+        exit(EXIT_FAILURE);
+      }
+
+      if (*Next == '%') {
+        String.push_back('%');
+        continue;
+      }
+
+      auto Save = std::exchange(*(Next + 1), '\0');
+      enum ConversionKind { CK_Number, CK_String, CK_Char };
+
+      auto Kind = *Next == 's' ? CK_String : *Next == 'c' ? CK_Char : CK_Number;
+
+      switch (*Next) {
+      default:
+        std::snprintf(std::end(String).base(), MaxSize - std::size(String), It.base(),
+                      A.getNumber());
+        break;
+      case 's':
+        std::snprintf(std::end(String).base(), MaxSize - std::size(String), It.base(),
+                      A.getString().c_str());
+        break;
+      case 'c':
+        if (A.getKind() == Value::VK_Number)
+          std::snprintf(std::end(String).base(), MaxSize - std::size(String),
+                        It.base(), static_cast<char>(A.getNumber()));
+        else if (!std::empty(A.toString()))
+          std::snprintf(std::end(String).base(), MaxSize - std::size(String),
+                        It.base(), A.toString().front());
+      }
+
+      *(Next + 1) = Save;
+      Next += 2;
+    }
+
+    It = std::find(It, std::end(FormatString), '%');
+
+    if (It != std::end(FormatString)) {
+      assert(0 && "Invalid format string.");
+      exit(EXIT_FAILURE);
+    }
+
+    return std::move(String);
+  }
 };
 
 } // namespace cawk
