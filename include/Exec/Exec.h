@@ -16,6 +16,7 @@ class Exec {
   std::vector<Value> Fields;
   Value NullValue;
   Value ReturnValue;
+  std::uint32_t NestedLevel = 0;
 
 public:
   void visit(TranslationUnitDecl *T) {
@@ -55,6 +56,33 @@ public:
       CASE(Value, ValueStmt);
       CASE(While, WhileStmt);
 #undef CASE
+    }
+  }
+
+  void visit(BreakStmt *B) {
+    assert(0 && "awk: break illegal outside of loops");
+  }
+
+  void visit(ContinueStmt *C) {
+    assert(0 && "awk: continue illegal outside of loops");
+  }
+
+  void visit(CompoundStmt *C) {
+    for (Stmt *S : C->getBody())
+      visit(S);
+  }
+
+  void visit(DeleteStmt *D) {
+    if (isa<DeclRefExpr>(D->getArgument())) {
+      lookup(ptr_cast<DeclRefExpr>(D->getArgument())).clear();
+    } else if (isa<ArraySubscriptExpr>(D->getArgument())) {
+      lookup(ptr_cast<DeclRefExpr>(
+                 ptr_cast<ArraySubscriptExpr>(D->getArgument())->getLHS()))
+          .erase(
+              visit(ptr_cast<ArraySubscriptExpr>(D->getArgument())->getRHS()));
+    } else {
+      assert(0 && "awk: delete illegal for non-arrays");
+      exit(EXIT_FAILURE);
     }
   }
 
@@ -174,18 +202,14 @@ public:
     }
   }
 
-#if 0
-      CASE(DeclRef, DeclRefExpr)
-      CASE(FloatingLiteral, FloatingLiteral)
-      CASE(RegexLiteral, RegexLiteral);
-      CASE(StringLiteral, StringLiteral)
-      CASE(UnaryOperator, UnaryOperator)
-#endif
-
   Value &lookup(std::string_view Name) {
     return LocalSymbolTable.contains(Name.data())
                ? LocalSymbolTable[Name.data()]
                : GlobalSymbolTable[Name.data()];
+  }
+
+  Value &lookup(DeclRefExpr *E) {
+    return lookup(E->getIdentifier().getLiteralData());
   }
 
   Value &getField(std::size_t I) {

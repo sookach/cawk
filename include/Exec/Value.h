@@ -169,6 +169,16 @@ public:
     ArrayValue = toArray();
     Kind = VK_Array;
   }
+
+  void erase(Value &V) {
+    assert(ValueKind == VK_Array && "Cannot erase from non-array.");
+    ArrayValue.erase(&V);
+  }
+
+  void clear() {
+    assert(ValueKind == VK_Array && "Cannot clear a non-array.");
+    ArrayValue.clear();
+  }
 };
 
 inline Value operator+(const Value &V1, const Value &V2) {
