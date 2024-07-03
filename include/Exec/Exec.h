@@ -5,6 +5,7 @@
 #include "Exec/Value.h"
 #include "Support/Support.h"
 
+#include <algorithm>
 #include <cmath>
 #include <ranges>
 
@@ -17,6 +18,8 @@ class Exec {
   Value NullValue;
   Value ReturnValue;
   std::uint32_t NestedLevel = 0;
+  bool ShouldBreak = false;
+  bool ShouldContinue = false;
 
 public:
   void visit(TranslationUnitDecl *T) {
@@ -60,11 +63,11 @@ public:
   }
 
   void visit(BreakStmt *B) {
-    assert(0 && "awk: break illegal outside of loops");
+    assert(NestedLevel-- != 0 && "awk: break illegal outside of loops");
   }
 
   void visit(ContinueStmt *C) {
-    assert(0 && "awk: continue illegal outside of loops");
+    assert(NestedLevel != 0 && "awk: continue illegal outside of loops");
   }
 
   void visit(CompoundStmt *C) {
@@ -85,6 +88,71 @@ public:
       exit(EXIT_FAILURE);
     }
   }
+
+  void visit(DoStmt *D) { assert(0 && "unimplemented"); }
+
+  void visit(ExitStmt *E) { std::exit(visit(E->getValue())); }
+
+  void visit(ForStmt *F) {
+    if (F->getInit() != nullptr)
+      visit(F->getInit());
+
+    for (;;) {
+      if (F->getCond() != nullptr && !visit(F->getCond()))
+        break;
+
+      if (F->getBody() != nullptr)
+        visit(F->getBody());
+
+      if (std::exchange(ShouldBreak, false))
+        break;
+
+      if (F->getInc() != nullptr)
+        visit(F->getInc());
+    }
+  }
+
+  void visit(ForRangeStmt *F) {
+    auto LoopVar = F->getLoopVar()->getIdentifier().getLiteralData();
+    for (auto &[Key, Value] : lookup(F->getRange()).toArray()) {
+      lookup(LoopVar) = Key;
+      visit(F->getBody());
+    }
+  }
+
+  void visit(IfStmt *I) {
+    if (visit(I->getCond()))
+      visit(I->getThen());
+    else if (I->getElse() != nullptr)
+      visit(I->getElse());
+  }
+
+  void visit(NextStmt *N) { assert(0 && "unimplemented"); }
+
+  void visit(NextfileStmt *N) { assert(0 && "unimplemented"); }
+
+  void visit(PrintStmt *P) {
+    if (P->getIden() == PrintStmt::PK_Print) {
+      auto Result = std::ranges::fold_left(
+          P->getArgs(), std::string(),
+          [this](std::string S, Expr *E) { return S + visit(E).toString(); });
+    } else {
+    }
+  }
+
+#if 0
+CASE(Do, DoStmt);
+      CASE(Exit, ExitStmt);
+      CASE(For, ForStmt);
+      CASE(ForRange, ForRangeStmt);
+      CASE(If, IfStmt);
+      CASE(Next, NextStmt);
+      CASE(Nextfile, NextfileStmt);
+      CASE(Print, PrintStmt);
+      CASE(Return, ReturnStmt);
+      CASE(Value, ValueStmt);
+      CASE(While, WhileStmt);
+#endif
 
   Value visit(Expr *E) {
     switch (E->getKind()) {
