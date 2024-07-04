@@ -11,22 +11,25 @@ public:
 private:
   std::vector<Element> Table;
 
-  decltype(Table)::iterator lookup(std::string_view Key) const {
+  auto lookup(std::string_view Key) const {
     return std::ranges::find(Table, Key,
                              [](const Element &E) { return E.first; });
   }
 
 public:
-  std::optional<T> get(std::string_view Key) const {
-    auto I = lookup(Key);
-    return I == std::cend(Table) ? std::nullopt : std::make_optional(I->second);
+  bool contains(std::string_view Key) const {
+    return lookup(Key) != std::cend(Table);
+  }
+
+  T &get(std::string_view Key) const {
+    assert(contains(Key) && "Key not in Symbol table");
+    return const_cast<T&>(lookup(Key)->second);
   }
 
   void set(std::string_view Key, T Value) {
-    auto I = lookup(Key);
-    if (I == std::cend(Table))
-      Table.emplace_back(Key.data(), Value);
+    if (contains(Key))
+      get(Key) = Value;
     else
-      I->second = Value;
+      Table.emplace_back(std::string(Key), Value);
   }
 };

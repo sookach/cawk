@@ -5,11 +5,12 @@
 #include <fstream>
 
 int main(int argc, char **argv) {
-  std::ifstream File("/Users/andrew/dev/cawk/main.awk");
+  std::ifstream File("/Users/suk/dev/cawk/main.awk");
   std::string Source((std::istreambuf_iterator<char>(File)),
                      std::istreambuf_iterator<char>());
   cawk::Lexer Lex(Source);
   cawk::Parser Parse(Lex);
+  auto AST = Parse.parse();
   cawk::Exec Exe;
-  Exe.run(Parse.parse());
+  Exe.run(AST);
 }

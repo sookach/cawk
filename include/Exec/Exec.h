@@ -2,11 +2,11 @@
 
 #include "AST/AST.h"
 #include "Basic/TokenKinds.h"
+#include "Exec/SymbolTable.h"
 #include "Exec/Value.h"
 #include "Support/Support.h"
 
 #include <algorithm>
-#include <cmath>
 #include <cstdint>
 #include <list>
 #include <ranges>
@@ -14,9 +14,9 @@
 
 namespace cawk {
 class Exec {
-  std::vector<std::pair<std::string, FunctionDecl>> Functions;
-  std::vector<std::pair<std::string, Value>> GlobalSymbolTable;
-  std::vector<std::pair<std::string, Value>> LocalSymbolTable;
+  SymbolTable<FunctionDecl> Functions;
+  SymbolTable<Value> Globals;
+  SymbolTable<Value> Locals;
   std::vector<Value> Fields;
   Value NullValue;
   Value ReturnValue;
@@ -211,7 +211,8 @@ CASE(Do, DoStmt);
       CASE(tok::slash, /);
     case tok::equal:
       assert(isa<DeclRefExpr>(B->getLHS()) && "Cannot assign to non-lvalue.");
-      return setValue(ptr_cast<DeclRefExpr>(B->getLHS()), visit(B->getRHS()));
+      setValue(ptr_cast<DeclRefExpr>(B->getLHS()), visit(B->getRHS()));
+      return getValue(ptr_cast<DeclRefExpr>(B->getLHS()));
 #undef CASE
     }
   }
@@ -222,27 +223,26 @@ CASE(Do, DoStmt);
         ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getLiteralData();
     assert(Functions.contains(Callee.data()) &&
            "awk: calling undefined function");
-    const auto &Fn = Functions.at(Callee.data());
+    const auto &Fn = Functions.get(Callee.data());
     const auto &Params = Fn.getParams();
     const auto &Args = C->getArgs();
 
     assert(std::size(Args) <= std::size(Params) &&
            "awk: function f called with x args, uses only y");
 
-    auto Save = std::move(LocalSymbolTable);
-    LocalSymbolTable = {};
+    auto Save = std::move(Locals);
+    Locals = {};
 
     int I{};
     for (Expr *E : Args)
-      LocalSymbolTable[Params[I++]->getIdentifier().getLiteralData().data()] =
-          visit(E);
+      Locals.set(Params[I++]->getIdentifier().getIdentifier().data(), visit(E));
 
     for (const auto N = std::size(Params); I < N; ++I)
-      LocalSymbolTable[Params[I]->getIdentifier().getLiteralData().data()] = {};
+      Locals.set(Params[I]->getIdentifier().getLiteralData().data(), {});
 
     visit(const_cast<CompoundStmt *>(Fn.getBody()));
 
-    LocalSymbolTable = std::move(Save);
+    Locals = std::move(Save);
 
     return std::move(ReturnValue);
   }
@@ -298,37 +298,25 @@ CASE(Do, DoStmt);
     }
   }
 
-  Value &lookup(std::vector<std::pair<std::string, Value>> &Values,
-                std::string_view S) {
-    auto I = std::ranges::find(
-        Values, Name,
-        [](const std::pair<std::string, Value> &P) { return P.first; });
-    return I == std::cend(Values) ? NullValue : *I;
-  }
-
   Value &getValue(std::string_view Name) {
-    auto &V = lookup(LocalSymbolTable, Name);
-    return V.getKind() == Value::VK_Null ? lookup(GlobalSymbolTable, Name) : V;
+    return Locals.contains(Name)    ? Locals.get(Name)
+           : Globals.contains(Name) ? Globals.get(Name)
+                                    : NullValue;
   }
 
   Value &getValue(DeclRefExpr *E) {
     return getValue(E->getIdentifier().getIdentifier());
   }
 
-  Value &setValue(std::string_view Name, Value V) {
-    auto &Var = lookup(Table);
-    return Var.getKind() == Value::VK_Null
-               ? return Table.emplace_back(Name, V).second
-               : Var = V;
+  void setValue(std::string_view Name, Value V) {
+    if (Locals.contains(Name))
+      Locals.set(Name, V);
+    else
+      Globals.set(Name, V);
   }
 
-  Value &setValue(std::string_view Name, Value V) {
-    LocalSymbolTable.emplace(Name.data(), V);
-    return LocalSymbolTable[Name.data()];
-  }
-
-  Value &setValue(DeclRefExpr *D, Value V) {
-    return setValue(D->getIdentifier().getIdentifier(), V);
+  void setValue(DeclRefExpr *D, Value V) {
+    setValue(D->getIdentifier().getIdentifier(), V);
   }
 
   Value &getField(std::size_t I) {
