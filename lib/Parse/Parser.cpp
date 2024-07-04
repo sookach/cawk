@@ -194,11 +194,11 @@ Expr *Parser::parseExpr(prec::Level MinPrec) {
       // TODO: handle error
       return nullptr;
     case tok::identifier:
-      return DeclRefExpr::Create(advance());
+      return DeclRefExpr::Create(advance<true>());
     case tok::numeric_constant:
-      return FloatingLiteral::Create(advance());
+      return FloatingLiteral::Create(advance<true>());
     case tok::string_literal:
-      return StringLiteral::Create(advance());
+      return StringLiteral::Create(advance<true>());
     case tok::plusplus:
     case tok::minusminus:
     case tok::exclaim:
@@ -239,7 +239,9 @@ Expr *Parser::parseExpr(prec::Level MinPrec) {
     }
   }(NUD());
 
-  for (; getBinOpPrecedence(Tok.getKind()) > MinPrec;) {
+  for (; getBinOpPrecedence((Tok.is(tok::newline) ? peek(1) : Tok).getKind()) >
+         MinPrec;) {
+    skip<tok::newline>();
     auto OpCode = advance();
     switch (OpCode.getKind()) {
     default:

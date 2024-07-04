@@ -8,14 +8,15 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <list>
 #include <ranges>
 #include <utility>
 
 namespace cawk {
 class Exec {
   std::unordered_map<std::string, FunctionDecl> Functions;
-  std::unordered_map<std::string, Value> GlobalSymbolTable;
-  std::unordered_map<std::string, Value> LocalSymbolTable;
+  std::vector<std::pair<std::string, Value>> GlobalSymbolTable;
+  std::vector<std::pair<std::string, Value>> LocalSymbolTable;
   std::vector<Value> Fields;
   Value NullValue;
   Value ReturnValue;
@@ -88,10 +89,10 @@ private:
 
   void visit(DeleteStmt *D) {
     if (isa<DeclRefExpr>(D->getArgument())) {
-      lookup(ptr_cast<DeclRefExpr>(D->getArgument())).clear();
+      getValue(ptr_cast<DeclRefExpr>(D->getArgument())).clear();
     } else if (isa<ArraySubscriptExpr>(D->getArgument())) {
-      lookup(ptr_cast<DeclRefExpr>(
-                 ptr_cast<ArraySubscriptExpr>(D->getArgument())->getLHS()))
+      getValue(ptr_cast<DeclRefExpr>(
+                   ptr_cast<ArraySubscriptExpr>(D->getArgument())->getLHS()))
           .erase(
               visit(ptr_cast<ArraySubscriptExpr>(D->getArgument())->getRHS()));
     } else {
@@ -125,8 +126,8 @@ private:
 
   void visit(ForRangeStmt *F) {
     auto LoopVar = F->getLoopVar()->getIdentifier().getLiteralData();
-    for (auto &[Key, Value] : lookup(F->getRange()).toArray()) {
-      lookup(LoopVar) = Key;
+    for (auto &[Key, Value] : getValue(F->getRange()).toArray()) {
+      getValue(LoopVar) = Key;
       visit(F->getBody());
     }
   }
@@ -154,6 +155,8 @@ private:
     } else {
     }
   }
+
+  void visit(ValueStmt *V) { visit(V->getValue()); }
 
 #if 0
 CASE(Do, DoStmt);
@@ -206,6 +209,9 @@ CASE(Do, DoStmt);
       CASE(tok::minus, -);
       CASE(tok::star, *);
       CASE(tok::slash, /);
+    case tok::equal:
+      assert(isa<DeclRefExpr>(B->getLHS()) && "Cannot assign to non-lvalue.");
+      return setValue(ptr_cast<DeclRefExpr>(B->getLHS()), visit(B->getRHS()));
 #undef CASE
     }
   }
@@ -244,7 +250,7 @@ CASE(Do, DoStmt);
   Value visit(DeclRefExpr *D) {
     switch (D->getIdentifier().getKind()) {
     default:
-      return lookup(D->getIdentifier().getLiteralData());
+      return getValue(D);
     case tok::kw_BEGIN:
       return IsBegin;
     case tok::kw_END:
@@ -273,8 +279,8 @@ CASE(Do, DoStmt);
       auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
                       ->getIdentifier()
                       .getLiteralData();
-      return U->getFix() == UnaryOperator::Prefix ? ++lookup(Name)
-                                                  : lookup(Name)++;
+      return U->getFix() == UnaryOperator::Prefix ? ++getValue(Name)
+                                                  : getValue(Name)++;
     }
     case tok::minusminus: {
       assert(isa<DeclRefExpr>(U->getSubExpr()) &&
@@ -282,8 +288,8 @@ CASE(Do, DoStmt);
       auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
                       ->getIdentifier()
                       .getLiteralData();
-      return U->getFix() == UnaryOperator::Prefix ? --lookup(Name)
-                                                  : lookup(Name)--;
+      return U->getFix() == UnaryOperator::Prefix ? --getValue(Name)
+                                                  : getValue(Name)--;
     }
     case tok::exclaim:
       return !visit(U->getSubExpr());
@@ -292,14 +298,37 @@ CASE(Do, DoStmt);
     }
   }
 
-  Value &lookup(std::string_view Name) {
-    return LocalSymbolTable.contains(Name.data())
-               ? LocalSymbolTable[Name.data()]
-               : GlobalSymbolTable[Name.data()];
+  Value &lookup(std::vector<std::pair<std::string, Value>> &Values,
+                std::string_view S) {
+    auto I = std::ranges::find(
+        Values, Name,
+        [](const std::pair<std::string, Value> &P) { return P.first; });
+    return I == std::cend(Values) ? NullValue : *I;
   }
 
-  Value &lookup(DeclRefExpr *E) {
-    return lookup(E->getIdentifier().getLiteralData());
+  Value &getValue(std::string_view Name) {
+    auto &V = lookup(LocalSymbolTable, Name);
+    return V.getKind() == Value::VK_Null ? lookup(GlobalSymbolTable, Name) : V;
+  }
+
+  Value &getValue(DeclRefExpr *E) {
+    return getValue(E->getIdentifier().getIdentifier());
+  }
+
+  Value &setValue(std::string_view Name, Value V) {
+    auto &Var = lookup(Table);
+    return Var.getKind() == Value::VK_Null
+               ? return Table.emplace_back(Name, V).second
+               : Var = V;
+  }
+
+  Value &setValue(std::string_view Name, Value V) {
+    LocalSymbolTable.emplace(Name.data(), V);
+    return LocalSymbolTable[Name.data()];
+  }
+
+  Value &setValue(DeclRefExpr *D, Value V) {
+    return setValue(D->getIdentifier().getIdentifier(), V);
   }
 
   Value &getField(std::size_t I) {
