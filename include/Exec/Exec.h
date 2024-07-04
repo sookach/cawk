@@ -14,7 +14,7 @@
 
 namespace cawk {
 class Exec {
-  std::unordered_map<std::string, FunctionDecl> Functions;
+  std::vector<std::pair<std::string, FunctionDecl>> Functions;
   std::vector<std::pair<std::string, Value>> GlobalSymbolTable;
   std::vector<std::pair<std::string, Value>> LocalSymbolTable;
   std::vector<Value> Fields;
