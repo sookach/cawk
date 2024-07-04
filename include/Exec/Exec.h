@@ -22,13 +22,13 @@ class Exec {
   std::uint32_t NestedLevel = 0;
   bool ShouldBreak = false;
   bool ShouldContinue = false;
+  bool IsBegin = true;
+  bool IsEnd = false;
 
 public:
   void run(TranslationUnitDecl *T) {
-    GlobalSymbolTable["BEGIN"] = Value(1);
     visit(T);
-    GlobalSymbolTable.erase("BEGIN");
-    GlobalSymbolTable["END"] = Value(1);
+    std::swap(IsBegin, IsEnd);
     visit(T);
   }
 
@@ -242,7 +242,14 @@ CASE(Do, DoStmt);
   }
 
   Value visit(DeclRefExpr *D) {
-    return lookup(D->getIdentifier().getLiteralData());
+    switch (D->getIdentifier().getKind()) {
+    default:
+      return lookup(D->getIdentifier().getLiteralData());
+    case tok::kw_BEGIN:
+      return IsBegin;
+    case tok::kw_END:
+      return IsEnd;
+    }
   }
 
   Value visit(FloatingLiteral *F) {
