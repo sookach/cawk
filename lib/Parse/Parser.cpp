@@ -32,7 +32,7 @@ template Token Parser::peek<true, true>(std::size_t N) const;
 
 TranslationUnitDecl *Parser::parseTranslationUnit() {
   std::vector<Decl *> Decls;
-  for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::eof));) {
+  for (; (skip<tok::newline, tok::semi>(), !consume(tok::eof));) {
     Decls.push_back(parseDecl());
   }
   return TranslationUnitDecl::Create(Decls);

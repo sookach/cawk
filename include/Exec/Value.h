@@ -17,7 +17,7 @@ private:
   std::string StringValue;
   std::unordered_map<std::size_t, Value *> ArrayValue;
 
-  static struct {
+  struct {
     std::size_t operator()(const Value *V) const {
       switch (V->getKind()) {
       case VK_Null:
@@ -161,21 +161,9 @@ public:
     return *this;
   }
 
-  Value &operator[](const Value *V) {
-    switch (V->getKind()) {
-    case VK_Null:
-      return *ArrayValue[std::hash<const Value *>()(V)];
-    case VK_Number:
-      return *ArrayValue[std::hash<double>()(V->getNumber())];
-    case VK_String:
-      return *ArrayValue[std::hash<std::string>()(V->getString())];
-    case VK_Array:
-      assert(0 && "Attempting to use non-scalar value in scalar context");
-      exit(EXIT_FAILURE);
-    }
-  }
+  Value &operator[](const Value *V) { return *ArrayValue[Hash(V)]; }
 
-  Value &operator[](const Value &V) { return operator[](&V); }
+  Value &operator[](const Value &V) { return *ArrayValue[Hash(V)]; }
 
   Value &operator++() {
     makeNumber();

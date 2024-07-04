@@ -24,6 +24,15 @@ class Exec {
   bool ShouldContinue = false;
 
 public:
+  void run(TranslationUnitDecl *T) {
+    GlobalSymbolTable["BEGIN"] = Value(1);
+    visit(T);
+    GlobalSymbolTable.erase("BEGIN");
+    GlobalSymbolTable["END"] = Value(1);
+    visit(T);
+  }
+
+private:
   void visit(TranslationUnitDecl *T) {
     for (Decl *D : T->getDecls() | std::views::filter([](Decl *D) {
                      return isa<RuleDecl>(D);
@@ -353,12 +362,12 @@ CASE(Do, DoStmt);
 
       switch (*Next) {
       default:
-        std::snprintf(std::end(String).base(), MaxSize - std::size(String), It.base(),
-                      A.getNumber());
+        std::snprintf(std::end(String).base(), MaxSize - std::size(String),
+                      It.base(), A.getNumber());
         break;
       case 's':
-        std::snprintf(std::end(String).base(), MaxSize - std::size(String), It.base(),
-                      A.getString().c_str());
+        std::snprintf(std::end(String).base(), MaxSize - std::size(String),
+                      It.base(), A.getString().c_str());
         break;
       case 'c':
         if (A.getKind() == Value::VK_Number)

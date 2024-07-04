@@ -72,7 +72,8 @@ private:
   }
 
   template <tok::TokenKind... Ks> void skip() {
-    std::bitset<tok::NUM_TOKENS> Filter((0 | ... | Ks));
+    std::bitset<tok::NUM_TOKENS> Filter((std::bitset<tok::NUM_TOKENS>() | ... |
+                                         std::bitset<tok::NUM_TOKENS>().set(Ks)));
 
     for (; Filter.test(Tok.getKind()); advance<false, false>())
       ;
