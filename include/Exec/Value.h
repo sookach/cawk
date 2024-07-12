@@ -91,8 +91,16 @@ public:
     switch (Kind) {
     case VK_Null:
       return "";
-    case VK_Number:
-      return std::to_string(NumberValue);
+    case VK_Number: {
+      auto S = std::to_string(NumberValue);
+      for (; S.back() == '0'; S.pop_back())
+        ;
+
+      if (S.back() == '.')
+        S.pop_back();
+
+      return S;
+    }
     case VK_String:
       return StringValue;
     case VK_Array:
