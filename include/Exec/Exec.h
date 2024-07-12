@@ -149,7 +149,7 @@ private:
     if (P->getIden().is(tok::kw_print)) {
       std::puts(std::ranges::fold_left(P->getArgs(), std::string(),
                                        [this](std::string S, Expr *E) {
-                                         return S + visit(E).toString();
+                                         return S + visit(E).toString() + ' ';
                                        })
                     .c_str());
     } else {
