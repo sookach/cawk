@@ -13,6 +13,7 @@
 #include <list>
 #include <numeric>
 #include <ranges>
+#include <regex>
 #include <utility>
 
 namespace cawk {
@@ -278,7 +279,19 @@ CASE(Do, DoStmt);
   Value visit(RegexLiteral *R) { return Value(0); }
 
   Value visit(StringLiteral *S) {
-    return Value(S->getValue().getLiteralData());
+    std::string String(S->getValue().getLiteralData());
+    String = std::regex_replace(String, std::regex(R"(\\')"), "'");
+    String = std::regex_replace(String, std::regex(R"(\\")"), "\"");
+    String = std::regex_replace(String, std::regex(R"(\\\?)"), "?");
+    String = std::regex_replace(String, std::regex(R"(\\\\)"), "\\");
+    String = std::regex_replace(String, std::regex(R"(\\a)"), "\a");
+    String = std::regex_replace(String, std::regex(R"(\\b)"), "\b");
+    String = std::regex_replace(String, std::regex(R"(\\f)"), "\f");
+    String = std::regex_replace(String, std::regex(R"(\\n)"), "\n");
+    String = std::regex_replace(String, std::regex(R"(\\r)"), "\r");
+    String = std::regex_replace(String, std::regex(R"(\\t)"), "\t");
+    String = std::regex_replace(String, std::regex(R"(\\v)"), "\v");
+    return Value(String);
   }
 
   Value visit(UnaryOperator *U) {
