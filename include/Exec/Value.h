@@ -68,7 +68,7 @@ public:
     return ArrayValue;
   }
 
-  double toNumber() {
+  double toNumber() const {
     switch (Kind) {
     case VK_Null:
       return 0;
@@ -87,7 +87,7 @@ public:
     }
   }
 
-  std::string toString() {
+  std::string toString() const {
     switch (Kind) {
     case VK_Null:
       return "";
@@ -109,9 +109,9 @@ public:
     }
   }
 
-  std::unordered_map<std::size_t, Value *> toArray() {
+  std::unordered_map<std::size_t, Value *> toArray() const {
     if (Kind != VK_Array) {
-      assert("Cannot convert scalr to non-scalar value.");
+      assert("Cannot convert scalar to non-scalar value.");
       exit(EXIT_FAILURE);
     }
     return ArrayValue;
@@ -203,6 +203,7 @@ public:
   friend Value operator-(const Value &, const Value &);
   friend Value operator*(const Value &, const Value &);
   friend Value operator/(const Value &, const Value &);
+  friend bool operator==(const Value &, const Value &);
 
   operator bool() const {
     switch (Kind) {
@@ -263,6 +264,10 @@ inline Value operator*(const Value &V1, const Value &V2) {
 inline Value operator/(const Value &V1, const Value &V2) {
   auto V3 = V1;
   return V3 /= V2;
+}
+
+inline bool operator==(const Value &V1, const Value &V2) {
+  return V1.toString() == V2.toString();
 }
 
 } // namespace cawk

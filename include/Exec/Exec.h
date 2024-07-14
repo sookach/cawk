@@ -223,6 +223,8 @@ CASE(Do, DoStmt);
       CASE(tok::minus, -);
       CASE(tok::star, *);
       CASE(tok::slash, /);
+      CASE(tok::equalequal, ==);
+      CASE(tok::exclaimequal, !=);
     case tok::equal:
       assert(isa<DeclRefExpr>(B->getLHS()) && "Cannot assign to non-lvalue.");
       setValue(ptr_cast<DeclRefExpr>(B->getLHS()), visit(B->getRHS()));
@@ -247,7 +249,7 @@ CASE(Do, DoStmt);
     auto Save = std::move(Locals);
     Locals = {};
 
-    int I{};
+    int I = 0;
     for (Expr *E : Args)
       Locals.set(Params[I++]->getIdentifier().getIdentifier().data(), visit(E));
 
@@ -304,7 +306,7 @@ CASE(Do, DoStmt);
              "++ can only be performed on variables.");
       auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
                       ->getIdentifier()
-                      .getLiteralData();
+                      .getIdentifier();
       return U->getFix() == UnaryOperator::Prefix ? ++getValue(Name)
                                                   : getValue(Name)++;
     }

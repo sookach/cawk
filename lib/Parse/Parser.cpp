@@ -95,8 +95,11 @@ CompoundStmt *Parser::parseCompoundStmt() {
 
 Stmt *Parser::parseStmt() {
   switch (Tok.getKind()) {
-  default:
-    return parseSimpleStmt();
+  default: {
+    auto S = parseSimpleStmt();
+    expectOneOf(tok::semi, tok::newline);
+    return S;
+  }
   case tok::l_brace:
     return parseCompoundStmt();
   case tok::kw_if:
@@ -118,7 +121,6 @@ Stmt *Parser::parseSimpleStmt() {
 
 ValueStmt *Parser::parseValueStmt() {
   Expr *Value = parseExpr();
-  expectOneOf(tok::semi, tok::newline);
   return ValueStmt::Create(Value);
 }
 
