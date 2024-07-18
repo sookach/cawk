@@ -39,7 +39,7 @@ TranslationUnitDecl *Parser::parseTranslationUnit() {
 }
 
 Decl *Parser::parseDecl() {
-  if (Tok.is(tok::kw_func))
+  if (Tok.is(tok::kw_function))
     return parseFunctionDecl();
   return parseRuleDecl();
 }
@@ -62,6 +62,7 @@ FunctionDecl *Parser::parseFunctionDecl() {
 
     return Params;
   }();
+  expect(tok::r_paren);
   auto Body = parseCompoundStmt();
   return FunctionDecl::Create(Identifier, Params, Body);
 }
@@ -97,7 +98,7 @@ Stmt *Parser::parseStmt() {
   switch (Tok.getKind()) {
   default: {
     auto S = parseSimpleStmt();
-    expectOneOf(tok::semi, tok::newline);
+    skip<tok::semi, tok::newline>();
     return S;
   }
   case tok::l_brace:
@@ -225,6 +226,7 @@ Expr *Parser::parseExpr(prec::Level MinPrec) {
         return UnaryOperator::Create(OpCode, LHS, UnaryOperator::Prefix);
       }
       case tok::l_paren: {
+        expect(tok::l_paren);
         std::vector<Expr *> Args;
 
         if (!Tok.is(tok::r_paren))
