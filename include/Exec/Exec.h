@@ -319,7 +319,7 @@ CASE(Do, DoStmt);
     String = std::regex_replace(String, std::regex(R"(\\r)"), "\r");
     String = std::regex_replace(String, std::regex(R"(\\t)"), "\t");
     String = std::regex_replace(String, std::regex(R"(\\v)"), "\v");
-    return Value(String);
+    return Value(std::string(std::cbegin(String) + 1, std::cend(String) - 1));
   }
 
   Value visit(UnaryOperator *U) {
