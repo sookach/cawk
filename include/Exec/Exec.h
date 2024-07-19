@@ -4,8 +4,8 @@
 #include "Basic/TokenKinds.h"
 #include "Exec/SymbolTable.h"
 #include "Exec/Value.h"
-#include "Support/Support.h"
 #include "Support/Format.h"
+#include "Support/Support.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -19,9 +19,12 @@
 
 namespace cawk {
 class Exec {
-  SymbolTable<FunctionDecl> Functions;
-  SymbolTable<Value> Globals;
-  SymbolTable<Value> Locals;
+  static std::unique_ptr<Exec> Process;
+
+  TranslationUnitDecl *AST;
+  BasicSymbolTable<FunctionDecl *> Functions;
+  BasicSymbolTable<Value> Globals;
+  BasicSymbolTable<Value> Locals;
   std::vector<Value> Fields;
   Value NullValue;
   Value ReturnValue;
@@ -31,14 +34,37 @@ class Exec {
   bool IsBegin = true;
   bool IsEnd = false;
 
+private:
+  Exec() = default;
+
 public:
-  void run(TranslationUnitDecl *T) {
-    visit(T);
-    std::swap(IsBegin, IsEnd);
-    visit(T);
+  static void load(TranslationUnitDecl *T) {
+    Process = std::unique_ptr<Exec>();
+
+    Process->AST = T;
+
+    for (const Decl *F : T->getDecls() | std::views::filter([](const Decl *D) {
+                           return isa<FunctionDecl>(D);
+                         }))
+      Process->addFunction(ptr_cast<const FunctionDecl>(F));
   }
 
+  static void exec() { Process->operator()(); }
+
 private:
+  void addFunction(const FunctionDecl *F) {
+    Functions.set(F->getIdentifier().getIdentifier(),
+                  const_cast<FunctionDecl *>(F));
+  }
+
+  void operator()() {
+    IsBegin = true;
+    IsEnd = false;
+    visit(AST);
+    std::swap(IsBegin, IsEnd);
+    visit(AST);
+  }
+
   void visit(TranslationUnitDecl *T) {
     for (Decl *D : T->getDecls() | std::views::filter([](Decl *D) {
                      return isa<RuleDecl>(D);
@@ -241,7 +267,7 @@ CASE(Do, DoStmt);
     assert(Functions.contains(Callee.data()) &&
            "awk: calling undefined function");
     const auto &Fn = Functions.get(Callee.data());
-    const auto &Params = Fn.getParams();
+    const auto &Params = Fn->getParams();
     const auto &Args = C->getArgs();
 
     assert(std::size(Args) <= std::size(Params) &&
@@ -257,7 +283,7 @@ CASE(Do, DoStmt);
     for (const auto N = std::size(Params); I < N; ++I)
       Locals.set(Params[I]->getIdentifier().getLiteralData().data(), {});
 
-    visit(const_cast<CompoundStmt *>(Fn.getBody()));
+    visit(const_cast<CompoundStmt *>(Fn->getBody()));
 
     Locals = std::move(Save);
 
