@@ -1,2 +1,2 @@
-add_library(Support Format.cpp)
-target_include_directories(Support PRIVATE ${CMAKE_SOURCE_DIR}/include)
+add_library(Support Format.cpp Support.cpp)
+target_include_directories(Support PUBLIC ${CMAKE_SOURCE_DIR}/include)

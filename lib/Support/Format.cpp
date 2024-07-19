@@ -1,4 +1,5 @@
 #include "Support/Format.h"
+#include "Support/Support.h"
 
 #include <algorithm>
 #include <array>
@@ -19,7 +20,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
   for (Value &A : Args) {
     auto Next = std::find(It, End, '%');
     if (Next == End) {
-      assert(0 && "Invalid format string.");
+      cawk_unreachable("Invalid format string.");
       exit(EXIT_FAILURE);
     }
 
@@ -45,7 +46,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
 
     switch (++It; *(It++)) {
     default:
-      assert(0 && "Invalid format string.");
+      cawk_unreachable("Invalid format string.");
       break;
     case '%':
       *(BufferIt++) = '%';
@@ -93,11 +94,11 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
     case 'h':
       switch (*It++) {
       default:
-        assert(0 && "Invalid format string.");
+        cawk_unreachable("Invalid format string.");
       case 'h':
         switch (*It++) {
         default:
-          assert(0 && "Invalid format string.");
+          cawk_unreachable("Invalid format string.");
         case 'd':
         case 'i':
           WriteFormat("%hhd", static_cast<signed char>(A.getNumber()));
@@ -131,7 +132,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
     case 'l':
       switch (*It++) {
       default:
-        assert(0 && "Invalid format string.");
+        cawk_unreachable("Invalid format string.");
       case 'c':
         WriteFormat("%lc",
                     A.getKind() == Value::VK_Number
@@ -178,7 +179,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
       case 'l':
         switch (*It++) {
         default:
-          assert(0 && "Invalid format string.");
+          cawk_unreachable("Invalid format string.");
         case 'd':
         case 'i':
           WriteFormat("%lld", static_cast<long long>(A.getNumber()));
@@ -199,7 +200,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
     case 'j':
       switch (*It++) {
       default:
-        assert(0 && "Invalid format string.");
+        cawk_unreachable("Invalid format string.");
       case 'd':
       case 'i':
         WriteFormat("%jd", static_cast<std::intmax_t>(A.getNumber()));
@@ -218,7 +219,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
     case 'z':
       switch (*It++) {
       default:
-        assert(0 && "Invalid format string.");
+        cawk_unreachable("Invalid format string.");
       case 'd':
       case 'i':
         WriteFormat("%zd",
@@ -238,7 +239,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
     case 't':
       switch (*It++) {
       default:
-        assert(0 && "Invalid format string.");
+        cawk_unreachable("Invalid format string.");
       case 'd':
       case 'i':
         WriteFormat("%td", static_cast<std::ptrdiff_t>(A.getNumber()));
@@ -260,7 +261,7 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
     case 'L':
       switch (*It++) {
       default:
-        assert(0 && "Invalid format string.");
+        cawk_unreachable("Invalid format string.");
       case 'f':
       case 'F':
         WriteFormat("%Lf", static_cast<long double>(A.getNumber()));
@@ -285,13 +286,14 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
   BufferIt += Next - It;
 
   if (Next != End) {
-    assert(0 && "Invalid format string.");
+    cawk_unreachable("Invalid format string.");
     exit(EXIT_FAILURE);
   }
 
   return {std::begin(Buffer), BufferIt};
 }
 
-template <typename... T> std::string format(std::string FormatString, T... Args) {
+template <typename... T>
+std::string format(std::string FormatString, T... Args) {
   return format(FormatString, std::vector(Args...));
 }

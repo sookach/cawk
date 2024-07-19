@@ -101,12 +101,11 @@ void Exec::visit(DeleteStmt *D) {
                  ptr_cast<ArraySubscriptExpr>(D->getArgument())->getLHS()))
         .erase(visit(ptr_cast<ArraySubscriptExpr>(D->getArgument())->getRHS()));
   } else {
-    assert(0 && "awk: delete illegal for non-arrays");
-    exit(EXIT_FAILURE);
+    cawk_unreachable("awk: delete illegal for non-arrays");
   }
 }
 
-void Exec::visit(DoStmt *D) { assert(0 && "unimplemented"); }
+void Exec::visit(DoStmt *D) { cawk_unreachable("unimplemented"); }
 
 void Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue())); }
 
@@ -144,9 +143,9 @@ void Exec::visit(IfStmt *I) {
     visit(I->getElse());
 }
 
-void Exec::visit(NextStmt *N) { assert(0 && "unimplemented"); }
+void Exec::visit(NextStmt *N) { cawk_unreachable("unimplemented"); }
 
-void Exec::visit(NextfileStmt *N) { assert(0 && "unimplemented"); }
+void Exec::visit(NextfileStmt *N) { cawk_unreachable("unimplemented"); }
 
 void Exec::visit(PrintStmt *P) {
   assert(P->getOpcode().is(tok::unknown) && P->getOutput() == nullptr &&
@@ -171,11 +170,11 @@ void Exec::visit(PrintStmt *P) {
   }
 }
 
-void Exec::visit(ReturnStmt *R) { assert(0 && "unimplemented"); }
+void Exec::visit(ReturnStmt *R) { cawk_unreachable("unimplemented"); }
 
 void Exec::visit(ValueStmt *V) { visit(V->getValue()); }
 
-void Exec::visit(WhileStmt *W) { assert(0 && "unimplemented"); }
+void Exec::visit(WhileStmt *W) { cawk_unreachable("unimplemented"); }
 
 Value Exec::visit(Expr *E) {
   switch (E->getKind()) {
@@ -205,7 +204,7 @@ Value Exec::visit(ArraySubscriptExpr *A) {
 Value Exec::visit(BinaryOperator *B) {
   switch (B->getOpcode().getKind()) {
   default:
-    assert(0 && "Invalid binary operation");
+    cawk_unreachable("Invalid binary operation");
     exit(EXIT_FAILURE);
 #define CASE(TOK, OP)                                                          \
   case TOK:                                                                    \
@@ -289,7 +288,7 @@ Value Exec::visit(StringLiteral *S) {
 Value Exec::visit(UnaryOperator *U) {
   switch (U->getOpcode().getKind()) {
   default:
-    assert(0 && "Invalid Unary Operation.");
+    cawk_unreachable("Invalid Unary Operation.");
     exit(EXIT_FAILURE);
   case tok::plusplus: {
     assert(isa<DeclRefExpr>(U->getSubExpr()) &&

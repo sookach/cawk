@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <optional>
 #include <string_view>
+
 namespace cawk {
 
 class Value;
@@ -18,5 +19,7 @@ template <typename T> constexpr T *ptr_cast(auto *X) {
 template <typename T> constexpr const T *ptr_cast(const auto *X) {
   return static_cast<const T *>(X);
 }
+
+void cawk_unreachable(std::string_view S);
 
 } // namespace cawk
