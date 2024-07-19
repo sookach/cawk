@@ -25,11 +25,12 @@ public:
   }
 
   std::string_view::const_iterator getBufferPtr() const;
-  void setBufferPtr(std::string_view::const_iterator);
-  template <bool, bool> void next(Token &);
+  void setBufferPtr(std::string_view::const_iterator Ptr);
+  template <bool, bool> void next(Token &T);
   void undo();
 
 private:
-  void formToken(Token &, std::string_view::const_iterator, tok::TokenKind);
+  void formToken(Token &T, std::string_view::const_iterator End,
+                 tok::TokenKind Kind);
 };
 } // namespace cawk

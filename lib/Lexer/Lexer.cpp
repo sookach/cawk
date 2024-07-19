@@ -59,7 +59,6 @@ void Lexer::formToken(Token &T, std::string_view::const_iterator End,
   T.Kind = Kind;
   T.Ptr = BufferPtr;
   T.Length = End - BufferPtr;
-  T.Kind = Kind;
   BufferPtr = End;
 }
 
