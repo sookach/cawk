@@ -105,6 +105,15 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     return;
   }
 
+  if (*BufferPtr == '\'') {
+    auto End = BufferPtr + 1;
+    for (; End != BufferEnd && *End != '\''; ++End)
+      if (*End == '\\')
+        ++End;
+    formToken(T, End + 1, tok::string_literal);
+    return;
+  }
+
   if constexpr (Regex) {
     if (*BufferPtr == '/') {
       auto End = BufferPtr + 1;
