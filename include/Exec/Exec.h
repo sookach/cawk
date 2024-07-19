@@ -39,7 +39,7 @@ private:
 
 public:
   static void load(TranslationUnitDecl *T) {
-    Process = std::unique_ptr<Exec>();
+    Process = std::unique_ptr<Exec>(new Exec);
 
     Process->AST = T;
 
@@ -263,10 +263,9 @@ CASE(Do, DoStmt);
   Value visit(CallExpr *C) {
     assert(isa<DeclRefExpr>(C->getCallee()) && "Invalid function call.");
     auto Callee =
-        ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getLiteralData();
-    assert(Functions.contains(Callee.data()) &&
-           "awk: calling undefined function");
-    const auto &Fn = Functions.get(Callee.data());
+        ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getIdentifier();
+    assert(Functions.contains(Callee) && "awk: calling undefined function");
+    const auto &Fn = Functions.get(Callee);
     const auto &Params = Fn->getParams();
     const auto &Args = C->getArgs();
 
