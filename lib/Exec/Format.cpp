@@ -53,8 +53,8 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
       break;
     case 'c':
       WriteFormat("%c", A.getKind() == Value::VK_Number
-                            ? A.getNumber()
-                            : static_cast<int>(A.getString().front()));
+                            ? A.toNumber()
+                            : static_cast<int>(A.toString().front()));
       break;
     case 's': {
       auto S = A.toString();
@@ -63,33 +63,33 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
     }
     case 'd':
     case 'i':
-      WriteFormat("%d", static_cast<int>(A.getNumber()));
+      WriteFormat("%d", static_cast<int>(A.toNumber()));
       break;
     case 'o':
-      WriteFormat("%o", static_cast<unsigned int>(A.getNumber()));
+      WriteFormat("%o", static_cast<unsigned int>(A.toNumber()));
       break;
     case 'x':
     case 'X':
-      WriteFormat("%x", static_cast<unsigned int>(A.getNumber()));
+      WriteFormat("%x", static_cast<unsigned int>(A.toNumber()));
       break;
     case 'u':
-      WriteFormat("%u", static_cast<unsigned int>(A.getNumber()));
+      WriteFormat("%u", static_cast<unsigned int>(A.toNumber()));
       break;
     case 'f':
     case 'F':
-      WriteFormat("%f", A.getNumber());
+      WriteFormat("%f", A.toNumber());
       break;
     case 'e':
     case 'E':
-      WriteFormat("%e", A.getNumber());
+      WriteFormat("%e", A.toNumber());
       break;
     case 'a':
     case 'A':
-      WriteFormat("%a", A.getNumber());
+      WriteFormat("%a", A.toNumber());
       break;
     case 'g':
     case 'G':
-      WriteFormat("%g", A.getNumber());
+      WriteFormat("%g", A.toNumber());
       break;
     case 'h':
       switch (*It++) {
@@ -101,32 +101,32 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
           cawk_unreachable("Invalid format string.");
         case 'd':
         case 'i':
-          WriteFormat("%hhd", static_cast<signed char>(A.getNumber()));
+          WriteFormat("%hhd", static_cast<signed char>(A.toNumber()));
           break;
         case 'o':
-          WriteFormat("%hho", static_cast<unsigned char>(A.getNumber()));
+          WriteFormat("%hho", static_cast<unsigned char>(A.toNumber()));
           break;
         case 'x':
         case 'X':
-          WriteFormat("%hhx", static_cast<unsigned char>(A.getNumber()));
+          WriteFormat("%hhx", static_cast<unsigned char>(A.toNumber()));
           break;
         case 'u':
-          WriteFormat("%hhu", static_cast<unsigned char>(A.getNumber()));
+          WriteFormat("%hhu", static_cast<unsigned char>(A.toNumber()));
         }
         break;
       case 'd':
       case 'i':
-        WriteFormat("%hd", static_cast<short>(A.getNumber()));
+        WriteFormat("%hd", static_cast<short>(A.toNumber()));
         break;
       case 'o':
-        WriteFormat("%ho", static_cast<unsigned short>(A.getNumber()));
+        WriteFormat("%ho", static_cast<unsigned short>(A.toNumber()));
         break;
       case 'x':
       case 'X':
-        WriteFormat("%hx", static_cast<unsigned short>(A.getNumber()));
+        WriteFormat("%hx", static_cast<unsigned short>(A.toNumber()));
         break;
       case 'u':
-        WriteFormat("%hu", static_cast<unsigned short>(A.getNumber()));
+        WriteFormat("%hu", static_cast<unsigned short>(A.toNumber()));
       }
       break;
     case 'l':
@@ -136,8 +136,8 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
       case 'c':
         WriteFormat("%lc",
                     A.getKind() == Value::VK_Number
-                        ? static_cast<std::wint_t>(A.getNumber())
-                        : static_cast<std::wint_t>(A.getString().front()));
+                        ? static_cast<std::wint_t>(A.toNumber())
+                        : static_cast<std::wint_t>(A.toString().front()));
         break;
       case 's': {
         std::wstring S;
@@ -148,33 +148,33 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
       }
       case 'd':
       case 'i':
-        WriteFormat("%ld", static_cast<long>(A.getNumber()));
+        WriteFormat("%ld", static_cast<long>(A.toNumber()));
         break;
       case 'o':
-        WriteFormat("%lo", static_cast<unsigned long>(A.getNumber()));
+        WriteFormat("%lo", static_cast<unsigned long>(A.toNumber()));
         break;
       case 'x':
       case 'X':
-        WriteFormat("%lx", static_cast<unsigned long>(A.getNumber()));
+        WriteFormat("%lx", static_cast<unsigned long>(A.toNumber()));
         break;
       case 'u':
-        WriteFormat("%lu", static_cast<unsigned long>(A.getNumber()));
+        WriteFormat("%lu", static_cast<unsigned long>(A.toNumber()));
         break;
       case 'f':
       case 'F':
-        WriteFormat("%lf", A.getNumber());
+        WriteFormat("%lf", A.toNumber());
         break;
       case 'e':
       case 'E':
-        WriteFormat("%le", A.getNumber());
+        WriteFormat("%le", A.toNumber());
         break;
       case 'a':
       case 'A':
-        WriteFormat("%la", A.getNumber());
+        WriteFormat("%la", A.toNumber());
         break;
       case 'g':
       case 'G':
-        WriteFormat("%lg", A.getNumber());
+        WriteFormat("%lg", A.toNumber());
         break;
       case 'l':
         switch (*It++) {
@@ -182,17 +182,17 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
           cawk_unreachable("Invalid format string.");
         case 'd':
         case 'i':
-          WriteFormat("%lld", static_cast<long long>(A.getNumber()));
+          WriteFormat("%lld", static_cast<long long>(A.toNumber()));
           break;
         case 'o':
-          WriteFormat("%llo", static_cast<unsigned long long>(A.getNumber()));
+          WriteFormat("%llo", static_cast<unsigned long long>(A.toNumber()));
           break;
         case 'x':
         case 'X':
-          WriteFormat("%llx", static_cast<unsigned long long>(A.getNumber()));
+          WriteFormat("%llx", static_cast<unsigned long long>(A.toNumber()));
           break;
         case 'u':
-          WriteFormat("%llu", static_cast<unsigned long long>(A.getNumber()));
+          WriteFormat("%llu", static_cast<unsigned long long>(A.toNumber()));
         }
         break;
       }
@@ -203,17 +203,17 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
         cawk_unreachable("Invalid format string.");
       case 'd':
       case 'i':
-        WriteFormat("%jd", static_cast<std::intmax_t>(A.getNumber()));
+        WriteFormat("%jd", static_cast<std::intmax_t>(A.toNumber()));
         break;
       case 'o':
-        WriteFormat("%jo", static_cast<std::uintmax_t>(A.getNumber()));
+        WriteFormat("%jo", static_cast<std::uintmax_t>(A.toNumber()));
         break;
       case 'x':
       case 'X':
-        WriteFormat("%jx", static_cast<std::uintmax_t>(A.getNumber()));
+        WriteFormat("%jx", static_cast<std::uintmax_t>(A.toNumber()));
         break;
       case 'u':
-        WriteFormat("%ju", static_cast<std::uintmax_t>(A.getNumber()));
+        WriteFormat("%ju", static_cast<std::uintmax_t>(A.toNumber()));
       }
       break;
     case 'z':
@@ -223,17 +223,17 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
       case 'd':
       case 'i':
         WriteFormat("%zd",
-                    static_cast<ssize_t>(A.getNumber())); // signed std::size_t
+                    static_cast<ssize_t>(A.toNumber())); // signed std::size_t
         break;
       case 'o':
-        WriteFormat("%zo", static_cast<std::size_t>(A.getNumber()));
+        WriteFormat("%zo", static_cast<std::size_t>(A.toNumber()));
         break;
       case 'x':
       case 'X':
-        WriteFormat("%zx", static_cast<std::size_t>(A.getNumber()));
+        WriteFormat("%zx", static_cast<std::size_t>(A.toNumber()));
         break;
       case 'u':
-        WriteFormat("%zu", static_cast<std::size_t>(A.getNumber()));
+        WriteFormat("%zu", static_cast<std::size_t>(A.toNumber()));
       }
       break;
     case 't':
@@ -242,20 +242,20 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
         cawk_unreachable("Invalid format string.");
       case 'd':
       case 'i':
-        WriteFormat("%td", static_cast<std::ptrdiff_t>(A.getNumber()));
+        WriteFormat("%td", static_cast<std::ptrdiff_t>(A.toNumber()));
         break;
       case 'o':
         WriteFormat("%zo", static_cast<std::size_t>(
-                               A.getNumber())); // unsigned std::ptrdiff_t
+                               A.toNumber())); // unsigned std::ptrdiff_t
         break;
       case 'x':
       case 'X':
         WriteFormat("%zx", static_cast<std::size_t>(
-                               A.getNumber())); // unsigned std::ptrdiff_t
+                               A.toNumber())); // unsigned std::ptrdiff_t
         break;
       case 'u':
         WriteFormat("%zu", static_cast<std::size_t>(
-                               A.getNumber())); // unsigned std::ptrdiff_t
+                               A.toNumber())); // unsigned std::ptrdiff_t
       }
       break;
     case 'L':
@@ -264,19 +264,19 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
         cawk_unreachable("Invalid format string.");
       case 'f':
       case 'F':
-        WriteFormat("%Lf", static_cast<long double>(A.getNumber()));
+        WriteFormat("%Lf", static_cast<long double>(A.toNumber()));
         break;
       case 'e':
       case 'E':
-        WriteFormat("%Le", static_cast<long double>(A.getNumber()));
+        WriteFormat("%Le", static_cast<long double>(A.toNumber()));
         break;
       case 'a':
       case 'A':
-        WriteFormat("%La", static_cast<long double>(A.getNumber()));
+        WriteFormat("%La", static_cast<long double>(A.toNumber()));
         break;
       case 'g':
       case 'G':
-        WriteFormat("%Lg", static_cast<long double>(A.getNumber()));
+        WriteFormat("%Lg", static_cast<long double>(A.toNumber()));
       }
     }
   }
@@ -285,10 +285,10 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
   std::move(It, Next, BufferIt);
   BufferIt += Next - It;
 
-  if (Next != End) {
-    cawk_unreachable("Invalid format string.");
-    exit(EXIT_FAILURE);
-  }
+  // if (Next != End) {
+  //   cawk_unreachable("Invalid format string.");
+  //   exit(EXIT_FAILURE);
+  // }
 
   return {std::begin(Buffer), BufferIt};
 }
