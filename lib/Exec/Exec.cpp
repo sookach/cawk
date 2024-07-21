@@ -2,6 +2,7 @@
 #include "AST/AST.h"
 #include "Basic/TokenKinds.h"
 #include "Exec/Format.h"
+#include "Exec/Index.h"
 #include "Exec/Sprintf.h"
 
 #include <algorithm>
@@ -371,6 +372,8 @@ Value Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value> Args) {
     return false;
   case tok::kw_gsub:
   case tok::kw_index:
+    assert(std::size(Args) == 2 && "invalid call to index");
+    return Value(index(Args.front().toString(), Args.back().toString()));
   case tok::kw_match:
   case tok::kw_split:
   case tok::kw_sprintf: {
