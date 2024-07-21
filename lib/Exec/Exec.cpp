@@ -1,7 +1,8 @@
 #include "Exec/Exec.h"
 #include "AST/AST.h"
 #include "Basic/TokenKinds.h"
-#include "Support/Format.h"
+#include "Exec/Format.h"
+#include "Exec/Sprintf.h"
 
 #include <algorithm>
 #include <iostream>
@@ -225,6 +226,16 @@ Value Exec::visit(BinaryOperator *B) {
 
 Value Exec::visit(CallExpr *C) {
   assert(isa<DeclRefExpr>(C->getCallee()) && "Invalid function call.");
+  if (isBuiltin(
+          ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind()))
+    return execBuiltin(
+        ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind(),
+        std::ranges::fold_left(C->getArgs(), std::vector<Value>(),
+                               [this](std::vector<Value> Args, Expr *E) {
+                                 Args.push_back(visit(E));
+                                 return Args;
+                               }));
+
   auto Callee =
       ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getIdentifier();
   assert(Functions.contains(Callee) && "awk: calling undefined function");
@@ -337,4 +348,38 @@ void Exec::setValue(DeclRefExpr *D, Value V) {
 
 Value &Exec::getField(std::size_t I) {
   return std::clamp(I, 0UL, std::size(Fields) - 1) == I ? Fields[I] : NullValue;
+}
+
+bool Exec::isBuiltin(tok::TokenKind Kind) {
+  switch (Kind) {
+  default:
+    return false;
+  case tok::kw_gsub:
+  case tok::kw_index:
+  case tok::kw_match:
+  case tok::kw_split:
+  case tok::kw_sprintf:
+  case tok::kw_sub:
+  case tok::kw_substr:
+    return true;
+  }
+}
+
+Value Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value> Args) {
+  switch (Kind) {
+  default:
+    return false;
+  case tok::kw_gsub:
+  case tok::kw_index:
+  case tok::kw_match:
+  case tok::kw_split:
+  case tok::kw_sprintf: {
+    assert(!std::empty(Args) && "invalid call to sprintf");
+    return Value(sprintf(Args.front().getString(),
+                         std::vector(std::cbegin(Args) + 1, std::cend(Args))));
+  }
+  case tok::kw_sub:
+  case tok::kw_substr:
+    return true;
+  }
 }

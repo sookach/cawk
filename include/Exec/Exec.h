@@ -72,6 +72,9 @@ private:
   void setValue(std::string_view Name, Value V);
   void setValue(DeclRefExpr *D, Value V);
   Value &getField(std::size_t I);
+
+  static bool isBuiltin(tok::TokenKind Kind);
+  static Value execBuiltin(tok::TokenKind Kind, std::vector<Value> Args);
 };
 
 } // namespace cawk

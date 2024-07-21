@@ -196,6 +196,13 @@ Expr *Parser::parseExpr(prec::Level MinPrec) {
     default:
       // TODO: handle error
       return nullptr;
+    case tok::kw_gsub:
+    case tok::kw_index:
+    case tok::kw_match:
+    case tok::kw_split:
+    case tok::kw_sprintf:
+    case tok::kw_sub:
+    case tok::kw_substr:
     case tok::identifier:
       return DeclRefExpr::Create(advance<true>());
     case tok::numeric_constant:

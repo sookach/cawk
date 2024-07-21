@@ -7,8 +7,8 @@
 #ifndef KEYWORD
 #define KEYWORD(ID, FLAG) TOK(kw_ ## ID)
 #endif
-#ifndef KEYWORD1
-#define KEYWORD1(ID, FLAG)
+#ifndef BUILTIN
+#define BUILTIN(ID, FLAG) KEYWORD(ID, FLAG)
 #endif
 
 TOK(unknown)
@@ -86,23 +86,26 @@ KEYWORD(for                         , KEYALL)
 KEYWORD(func                        , KEYALL)
 KEYWORD(function                    , KEYALL)
 KEYWORD(getline                     , KEYALL)
-KEYWORD1(gsub                        , KEYALL)
 KEYWORD(in                          , KEYALL)
-KEYWORD1(index                       , KEYALL)
 KEYWORD(if                          , KEYALL)
-KEYWORD1(match                       , KEYALL)
 KEYWORD(next                        , KEYALL)
 KEYWORD(nextfile                    , KEYALL)
 KEYWORD(print                       , KEYALL)
 KEYWORD(printf                      , KEYALL)
-KEYWORD1(split                       , KEYALL)
-KEYWORD1(sprintf                     , KEYALL)
-KEYWORD1(sub                         , KEYALL)
-KEYWORD1(substr                      , KEYALL)
 KEYWORD(switch                      , KEYALL)
 KEYWORD(return                      , KEYALL)
 KEYWORD(while                       , KEYALL)
 
+/// Builtin Functions
+BUILTIN(gsub                        , KEYALL)
+BUILTIN(index                       , KEYALL)
+BUILTIN(match                       , KEYALL)
+BUILTIN(split                       , KEYALL)
+BUILTIN(sprintf                     , KEYALL)
+BUILTIN(sub                         , KEYALL)
+BUILTIN(substr                      , KEYALL)
+
+#undef BUILTIN
 #undef KEYWORD
 #undef PUNCTUATOR
 #undef TOK

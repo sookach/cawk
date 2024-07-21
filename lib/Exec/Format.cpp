@@ -1,4 +1,4 @@
-#include "Support/Format.h"
+#include "Exec/Format.h"
 #include "Support/Support.h"
 
 #include <algorithm>
@@ -13,8 +13,8 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
   static constexpr std::string::size_type MaxSize = 10;
   std::array<char, MaxSize> Buffer;
 
-  auto It = std::begin(FormatString) + 1;
-  auto End = std::end(FormatString) - 1;
+  auto It = std::begin(FormatString);
+  auto End = std::end(FormatString);
   auto BufferIt = std::begin(Buffer);
 
   for (Value &A : Args) {
