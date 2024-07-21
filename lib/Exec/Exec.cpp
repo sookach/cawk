@@ -376,11 +376,10 @@ Value Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value> Args) {
     return Value(index(Args.front().toString(), Args.back().toString()));
   case tok::kw_match:
   case tok::kw_split:
-  case tok::kw_sprintf: {
+  case tok::kw_sprintf:
     assert(!std::empty(Args) && "invalid call to sprintf");
-    return Value(sprintf(Args.front().getString(),
+    return Value(sprintf(Args.front().toString(),
                          std::vector(std::cbegin(Args) + 1, std::cend(Args))));
-  }
   case tok::kw_sub:
   case tok::kw_substr:
     return true;
