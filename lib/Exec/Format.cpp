@@ -294,6 +294,6 @@ std::string cawk::format(std::string FormatString, std::vector<Value> Args) {
 }
 
 template <typename... T>
-std::string format(std::string FormatString, T... Args) {
+std::string cawk::format(std::string FormatString, T... Args) {
   return format(FormatString, std::vector(Args...));
 }
