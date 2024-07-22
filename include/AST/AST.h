@@ -31,6 +31,7 @@ class ValueStmt;
 class WhileStmt;
 
 class Expr;
+class ArraySubscriptExpr;
 class BinaryOperator;
 class CallExpr;
 class DeclRefExpr;
@@ -486,10 +487,10 @@ public:
 
 class ArraySubscriptExpr : public Expr {
   Expr *LHS;
-  Expr *RHS;
+  std::vector<Expr *> RHS;
 
 protected:
-  ArraySubscriptExpr(Expr *LHS, Expr *RHS)
+  ArraySubscriptExpr(Expr *LHS, std::vector<Expr *> RHS)
       : Expr(EK_ArraySubscript), LHS(LHS), RHS(RHS) {}
 
 public:
@@ -501,11 +502,11 @@ public:
 
   void SetLHS(Expr *E) { LHS = E; }
 
-  Expr *getRHS() const { return RHS; }
+  std::vector<Expr *> getRHS() const { return RHS; }
 
-  void SetRHS(Expr *E) { RHS = E; }
+  void SetRHS(std::vector<Expr *> E) { RHS = E; }
 
-  static ArraySubscriptExpr *Create(Expr *LHS, Expr *RHS) {
+  static ArraySubscriptExpr *Create(Expr *LHS, std::vector<Expr *> RHS) {
     return new ArraySubscriptExpr(LHS, RHS);
   }
 };

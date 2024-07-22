@@ -246,6 +246,17 @@ Expr *Parser::parseExpr(prec::Level MinPrec) {
 
         LHS = CallExpr::Create(LHS, Args);
       }
+      case tok::l_square: {
+        expect(tok::l_square);
+        std::vector Args = {parseExpr()};
+
+        for (; consume(tok::comma);)
+          Args.push_back(parseExpr());
+
+        expect(tok::r_square);
+
+        LHS = ArraySubscriptExpr::Create(LHS, Args);
+      }
       }
     }
   }(NUD());

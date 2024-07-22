@@ -169,9 +169,20 @@ public:
     return *this;
   }
 
-  Value &operator[](const Value *V) { return *ArrayValue[Hash(V)]; }
+  Value &operator[](const Value *V) {
+    auto H = Hash(V);
+    if (!ArrayValue.contains(H))
+      ArrayValue[H] = new Value;
+    return *ArrayValue[H];
+  }
 
-  Value &operator[](const Value &V) { return *ArrayValue[Hash(V)]; }
+  Value &operator[](const Value &V) {
+    auto H = Hash(V);
+    if (!ArrayValue.contains(H))
+      ArrayValue[H] = new Value;
+    assert(ArrayValue.contains(H));
+    return *ArrayValue[H];
+  }
 
   Value &operator++() {
     makeNumber();

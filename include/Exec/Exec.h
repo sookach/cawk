@@ -61,7 +61,7 @@ private:
   void visit(WhileStmt *W);
 
   Value visit(Expr *E);
-  Value visit(ArraySubscriptExpr *A);
+  Value &visit(ArraySubscriptExpr *A);
   Value visit(BinaryOperator *B);
   Value visit(CallExpr *C);
   Value visit(DeclRefExpr *D);

@@ -114,9 +114,9 @@ void Exec::visit(DeleteStmt *D) {
   if (isa<DeclRefExpr>(D->getArgument())) {
     getValue(ptr_cast<DeclRefExpr>(D->getArgument())).clear();
   } else if (isa<ArraySubscriptExpr>(D->getArgument())) {
-    getValue(ptr_cast<DeclRefExpr>(
-                 ptr_cast<ArraySubscriptExpr>(D->getArgument())->getLHS()))
-        .erase(visit(ptr_cast<ArraySubscriptExpr>(D->getArgument())->getRHS()));
+    //   getValue(ptr_cast<DeclRefExpr>(
+    //               ptr_cast<ArraySubscriptExpr>(D->getArgument())->getLHS()))
+    //      .erase(visit(ptr_cast<ArraySubscriptExpr>(D->getArgument())->getRHS()));
   } else {
     cawk_unreachable("awk: delete illegal for non-arrays");
   }
@@ -214,8 +214,15 @@ Value Exec::visit(Expr *E) {
   }
 }
 
-Value Exec::visit(ArraySubscriptExpr *A) {
-  return visit(A->getLHS())[visit(A->getRHS())];
+Value &Exec::visit(ArraySubscriptExpr *A) {
+  assert(isa<DeclRefExpr>(A->getLHS()));
+
+  auto *V = &getValue(ptr_cast<DeclRefExpr>(A->getLHS()));
+
+  for (Expr *E : A->getRHS())
+    V = &V->operator[](visit(E));
+
+  return *V;
 }
 
 Value Exec::visit(BinaryOperator *B) {
@@ -233,9 +240,18 @@ Value Exec::visit(BinaryOperator *B) {
     CASE(tok::equalequal, ==);
     CASE(tok::exclaimequal, !=);
   case tok::equal:
-    assert(isa<DeclRefExpr>(B->getLHS()) && "Cannot assign to non-lvalue.");
-    setValue(ptr_cast<DeclRefExpr>(B->getLHS()), visit(B->getRHS()));
-    return getValue(ptr_cast<DeclRefExpr>(B->getLHS()));
+    assert((isa<DeclRefExpr>(B->getLHS()) ||
+            isa<ArraySubscriptExpr>(B->getLHS())) &&
+           "Cannot assign to non-lvalue.");
+    if (isa<DeclRefExpr>(B->getLHS())) {
+      setValue(ptr_cast<DeclRefExpr>(B->getLHS()), visit(B->getRHS()));
+      return getValue(ptr_cast<DeclRefExpr>(B->getLHS()));
+    } else {
+      visit(ptr_cast<ArraySubscriptExpr>(B->getLHS())) = visit(B->getRHS());
+      assert(visit(ptr_cast<ArraySubscriptExpr>(B->getLHS())) ==
+             visit(B->getRHS()));
+      return visit(ptr_cast<ArraySubscriptExpr>(B->getLHS()));
+    }
 #undef CASE
   }
 }
