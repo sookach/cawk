@@ -47,23 +47,34 @@ void Exec::addInput(std::string Filepath) {
 }
 
 void Exec::operator()() {
-  IsBegin = true;
-  IsEnd = false;
+  setValue("BEGIN", true);
+  setValue("END", false);
+
   visit(AST);
-  IsBegin = false;
+
+  if (std::empty(Inputs))
+    return;
+
+  setValue("BEGIN", false);
   for (auto &Input : Inputs) {
-    setValue("NR", getValue("NR") + 1);
-    for (; !std::empty(Input.getLine());)
-      visit(AST);
+    SkipToNextfile = false;
+    for (;;) {
+      setValue("NR", getValue("NR") + 1);
+    }
   }
-  IsEnd = true;
+
+  setValue("END", true);
   visit(AST);
 }
 
 void Exec::visit(TranslationUnitDecl *T) {
-  for (Decl *D : T->getDecls() | std::views::filter(
-                                     [](Decl *D) { return isa<RuleDecl>(D); }))
+  for (Decl *D : T->getDecls() | std::views::filter([](Decl *D) {
+                   return isa<RuleDecl>(D);
+                 })) {
+    if (SkipToNextfile || std::exchange(SkipToNext, false))
+      return;
     visit(static_cast<RuleDecl *>(D));
+  }
 }
 
 void Exec::visit(RuleDecl *R) {
@@ -195,7 +206,6 @@ void Exec::visit(PrintStmt *P) {
 
 void Exec::visit(ReturnStmt *R) {
   assert(CallLevel > 0 && "cannot return from non-function");
-  --CallLevel;
   ReturnValue = visit(R->getValue());
   ShouldReturn = true;
 }

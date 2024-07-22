@@ -28,8 +28,8 @@ class Exec {
   bool ShouldBreak = false;
   bool ShouldContinue = false;
   bool ShouldReturn = false;
-  bool IsBegin = true;
-  bool IsEnd = false;
+  bool SkipToNext = false;
+  bool SkipToNextfile = false;
 
 private:
   Exec() = default;
