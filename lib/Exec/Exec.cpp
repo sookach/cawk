@@ -219,6 +219,17 @@ Value &Exec::visit(ArraySubscriptExpr *A) {
 
   auto *V = &getValue(ptr_cast<DeclRefExpr>(A->getLHS()));
 
+  if (V->getKind() == Value::VK_Null) {
+    assert(!Functions.contains(
+        ptr_cast<DeclRefExpr>(A->getLHS())->getIdentifier().getIdentifier()));
+    V->setKind(Value::VK_Array);
+  }
+
+  if (V->getKind() != Value::VK_Array) {
+    std::fputs("Attempting to use scalar in non-scalar context", stderr);
+    std::exit(EXIT_FAILURE);
+  }
+
   for (Expr *E : A->getRHS())
     V = &V->operator[](visit(E));
 

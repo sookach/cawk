@@ -60,6 +60,8 @@ public:
 
   ValueKind getKind() const { return Kind; }
 
+  void setKind(ValueKind NewKind) { Kind = NewKind; }
+
   double getNumber() const { return NumberValue; }
 
   std::string getString() const { return StringValue; }
