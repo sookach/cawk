@@ -84,16 +84,6 @@ RuleDecl *Parser::parseRuleDecl() {
   return RuleDecl::Create(Pattern, Action);
 }
 
-CompoundStmt *Parser::parseCompoundStmt() {
-  expect(tok::l_brace);
-  std::vector<Stmt *> Stmts;
-  for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));)
-    Stmts.push_back(parseStmt());
-
-  expect(tok::r_brace);
-  return CompoundStmt::Create(Stmts);
-}
-
 Stmt *Parser::parseStmt() {
   switch (Tok.getKind()) {
   default: {
@@ -114,34 +104,14 @@ Stmt *Parser::parseStmt() {
   }
 }
 
-ReturnStmt *Parser::parseReturnStmt() {
-  expect(tok::kw_return);
-  return ReturnStmt::Create(parseExpr());
-}
+CompoundStmt *Parser::parseCompoundStmt() {
+  expect(tok::l_brace);
+  std::vector<Stmt *> Stmts;
+  for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));)
+    Stmts.push_back(parseStmt());
 
-Stmt *Parser::parseSimpleStmt() {
-  switch (Tok.getKind()) {
-  default:
-    return parseValueStmt();
-  case tok::kw_print:
-  case tok::kw_printf:
-    return parsePrintStmt();
-  }
-}
-
-ValueStmt *Parser::parseValueStmt() {
-  Expr *Value = parseExpr();
-  return ValueStmt::Create(Value);
-}
-
-IfStmt *Parser::parseIfStmt() {
-  expect(tok::kw_if);
-  expect(tok::l_paren);
-  Expr *Cond = parseExpr();
-  expect(tok::r_paren);
-  Stmt *Then = parseStmt();
-  Stmt *Else = consume(tok::kw_else) ? parseStmt() : nullptr;
-  return IfStmt::Create(Cond, Then, Else);
+  expect(tok::r_brace);
+  return CompoundStmt::Create(Stmts);
 }
 
 Stmt *Parser::parseForStmt() {
@@ -163,6 +133,16 @@ Stmt *Parser::parseForStmt() {
   Stmt *Inc = Tok.is(tok::r_paren) ? nullptr : parseSimpleStmt();
   expect(tok::r_paren);
   return ForStmt::Create(Init, Cond, Inc, parseStmt());
+}
+
+IfStmt *Parser::parseIfStmt() {
+  expect(tok::kw_if);
+  expect(tok::l_paren);
+  Expr *Cond = parseExpr();
+  expect(tok::r_paren);
+  Stmt *Then = parseStmt();
+  Stmt *Else = consume(tok::kw_else) ? parseStmt() : nullptr;
+  return IfStmt::Create(Cond, Then, Else);
 }
 
 PrintStmt *Parser::parsePrintStmt() {
@@ -197,6 +177,26 @@ PrintStmt *Parser::parsePrintStmt() {
   }();
 
   return PrintStmt::Create(Iden, Args, OpCode, Output);
+}
+
+ReturnStmt *Parser::parseReturnStmt() {
+  expect(tok::kw_return);
+  return ReturnStmt::Create(parseExpr());
+}
+
+Stmt *Parser::parseSimpleStmt() {
+  switch (Tok.getKind()) {
+  default:
+    return parseValueStmt();
+  case tok::kw_print:
+  case tok::kw_printf:
+    return parsePrintStmt();
+  }
+}
+
+ValueStmt *Parser::parseValueStmt() {
+  Expr *Value = parseExpr();
+  return ValueStmt::Create(Value);
 }
 
 WhileStmt *Parser::parseWhileStmt() {

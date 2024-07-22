@@ -81,18 +81,21 @@ private:
   }
 
   TranslationUnitDecl *parseTranslationUnit();
+
   Decl *parseDecl();
   FunctionDecl *parseFunctionDecl();
   RuleDecl *parseRuleDecl();
-  CompoundStmt *parseCompoundStmt();
+
   Stmt *parseStmt();
+  CompoundStmt *parseCompoundStmt();
+  Stmt *parseForStmt();
+  IfStmt *parseIfStmt();
+  PrintStmt *parsePrintStmt();
+  ReturnStmt *parseReturnStmt();
   Stmt *parseSimpleStmt();
   ValueStmt *parseValueStmt();
-  IfStmt *parseIfStmt();
-  Stmt *parseForStmt();
   WhileStmt *parseWhileStmt();
-  ReturnStmt *parseReturnStmt();
-  PrintStmt *parsePrintStmt();
+
   Expr *parseExpr(prec::Level MinPrec = prec::Unknown);
 };
 } // namespace cawk
