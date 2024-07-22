@@ -22,8 +22,10 @@ class Exec {
   Value NullValue;
   Value ReturnValue;
   std::uint32_t NestedLevel = 0;
+  std::uint32_t CallLevel = 0;
   bool ShouldBreak = false;
   bool ShouldContinue = false;
+  bool ShouldReturn = false;
   bool IsBegin = true;
   bool IsEnd = false;
 

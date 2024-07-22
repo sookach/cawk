@@ -107,7 +107,14 @@ Stmt *Parser::parseStmt() {
     return parseIfStmt();
   case tok::kw_for:
     return parseForStmt();
+  case tok::kw_return:
+    return parseReturnStmt();
   }
+}
+
+ReturnStmt *Parser::parseReturnStmt() {
+  expect(tok::kw_return);
+  return ReturnStmt::Create(parseExpr());
 }
 
 Stmt *Parser::parseSimpleStmt() {
@@ -245,6 +252,7 @@ Expr *Parser::parseExpr(prec::Level MinPrec) {
         expect(tok::r_paren);
 
         LHS = CallExpr::Create(LHS, Args);
+        break;
       }
       case tok::l_square: {
         expect(tok::l_square);

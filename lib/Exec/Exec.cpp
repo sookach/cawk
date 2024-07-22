@@ -107,7 +107,8 @@ void Exec::visit(ContinueStmt *C) {
 
 void Exec::visit(CompoundStmt *C) {
   for (Stmt *S : C->getBody())
-    visit(S);
+    if (visit(S); std::exchange(ShouldReturn, false))
+      return;
 }
 
 void Exec::visit(DeleteStmt *D) {
@@ -187,7 +188,12 @@ void Exec::visit(PrintStmt *P) {
   }
 }
 
-void Exec::visit(ReturnStmt *R) { cawk_unreachable("unimplemented"); }
+void Exec::visit(ReturnStmt *R) {
+  assert(CallLevel > 0 && "cannot return from non-function");
+  --CallLevel;
+  ReturnValue = visit(R->getValue());
+  ShouldReturn = true;
+}
 
 void Exec::visit(ValueStmt *V) { visit(V->getValue()); }
 
@@ -299,11 +305,13 @@ Value Exec::visit(CallExpr *C) {
   for (const auto N = std::size(Params); I < N; ++I)
     Locals.set(Params[I]->getIdentifier().getLiteralData().data(), {});
 
+  ++CallLevel;
   visit(const_cast<CompoundStmt *>(Fn->getBody()));
+  --CallLevel;
 
   Locals = std::move(Save);
 
-  return std::move(ReturnValue);
+  return std::exchange(ReturnValue, {});
 }
 
 Value Exec::visit(DeclRefExpr *D) {
