@@ -123,7 +123,10 @@ void Exec::visit(DeleteStmt *D) {
   }
 }
 
-void Exec::visit(DoStmt *D) { cawk_unreachable("unimplemented"); }
+void Exec::visit(DoStmt *D) {
+  for (visit(D->getBody()); visit(D->getCond());)
+    visit(D->getBody());
+}
 
 void Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue())); }
 

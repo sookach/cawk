@@ -88,6 +88,7 @@ private:
 
   Stmt *parseStmt();
   CompoundStmt *parseCompoundStmt();
+  DoStmt *parseDoStmt();
   Stmt *parseForStmt();
   IfStmt *parseIfStmt();
   PrintStmt *parsePrintStmt();
