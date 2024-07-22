@@ -218,7 +218,7 @@ public:
   friend Value operator/(const Value &, const Value &);
   friend bool operator==(const Value &, const Value &);
 
-  operator bool() const {
+  explicit operator bool() const {
     switch (Kind) {
     case VK_Null:
       return false;

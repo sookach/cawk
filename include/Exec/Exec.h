@@ -8,6 +8,8 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 namespace cawk {
 class Exec {

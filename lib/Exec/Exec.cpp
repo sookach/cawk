@@ -51,9 +51,11 @@ void Exec::operator()() {
   IsEnd = false;
   visit(AST);
   IsBegin = false;
-  for (auto &Input : Inputs)
+  for (auto &Input : Inputs) {
+    setValue("NR", getValue("NR") + 1);
     for (; !std::empty(Input.getLine());)
       visit(AST);
+  }
   IsEnd = true;
   visit(AST);
 }
@@ -128,7 +130,7 @@ void Exec::visit(DoStmt *D) {
     visit(D->getBody());
 }
 
-void Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue())); }
+void Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue()).toNumber()); }
 
 void Exec::visit(ForStmt *F) {
   if (F->getInit() != nullptr)
@@ -151,8 +153,8 @@ void Exec::visit(ForStmt *F) {
 
 void Exec::visit(ForRangeStmt *F) {
   auto LoopVar = F->getLoopVar()->getIdentifier().getLiteralData();
-  for (auto &[Key, Value] : getValue(F->getRange()).toArray()) {
-    getValue(LoopVar) = Key;
+  for (auto &Elem : getValue(F->getRange()).toArray()) {
+    getValue(LoopVar) = Elem.first;
     visit(F->getBody());
   }
 }
