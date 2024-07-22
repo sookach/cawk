@@ -17,10 +17,13 @@ using namespace cawk;
 
 std::unique_ptr<Exec> Exec::Process = nullptr;
 
-void Exec::load(TranslationUnitDecl *T) {
+void Exec::load(TranslationUnitDecl *T, std::vector<std::string> Filepaths) {
   Process = std::unique_ptr<Exec>(new Exec);
 
   Process->AST = T;
+
+  for (const auto &Filepath : Filepaths)
+    Process->addInput(Filepath);
 
   for (const Decl *F : T->getDecls() | std::views::filter([](const Decl *D) {
                          return isa<FunctionDecl>(D);
@@ -35,11 +38,23 @@ void Exec::addFunction(const FunctionDecl *F) {
                 const_cast<FunctionDecl *>(F));
 }
 
+void Exec::addInput(std::string Filepath) {
+  Inputs.emplace_back(Filepath, IO::Read);
+  if (Inputs.back().hasError()) {
+    std::fputs(std::strerror(Inputs.back().getError()), stderr);
+    std::exit(Inputs.back().getError());
+  }
+}
+
 void Exec::operator()() {
   IsBegin = true;
   IsEnd = false;
   visit(AST);
-  std::swap(IsBegin, IsEnd);
+  IsBegin = false;
+  for (auto &Input : Inputs)
+    for (; !std::empty(Input.getLine());)
+      visit(AST);
+  IsEnd = true;
   visit(AST);
 }
 

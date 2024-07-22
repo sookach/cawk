@@ -31,3 +31,7 @@ std::string cawk::IO::getLine(char Delim) {
 
   return S;
 }
+
+bool cawk::IO::hasError() { return getError() != 0; }
+
+errno_t cawk::IO::getError() { return Error; }

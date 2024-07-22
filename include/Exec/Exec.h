@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "Exec/IO.h"
 #include "Exec/SymbolTable.h"
 #include "Exec/Value.h"
 #include "Support/Support.h"
@@ -17,6 +18,7 @@ class Exec {
   BasicSymbolTable<Value> Globals;
   BasicSymbolTable<Value> Locals;
   std::vector<Value> Fields;
+  std::vector<IO> Inputs;
   Value NullValue;
   Value ReturnValue;
   std::uint32_t NestedLevel = 0;
@@ -29,11 +31,12 @@ private:
   Exec() = default;
 
 public:
-  static void load(TranslationUnitDecl *T);
+  static void load(TranslationUnitDecl *T, std::vector<std::string> Filepaths);
   static void exec();
 
 private:
   void addFunction(const FunctionDecl *F);
+  void addInput(std::string Filepath);
 
   void operator()();
 

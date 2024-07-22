@@ -35,5 +35,7 @@ public:
 
   void write(std::string S);
   std::string getLine(char Delim = '\n');
+  bool hasError();
+  errno_t getError();
 };
 } // namespace cawk
