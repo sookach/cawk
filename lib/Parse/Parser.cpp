@@ -109,6 +109,8 @@ Stmt *Parser::parseStmt() {
     return parseForStmt();
   case tok::kw_return:
     return parseReturnStmt();
+  case tok::kw_while:
+    return parseWhileStmt();
   }
 }
 
@@ -195,6 +197,15 @@ PrintStmt *Parser::parsePrintStmt() {
   }();
 
   return PrintStmt::Create(Iden, Args, OpCode, Output);
+}
+
+WhileStmt *Parser::parseWhileStmt() {
+  expect(tok::kw_while);
+  expect(tok::l_paren);
+  auto Cond = parseExpr();
+  expect(tok::r_paren);
+
+  return WhileStmt::Create(Cond, parseStmt());
 }
 
 Expr *Parser::parseExpr(prec::Level MinPrec) {

@@ -197,7 +197,11 @@ void Exec::visit(ReturnStmt *R) {
 
 void Exec::visit(ValueStmt *V) { visit(V->getValue()); }
 
-void Exec::visit(WhileStmt *W) { cawk_unreachable("unimplemented"); }
+void Exec::visit(WhileStmt *W) {
+  assert(W->getCond() != nullptr && "while loop must have condition");
+  for (; visit(W->getCond());)
+    visit(W->getBody());
+}
 
 Value Exec::visit(Expr *E) {
   switch (E->getKind()) {

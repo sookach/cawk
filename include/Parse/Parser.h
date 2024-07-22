@@ -90,6 +90,7 @@ private:
   ValueStmt *parseValueStmt();
   IfStmt *parseIfStmt();
   Stmt *parseForStmt();
+  WhileStmt *parseWhileStmt();
   ReturnStmt *parseReturnStmt();
   PrintStmt *parsePrintStmt();
   Expr *parseExpr(prec::Level MinPrec = prec::Unknown);
