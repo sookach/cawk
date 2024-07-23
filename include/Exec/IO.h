@@ -37,5 +37,6 @@ public:
   std::string getLine(char Delim = '\n');
   bool hasError();
   errno_t getError();
+  bool isEOF();
 };
 } // namespace cawk

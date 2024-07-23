@@ -4,18 +4,18 @@
 
 using namespace cawk;
 
-cawk::IO::IO(std::string Filepath, IO::ModeKind Mode) {
+IO::IO(std::string Filepath, IO::ModeKind Mode) {
   auto ModeString = toString(Mode);
   File = std::fopen(Filepath.c_str(), ModeString.c_str());
   Error = errno;
 }
 
-void cawk::IO::write(std::string S) {
+void IO::write(std::string S) {
   std::fprintf(File, "%s", S.c_str());
   Error = errno;
 }
 
-std::string cawk::IO::getLine(char Delim) {
+std::string IO::getLine(char Delim) {
   std::string S;
 
   for (bool Break = false; !Break;) {
@@ -32,6 +32,8 @@ std::string cawk::IO::getLine(char Delim) {
   return S;
 }
 
-bool cawk::IO::hasError() { return getError() != 0; }
+bool IO::hasError() { return getError() != 0; }
 
-errno_t cawk::IO::getError() { return Error; }
+errno_t IO::getError() { return Error; }
+
+bool IO::isEOF() { return std::feof(File) != 0; }

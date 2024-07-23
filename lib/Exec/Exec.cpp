@@ -3,6 +3,7 @@
 #include "Basic/TokenKinds.h"
 #include "Exec/Format.h"
 #include "Exec/Index.h"
+#include "Exec/Split.h"
 #include "Exec/Sprintf.h"
 
 #include <algorithm>
@@ -58,8 +59,20 @@ void Exec::operator()() {
   setValue("BEGIN", false);
   for (auto &Input : Inputs) {
     SkipToNextfile = false;
-    for (;;) {
+    for (; !Input.isEOF() && !SkipToNextfile;) {
+      auto Fields = split(Input.getLine(), getValue("FS").toString());
+      if (!std::empty(Fields))
+        continue;
+      for (int I = 1; auto Field : Fields)
+        setValue("$" + std::to_string(I++), Value(Field));
+
+      setValue("NF", Value(std::size(Fields)));
       setValue("NR", getValue("NR") + 1);
+
+      visit(AST);
+
+      if (SkipToNextfile)
+        break;
     }
   }
 
@@ -333,16 +346,7 @@ Value Exec::visit(CallExpr *C) {
   return std::exchange(ReturnValue, {});
 }
 
-Value Exec::visit(DeclRefExpr *D) {
-  switch (D->getIdentifier().getKind()) {
-  default:
-    return getValue(D);
-  case tok::kw_BEGIN:
-    return IsBegin;
-  case tok::kw_END:
-    return IsEnd;
-  }
-}
+Value Exec::visit(DeclRefExpr *D) { return getValue(D); }
 
 Value Exec::visit(FloatingLiteral *F) {
   return std::stod(F->getValue().getLiteralData().data());
