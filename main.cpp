@@ -4,13 +4,17 @@
 
 #include <fstream>
 
-int main(int argc, char **argv) {
-  std::ifstream File("/Users/suk/dev/cawk/main.awk");
+static int cawk_main(int Argc, char **Argv) {
+  assert(Argc == 2);
+  std::ifstream File(Argv[1]);
   std::string Source((std::istreambuf_iterator<char>(File)),
                      std::istreambuf_iterator<char>());
   cawk::Lexer Lex(Source);
   cawk::Parser Parse(Lex);
   auto AST = Parse.parse();
-  cawk::Exec Exe;
-  Exe.run(AST);
+  cawk::Exec::load(AST, {});
+  cawk::Exec::exec();
+  return EXIT_SUCCESS;
 }
+
+int main(int argc, char **argv) { return cawk_main(argc, argv); }
