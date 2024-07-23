@@ -48,15 +48,12 @@ void Exec::addInput(std::string Filepath) {
 }
 
 void Exec::operator()() {
-  setValue("BEGIN", true);
-  setValue("END", false);
-
   visit(AST);
 
   if (std::empty(Inputs))
     return;
 
-  setValue("BEGIN", false);
+  IsBegin = false;
   for (auto &Input : Inputs) {
     SkipToNextfile = false;
     for (; !Input.isEOF() && !SkipToNextfile;) {
@@ -69,6 +66,7 @@ void Exec::operator()() {
       setValue("NF", Value(std::size(Fields)));
       setValue("NR", getValue("NR") + 1);
 
+      SkipToNext = false;
       visit(AST);
 
       if (SkipToNextfile)
@@ -76,7 +74,7 @@ void Exec::operator()() {
     }
   }
 
-  setValue("END", true);
+  IsEnd = true;
   visit(AST);
 }
 
@@ -84,8 +82,8 @@ void Exec::visit(TranslationUnitDecl *T) {
   for (Decl *D : T->getDecls() | std::views::filter([](Decl *D) {
                    return isa<RuleDecl>(D);
                  })) {
-    if (SkipToNextfile || std::exchange(SkipToNext, false))
-      return;
+    if (isEarlyExit())
+      break;
     visit(static_cast<RuleDecl *>(D));
   }
 }
@@ -124,17 +122,19 @@ void Exec::visit(Stmt *S) {
 }
 
 void Exec::visit(BreakStmt *B) {
-  assert(NestedLevel-- != 0 && "awk: break illegal outside of loops");
+  assert(NestedLevel != 0 && "awk: break illegal outside of loops");
+  ShouldBreak = true;
 }
 
 void Exec::visit(ContinueStmt *C) {
   assert(NestedLevel != 0 && "awk: continue illegal outside of loops");
+  ShouldContinue = true;
 }
 
 void Exec::visit(CompoundStmt *C) {
   for (Stmt *S : C->getBody())
-    if (visit(S); std::exchange(ShouldReturn, false))
-      return;
+    if (visit(S); isEarlyExit())
+      break;
 }
 
 void Exec::visit(DeleteStmt *D) {
@@ -150,8 +150,18 @@ void Exec::visit(DeleteStmt *D) {
 }
 
 void Exec::visit(DoStmt *D) {
-  for (visit(D->getBody()); visit(D->getCond());)
+  ++NestedLevel;
+  for (;;) {
     visit(D->getBody());
+
+    if (isEarlyExit())
+      break;
+
+    if (!visit(D->getCond()))
+      break;
+  }
+  ShouldBreak = ShouldContinue = false;
+  --NestedLevel;
 }
 
 void Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue()).toNumber()); }
@@ -160,27 +170,37 @@ void Exec::visit(ForStmt *F) {
   if (F->getInit() != nullptr)
     visit(F->getInit());
 
+  ++NestedLevel;
   for (;;) {
     if (F->getCond() != nullptr && !visit(F->getCond()))
       break;
 
     if (F->getBody() != nullptr)
       visit(F->getBody());
+    ShouldContinue = false;
 
-    if (std::exchange(ShouldBreak, false))
+    if (isEarlyExit())
       break;
 
     if (F->getInc() != nullptr)
       visit(F->getInc());
   }
+  ShouldBreak = ShouldContinue = false;
+  --NestedLevel;
 }
 
 void Exec::visit(ForRangeStmt *F) {
   auto LoopVar = F->getLoopVar()->getIdentifier().getLiteralData();
+  ++NestedLevel;
   for (auto &Elem : getValue(F->getRange()).toArray()) {
     getValue(LoopVar) = Elem.first;
     visit(F->getBody());
+
+    if (isEarlyExit())
+      break;
   }
+  ShouldBreak = ShouldContinue = false;
+  --NestedLevel;
 }
 
 void Exec::visit(IfStmt *I) {
@@ -190,9 +210,9 @@ void Exec::visit(IfStmt *I) {
     visit(I->getElse());
 }
 
-void Exec::visit(NextStmt *N) { cawk_unreachable("unimplemented"); }
+void Exec::visit(NextStmt *N) { SkipToNext = true; }
 
-void Exec::visit(NextfileStmt *N) { cawk_unreachable("unimplemented"); }
+void Exec::visit(NextfileStmt *N) { SkipToNextfile = true; }
 
 void Exec::visit(PrintStmt *P) {
   assert(P->getOpcode().is(tok::unknown) && P->getOutput() == nullptr &&
@@ -227,8 +247,15 @@ void Exec::visit(ValueStmt *V) { visit(V->getValue()); }
 
 void Exec::visit(WhileStmt *W) {
   assert(W->getCond() != nullptr && "while loop must have condition");
-  for (; visit(W->getCond());)
+
+  ++NestedLevel;
+  for (; visit(W->getCond());) {
     visit(W->getBody());
+    if (isEarlyExit())
+      break;
+  }
+  ShouldBreak = ShouldContinue = false;
+  --NestedLevel;
 }
 
 Value Exec::visit(Expr *E) {
@@ -346,7 +373,16 @@ Value Exec::visit(CallExpr *C) {
   return std::exchange(ReturnValue, {});
 }
 
-Value Exec::visit(DeclRefExpr *D) { return getValue(D); }
+Value Exec::visit(DeclRefExpr *D) {
+  switch (D->getIdentifier().getKind()) {
+  default:
+    return getValue(D);
+  case tok::kw_BEGIN:
+    return IsBegin;
+  case tok::kw_END:
+    return IsEnd;
+  }
+}
 
 Value Exec::visit(FloatingLiteral *F) {
   return std::stod(F->getValue().getLiteralData().data());
@@ -457,4 +493,9 @@ Value Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value> Args) {
   case tok::kw_substr:
     return true;
   }
+}
+
+bool Exec::isEarlyExit() {
+  return ShouldBreak || ShouldContinue || ShouldReturn || SkipToNext ||
+         SkipToNextfile;
 }

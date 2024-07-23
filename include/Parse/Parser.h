@@ -87,6 +87,7 @@ private:
   RuleDecl *parseRuleDecl();
 
   Stmt *parseStmt();
+  BreakStmt *parseBreakStmt();
   CompoundStmt *parseCompoundStmt();
   DoStmt *parseDoStmt();
   Stmt *parseForStmt();

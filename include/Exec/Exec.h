@@ -25,6 +25,8 @@ class Exec {
   Value ReturnValue;
   std::uint32_t NestedLevel = 0;
   std::uint32_t CallLevel = 0;
+  bool IsBegin = true;
+  bool IsEnd = false;
   bool ShouldBreak = false;
   bool ShouldContinue = false;
   bool ShouldReturn = false;
@@ -82,6 +84,8 @@ private:
 
   static bool isBuiltin(tok::TokenKind Kind);
   static Value execBuiltin(tok::TokenKind Kind, std::vector<Value> Args);
+
+  bool isEarlyExit();
 };
 
 } // namespace cawk

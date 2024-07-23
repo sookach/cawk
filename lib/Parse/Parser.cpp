@@ -93,6 +93,8 @@ Stmt *Parser::parseStmt() {
   }
   case tok::l_brace:
     return parseCompoundStmt();
+  case tok::kw_break:
+    return parseBreakStmt();
   case tok::kw_do:
     return parseDoStmt();
   case tok::kw_for:
@@ -104,6 +106,11 @@ Stmt *Parser::parseStmt() {
   case tok::kw_while:
     return parseWhileStmt();
   }
+}
+
+BreakStmt *Parser::parseBreakStmt() {
+  expect(tok::kw_break);
+  return BreakStmt::Create();
 }
 
 CompoundStmt *Parser::parseCompoundStmt() {
