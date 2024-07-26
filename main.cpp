@@ -6,9 +6,14 @@
 
 static int cawk_main(int Argc, char **Argv) {
   assert(Argc == 2);
-  std::ifstream File(Argv[1]);
-  std::string Source((std::istreambuf_iterator<char>(File)),
-                     std::istreambuf_iterator<char>());
+  auto Source = [Argv]() {
+    if (std::filesystem::exists(Argv[1])) {
+      std::ifstream File(Argv[1]);
+      return std::string((std::istreambuf_iterator<char>(File)),
+                         std::istreambuf_iterator<char>());
+    }
+    return std::string(Argv[1]);
+  }();
   cawk::Lexer Lex(Source);
   cawk::Parser Parse(Lex);
   auto AST = Parse.parse();
