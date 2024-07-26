@@ -16,6 +16,7 @@ public:
   InputFile(std::string Pathname);
   std::string getLine(char Delim = '\n');
   bool isEOF();
+  std::string toString();
 };
 
 } // namespace cawk

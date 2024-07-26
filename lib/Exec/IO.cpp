@@ -23,3 +23,5 @@ std::string InputFile::getLine(char Delim) {
 }
 
 bool InputFile::isEOF() { return Curr == End; }
+
+std::string InputFile::toString() { return std::string(std::cbegin(Buffer), End); }
