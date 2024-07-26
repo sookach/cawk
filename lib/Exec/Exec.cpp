@@ -40,11 +40,7 @@ void Exec::addFunction(const FunctionDecl *F) {
 }
 
 void Exec::addInput(std::string Filepath) {
-  Inputs.emplace_back(Filepath, IO::Read);
-  if (Inputs.back().hasError()) {
-    std::fputs(std::strerror(Inputs.back().getError()), stderr);
-    std::exit(Inputs.back().getError());
-  }
+  Inputs.emplace_back(Filepath);
 }
 
 void Exec::operator()() {

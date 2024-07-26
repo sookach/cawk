@@ -1,39 +1,24 @@
 #include "Exec/IO.h"
 
+#include <algorithm>
+#include <array>
 #include <cerrno>
 
 using namespace cawk;
 
-IO::IO(std::string Filepath, IO::ModeKind Mode) {
-  auto ModeString = toString(Mode);
-  File = std::fopen(Filepath.c_str(), ModeString.c_str());
-  Error = errno;
+InputFile::InputFile(std::string Pathname) {
+  FilePtr = std::fopen(Pathname.c_str(), "r");
+  for (auto It = std::begin(Buffer); !std::feof(FilePtr); ++It)
+    *It = std::getc(FilePtr);
+  BufferIt = std::begin(Buffer);
 }
 
-void IO::write(std::string S) {
-  std::fprintf(File, "%s", S.c_str());
-  Error = errno;
+std::string InputFile::getLine(char Delim) {
+  BufferIt = std::find_if(BufferIt, std::cend(Buffer),
+                          [Delim](char C) { return C != Delim; });
+  auto Next = std::find(BufferIt, std::cend(Buffer), Delim);
+
+  return std::string(std::exchange(BufferIt, Next), Next);
 }
 
-std::string IO::getLine(char Delim) {
-  std::string S;
-
-  for (bool Break = false; !Break;) {
-    switch (S.push_back(std::getc(File)); S.back()) {
-    default:
-      if (S.back() != Delim)
-        break;
-    case EOF:
-      S.pop_back();
-      Break = true;
-    }
-  }
-
-  return S;
-}
-
-bool IO::hasError() { return getError() != 0; }
-
-errno_t IO::getError() { return Error; }
-
-bool IO::isEOF() { return std::feof(File) != 0; }
+bool InputFile::isEOF() { return BufferIt == std::end(Buffer); }

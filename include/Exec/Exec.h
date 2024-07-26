@@ -20,7 +20,7 @@ class Exec {
   BasicSymbolTable<Value> Globals;
   BasicSymbolTable<Value> Locals;
   std::vector<Value> Fields;
-  std::vector<IO> Inputs;
+  std::vector<InputFile> Inputs;
   Value NullValue;
   Value ReturnValue;
   std::uint32_t NestedLevel = 0;
