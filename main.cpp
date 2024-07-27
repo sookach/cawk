@@ -2,6 +2,7 @@
 #include "Exec/IO.h"
 #include "Lexer/Lexer.h"
 #include "Parse/Parser.h"
+#include "Sema/Sema.h"
 
 #include <filesystem>
 
