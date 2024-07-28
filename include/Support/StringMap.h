@@ -4,7 +4,7 @@
 #include <string>
 #include <utility>
 
-template <typename Derived, typename T> class SymbolTable {
+template <typename Derived, typename T> class StringMapBase {
 public:
   using Element = std::pair<std::string, T>;
 
@@ -21,8 +21,7 @@ public:
   }
 };
 
-template <typename T>
-class BasicSymbolTable : SymbolTable<BasicSymbolTable<T>, T> {
+template <typename T> class StringMap : StringMapBase<StringMap<T>, T> {
 public:
   using Element = std::pair<std::string, T>;
 

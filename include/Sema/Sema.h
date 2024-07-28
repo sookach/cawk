@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
-#include "Exec/SymbolTable.h"
+#include "Support/StringMap.h"
 #include "Support/Support.h"
 
 #include <cstdio>
@@ -13,7 +13,7 @@
 namespace cawk {
 
 class SemaDecl {
-  BasicSymbolTable<FunctionDecl *> FunctionMap;
+  StringMap<FunctionDecl *> FunctionMap;
   std::vector<RuleDecl *> RuleDecls;
 
 public:
@@ -28,9 +28,11 @@ public:
         RuleDecls.push_back(static_cast<RuleDecl *>(D));
       }
     }
+    
+    return true;
   }
 
-  BasicSymbolTable<FunctionDecl *> getFunctionDecls() { return FunctionMap; }
+  StringMap<FunctionDecl *> getFunctionDecls() { return FunctionMap; }
 
   std::vector<RuleDecl *> getRuleDecls() { return RuleDecls; }
 };
@@ -82,9 +84,9 @@ class SemaType {
     bool Ok = false;
   };
 
-  BasicSymbolTable<std::vector<TypeKind>> FunctionPrototypes;
-  BasicSymbolTable<TypeKind> Globals;
-  BasicSymbolTable<TypeKind> Locals;
+  StringMap<std::vector<TypeKind>> FunctionPrototypes;
+  StringMap<TypeKind> Globals;
+  StringMap<TypeKind> Locals;
 
 public:
   bool visit(Decl *D) {
@@ -164,7 +166,7 @@ public:
   }
 
   bool visit(FunctionDecl *F) {
-    Locals = BasicSymbolTable<TypeKind>();
+    Locals = StringMap<TypeKind>();
 
     for (ParamVarDecl *P : F->getParams())
       Locals.set(P->getIdentifier().getIdentifier(), TK_Null);

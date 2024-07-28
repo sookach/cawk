@@ -2,7 +2,7 @@
 
 #include "AST/AST.h"
 #include "Exec/IO.h"
-#include "Exec/SymbolTable.h"
+#include "Support/StringMap.h"
 #include "Exec/Value.h"
 #include "Support/Support.h"
 
@@ -16,9 +16,9 @@ class Exec {
   static std::unique_ptr<Exec> Process;
 
   TranslationUnitDecl *AST;
-  BasicSymbolTable<FunctionDecl *> Functions;
-  BasicSymbolTable<Value> Globals;
-  BasicSymbolTable<Value> Locals;
+  StringMap<FunctionDecl *> Functions;
+  StringMap<Value> Globals;
+  StringMap<Value> Locals;
   std::vector<Value> Fields;
   std::vector<InputFile> Inputs;
   Value NullValue;
