@@ -16,12 +16,24 @@ class SemaType {
   enum TypeKind {
     TK_Primitive,
     TK_Array,
+    TK_PrimitiveOrArray,
     TK_Function,
+    TK_Null,
     TK_Any,
   };
 
   static bool equal(TypeKind T1, TypeKind T2) {
-    return T1 == T2 || T1 == TK_Any || T2 == TK_Any;
+    switch (T1) {
+    default:
+      cawk_unreachable("invalid type comparison");
+    case TK_Primitive:
+      return T2 == TK_Primitive || T2 == TK_PrimitiveOrArray || T2 == TK_Null;
+    case TK_Array:
+      return T2 == TK_Array || T2 == TK_PrimitiveOrArray || T2 == TK_Null;
+    case TK_PrimitiveOrArray:
+      return T2 == TK_Primitive || T2 == TK_Array ||
+             T2 == TK_PrimitiveOrArray || T2 == TK_Null;
+    }
   }
 
   static TypeKind resultType(TypeKind T1, TypeKind T2) {
@@ -172,16 +184,6 @@ public:
     return true;
   }
 
-  TypeKind getType(std::string_view S) {
-    return Locals.contains(S) ? Locals.get(S) : Globals.get(S);
-  }
-
-  void setType(std::string_view S, TypeKind T) {
-    if (Locals.contains(S))
-      Locals.set(S, T);
-    Globals.set(S, T);
-  }
-
   TypeResult visit(ArraySubscriptExpr *A) {
     auto [Type, Ok] = visit(A->getLHS());
     if (!Ok || !equal(Type, TK_Array))
@@ -208,26 +210,35 @@ public:
     case tok::percentequal:
     case tok::plusequal:
     case tok::minusequal:
-    case tok::caretequal:
-      if (!is(LHSType, TK_Primitive, TK_Any) ||
-          !is(RHSType, TK_Primitive, TK_Any))
-        return {};
+    case tok::caretequal: {
       assert(isa<DeclRefExpr>(B->getLHS()));
-      setType(static_cast<DeclRefExpr *>(B->getLHS())
-                  ->getIdentifier()
-                  .getIdentifier(),
-              TK_Primitive);
-      return TypeResult(TK_Primitive, true);
+      auto LHSIden = static_cast<DeclRefExpr *>(B->getLHS())
+                         ->getIdentifier()
+                         .getIdentifier();
+      assert(getType(LHSIden) != TK_Array &&
+             getType(LHSIden) !=
+                 TK_PrimitiveOrArray); // This assertion really shouldn't be
+                                       // necessary, might remove in the future.
+      setType(LHSIden, TK_Primitive);
+      auto [RHSType, RHSOk] = visit(B->getRHS());
+      assert(RHSOk && equal(RHSType, TK_Primitive));
+      return {TK_Primitive, true};
+    }
     case tok::pipepipe:
-    case tok::ampamp:
-      if (!is(LHSType, TK_Primitive, TK_Any) ||
-          !is(RHSType, TK_Primitive, TK_Any))
-        return {};
-      return TypeResult(TK_Primitive, true);
-    case tok::kw_in:
-      if (!is(RHSType, TK_Array, TK_Any))
-        return {};
-      return TypeResult(TK_Any, true);
+    case tok::ampamp: {
+      auto [LHSType, LHSResult] = visit(B->getLHS());
+      auto [RHSType, RHSResult] = visit(B->getRHS());
+      assert(LHSResult && RHSResult && LHSType != TK_Array &&
+             RHSType != TK_Array);
+      return {TK_Primitive, true};
+    }
+    case tok::kw_in: {
+      auto RHSIden = static_cast<DeclRefExpr *>(B->getRHS())
+                         ->getIdentifier()
+                         .getIdentifier();
+      assert(getType(RHSIden) != TK_Primitive);
+      return {TK_Primitive, true};
+    }
     case tok::tilde:
     case tok::exclaimtilde:
     case tok::greater:
@@ -241,12 +252,14 @@ public:
     case tok::slash:
     case tok::percent:
     case tok::caret:
-    case tok::starstar:
-      return TypeResult(TK_Primitive, true);
-      if (!is(LHSType, TK_Primitive, TK_Any) ||
-          !is(RHSType, TK_Primitive, TK_Any))
-        return {};
-      return TypeResult(TK_Primitive, true);
+    case tok::starstar: {
+      auto [LHSType, LHSOk] = visit(B->getLHS());
+      auto [RHSType, RHSOk] = visit(B->getRHS());
+
+      assert(LHSOk && RHSOk);
+      assert(LHSType != TK_Array && RHSType != TK_Array);
+      return {TK_Primitive, true};
+    }
     }
   }
 
@@ -285,6 +298,18 @@ public:
     if (!Ok || !is(Type, TK_Any, TK_Primitive))
       return {};
     return {TK_Primitive, true};
+  }
+
+  TypeKind getType(std::string_view S) {
+    return Locals.contains(S)    ? Locals.get(S)
+           : Globals.contains(S) ? Globals.get(S)
+                                 : TK_Null;
+  }
+
+  void setType(std::string_view S, TypeKind T) {
+    if (Locals.contains(S))
+      Locals.set(S, T);
+    Globals.set(S, T);
   }
 };
 
