@@ -14,25 +14,129 @@ namespace cawk {
 
 class SemaDecl {
   StringMap<FunctionDecl *> FunctionMap;
+  std::vector<FunctionDecl *> FunctionDecls;
   std::vector<RuleDecl *> RuleDecls;
 
 public:
+  bool visit(Stmt *S) {
+    switch (S->getKind()) {
+#define CASE(KIND, CLASS)                                                      \
+  case Stmt::SK_##KIND:                                                        \
+    return visit(static_cast<CLASS *>(S))
+      CASE(Compound, CompoundStmt);
+      CASE(Delete, DeleteStmt);
+      CASE(Do, DoStmt);
+      CASE(Exit, ExitStmt);
+      CASE(For, ForStmt);
+      CASE(ForRange, ForRangeStmt);
+      CASE(If, IfStmt);
+      CASE(Print, PrintStmt);
+      CASE(Return, ReturnStmt);
+      CASE(Value, ValueStmt);
+      CASE(While, WhileStmt);
+#undef CASE
+    default:
+      return true;
+    }
+  }
+
+  bool visit(Expr *E) {
+    switch (E->getKind()) {
+#define CASE(KIND, CLASS)                                                      \
+  case Expr::EK_##KIND:                                                        \
+    return visit(static_cast<CLASS *>(E));
+      CASE(Call, CallExpr)
+#undef CASE
+    default:
+      return true;
+    }
+  }
+
+  bool visit(CompoundStmt *C) {
+    for (Stmt *S : C->getBody())
+      if (!visit(S))
+        return false;
+    return true;
+  }
+
+  bool visit(DeleteStmt *D) { return visit(D->getArgument()); }
+
+  bool visit(DoStmt *D) { return visit(D->getBody()) && visit(D->getCond()); }
+
+  bool visit(ExitStmt *E) {
+    if (E->getValue() != nullptr)
+      return visit(E->getValue());
+    return true;
+  }
+
+  bool visit(ForStmt *F) {
+    if (F->getInit() != nullptr && !visit(F->getInit()))
+      return false;
+    if (F->getCond() != nullptr && !visit(F->getCond()))
+      return false;
+    if (F->getInc() != nullptr && !visit(F->getInc()))
+      return false;
+    if (F->getBody() != nullptr && !visit(F->getBody()))
+      return false;
+    return true;
+  }
+
+  bool visit(ForRangeStmt *F) {
+    if (F->getBody() != nullptr)
+      return visit(F->getBody());
+    return true;
+  }
+
+  bool visit(PrintStmt *P) {
+    for (Expr *E : P->getArgs())
+      if (!visit(E))
+        return false;
+    return true;
+  }
+
+  bool visit(ReturnStmt *R) {
+    if (R->getValue() != nullptr)
+      return visit(R->getValue());
+    return true;
+  }
+
+  bool visit(ValueStmt *V) { return visit(V->getValue()); }
+
+  bool visit(WhileStmt *W) {
+    return visit(W->getCond()) && visit(W->getBody());
+  }
+
   bool visit(TranslationUnitDecl *T) {
     for (Decl *D : T->getDecls()) {
       if (isa<FunctionDecl>(D)) {
         auto F = static_cast<FunctionDecl *>(D);
         assert(!FunctionMap.contains(F->getIdentifier().getIdentifier()));
         FunctionMap.set(F->getIdentifier().getIdentifier(), F);
+        FunctionDecls.push_back(F);
       } else {
         assert(isa<RuleDecl>(D));
         RuleDecls.push_back(static_cast<RuleDecl *>(D));
       }
     }
-    
+
+    for (RuleDecl *R : RuleDecls)
+      if (!visit(R))
+        return false;
+
     return true;
   }
 
-  StringMap<FunctionDecl *> getFunctionDecls() { return FunctionMap; }
+  bool visit(RuleDecl *R) {
+    if (R->getPattern() != nullptr && !visit(R->getPattern()))
+      return false;
+    if (R->getAction() != nullptr)
+      return visit(R->getAction());
+    return true;
+  }
+
+  StringMap<FunctionDecl *> getFunctionMap() { return FunctionMap; }
+
+  std::vector<FunctionDecl *> getFunctionDecls() { return FunctionDecls; }
 
   std::vector<RuleDecl *> getRuleDecls() { return RuleDecls; }
 };
@@ -142,6 +246,12 @@ public:
       CASE(UnaryOperator, UnaryOperator)
 #undef CASE
     }
+  }
+
+  bool checkTranslationUnit(TranslationUnitDecl *T,
+                            std::vector<FunctionDecl *> FunctionDecls,
+                            std::vector<RuleDecl *> RuleDecls) {
+    return true;
   }
 
   bool visit(TranslationUnitDecl *T) {
