@@ -12,6 +12,29 @@
 
 namespace cawk {
 
+class SemaDecl {
+  BasicSymbolTable<FunctionDecl *> FunctionMap;
+  std::vector<RuleDecl *> RuleDecls;
+
+public:
+  bool visit(TranslationUnitDecl *T) {
+    for (Decl *D : T->getDecls()) {
+      if (isa<FunctionDecl>(D)) {
+        auto F = static_cast<FunctionDecl *>(D);
+        assert(!FunctionMap.contains(F->getIdentifier().getIdentifier()));
+        FunctionMap.set(F->getIdentifier().getIdentifier(), F);
+      } else {
+        assert(isa<RuleDecl>(D));
+        RuleDecls.push_back(static_cast<RuleDecl *>(D));
+      }
+    }
+  }
+
+  BasicSymbolTable<FunctionDecl *> getFunctionDecls() { return FunctionMap; }
+
+  std::vector<RuleDecl *> getRuleDecls() { return RuleDecls; }
+};
+
 class SemaType {
   enum TypeKind {
     TK_Primitive,
@@ -144,7 +167,7 @@ public:
     Locals = BasicSymbolTable<TypeKind>();
 
     for (ParamVarDecl *P : F->getParams())
-      Locals.set(P->getIdentifier().getIdentifier(), TK_Any);
+      Locals.set(P->getIdentifier().getIdentifier(), TK_Null);
 
     return visit(F->getBody());
   }
