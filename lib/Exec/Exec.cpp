@@ -35,8 +35,10 @@ void Exec::load(TranslationUnitDecl *T, std::vector<std::string> Filepaths) {
 void Exec::exec() { Process->operator()(); }
 
 void Exec::addFunction(const FunctionDecl *F) {
-  Functions.emplace(F->getIdentifier().getIdentifier(),
-                    const_cast<FunctionDecl *>(F));
+  std::vector<std::string> Params;
+  for (ParamVarDecl *P : F->getParams())
+    Params.emplace_back(P->getIdentifier().getIdentifier());
+  Functions.emplace(F->getIdentifier().getIdentifier(), Params, F->getBody());
 }
 
 void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
@@ -342,7 +344,7 @@ Value Exec::visit(CallExpr *C) {
       ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getIdentifier();
   assert(Functions.contains(Callee) && "awk: calling undefined function");
   const auto &Fn = Functions.at(Callee);
-  const auto &Params = Fn->getParams();
+  const auto &Params = Fn.getParams();
   const auto &Args = C->getArgs();
 
   assert(std::size(Args) <= std::size(Params) &&
@@ -353,15 +355,13 @@ Value Exec::visit(CallExpr *C) {
 
   int I = 0;
   for (Expr *E : Args)
-    Locals.emplace(Params[I++]->getIdentifier().getIdentifier().data(),
-                   visit(E));
+    Locals.emplace(Params[I++], visit(E));
 
   for (const auto N = std::size(Params); I < N; ++I)
-    Locals.emplace(Params[I]->getIdentifier().getLiteralData().data(),
-                   Value::VK_Null);
+    Locals.emplace(Params[I], Value::VK_Null);
 
   ++CallLevel;
-  visit(const_cast<CompoundStmt *>(Fn->getBody()));
+  visit(const_cast<CompoundStmt *>(Fn.getBody()));
   --CallLevel;
 
   Locals = std::move(Save);

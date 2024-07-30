@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "Exec/FunctionSymbol.h"
 #include "Exec/IO.h"
 #include "Exec/Value.h"
 #include "Support/StringMap.h"
@@ -13,16 +14,10 @@
 
 namespace cawk {
 class Exec {
-  struct FunctionDeclEmplace {
-    template <typename T1, typename... T2>
-    void operator()(auto &Table, T1 Key, T2 &&...Args) {
-      Table.emplace_back(Key, nullptr);
-    }
-  };
   static std::unique_ptr<Exec> Process;
 
   TranslationUnitDecl *AST;
-  StringMap<FunctionDecl *, FunctionDeclEmplace> Functions;
+  StringMap<FunctionSymbol> Functions;
   StringMap<Value> Globals;
   StringMap<Value> Locals;
   std::vector<Value> Fields;

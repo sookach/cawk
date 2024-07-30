@@ -9,14 +9,7 @@
 #include <string_view>
 #include <utility>
 
-template <typename T> struct BasicEmplaceFn {
-  template <typename... A>
-  void operator()(auto &Table, std::string_view Key, A &&...Args) {
-    Table.emplace_back(Key, T(std::forward<A>(Args)...));
-  }
-};
-
-template <typename T, typename EmplaceFn = BasicEmplaceFn<T>> class StringMap {
+template <typename T> class StringMap {
 public:
   using key_type = std::string_view;
   using mapped_type = T;
@@ -119,7 +112,7 @@ public:
     if (auto It = find(Key); It != end())
       return std::make_pair(It, false);
 
-    EmplaceFn()(Table, Key, std::forward<A>(Args)...);
+    Table.emplace_back(Key, T(std::forward<A>(Args)...));
     return std::make_pair(std::prev(end()), true);
   }
 
