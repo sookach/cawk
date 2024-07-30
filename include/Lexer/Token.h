@@ -9,11 +9,14 @@ class Token {
   std::string_view::const_iterator Ptr;
   std::size_t Length;
   tok::TokenKind Kind;
+  std::size_t Line;
 
 public:
   tok::TokenKind getKind() const { return Kind; }
 
   std::size_t getLength() const { return Length; }
+
+  std::size_t getLine() const { return Line; }
 
   template <typename... Ts> bool is(Ts... Ks) const {
     return (false || ... || (Kind == Ks));

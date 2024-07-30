@@ -1,6 +1,8 @@
 #include "Lexer/Lexer.h"
 #include "Basic/TokenKinds.h"
 
+#include <algorithm>
+
 namespace charinfo {
 template <bool Newline = false> inline bool isWhitespace(char c) {
   switch (c) {
@@ -65,9 +67,10 @@ void Lexer::formToken(Token &T, std::string_view::const_iterator End,
 template <bool Newline, bool Regex> void Lexer::next(Token &T) {
   BufferPrev = BufferPtr;
 
-  for (; BufferPtr != BufferEnd && charinfo::isWhitespace<Newline>(*BufferPtr);
-       ++BufferPtr)
-    ;
+  BufferPtr = std::find_if_not(BufferPtr, BufferEnd, [this](char C) {
+    Line += static_cast<std::size_t>(C == '\n');
+    return charinfo::isWhitespace<Newline>(C);
+  });
 
   if (BufferPtr == BufferEnd) {
     T.Kind = tok::eof;

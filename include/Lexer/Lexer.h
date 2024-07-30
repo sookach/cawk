@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Basic/TokenKinds.h"
-#include "Token.h"
 #include "Exec/IO.h"
+#include "Token.h"
 
 #include <string_view>
 #include <unordered_map>
@@ -15,6 +15,8 @@ class Lexer {
   std::string_view::const_iterator BufferPrev;
 
   std::unordered_map<std::string_view, tok::TokenKind> Keywords;
+
+  std::size_t Line = 1;
 
 public:
   Lexer(std::string_view Buffer)
