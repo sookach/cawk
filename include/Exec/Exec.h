@@ -2,8 +2,8 @@
 
 #include "AST/AST.h"
 #include "Exec/IO.h"
-#include "Support/StringMap.h"
 #include "Exec/Value.h"
+#include "Support/StringMap.h"
 #include "Support/Support.h"
 
 #include <cstddef>
@@ -13,10 +13,16 @@
 
 namespace cawk {
 class Exec {
+  struct FunctionDeclEmplace {
+    template <typename T1, typename... T2>
+    void operator()(auto &Table, T1 Key, T2 &&...Args) {
+      Table.emplace_back(Key, nullptr);
+    }
+  };
   static std::unique_ptr<Exec> Process;
 
   TranslationUnitDecl *AST;
-  StringMap<FunctionDecl *> Functions;
+  StringMap<FunctionDecl *, FunctionDeclEmplace> Functions;
   StringMap<Value> Globals;
   StringMap<Value> Locals;
   std::vector<Value> Fields;

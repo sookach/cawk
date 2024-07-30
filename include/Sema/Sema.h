@@ -111,7 +111,7 @@ public:
       if (isa<FunctionDecl>(D)) {
         auto F = static_cast<FunctionDecl *>(D);
         assert(!FunctionMap.contains(F->getIdentifier().getIdentifier()));
-        FunctionMap.set(F->getIdentifier().getIdentifier(), F);
+        FunctionMap[F->getIdentifier().getIdentifier()] = F;
         FunctionDecls.push_back(F);
       } else {
         assert(isa<RuleDecl>(D));
@@ -266,7 +266,7 @@ public:
                      Iden.data());
         return false;
       }
-      Globals.set(Iden, TK_Function);
+      Globals[Iden] = TK_Function;
     }
 
     for (Decl *D : T->getDecls())
@@ -279,7 +279,7 @@ public:
     Locals = StringMap<TypeKind>();
 
     for (ParamVarDecl *P : F->getParams())
-      Locals.set(P->getIdentifier().getIdentifier(), TK_Null);
+      Locals[P->getIdentifier().getIdentifier()] = TK_Null;
 
     return visit(F->getBody());
   }
@@ -405,7 +405,7 @@ public:
     auto Iden = static_cast<DeclRefExpr *>(C->getCallee())
                     ->getIdentifier()
                     .getIdentifier();
-    auto ParameterTypes = FunctionPrototypes.get(Iden);
+    auto ParameterTypes = FunctionPrototypes.at(Iden);
     if (std::size(C->getArgs()) > std::size(ParameterTypes))
       return {};
 
@@ -436,15 +436,15 @@ public:
   }
 
   TypeKind getType(std::string_view S) {
-    return Locals.contains(S)    ? Locals.get(S)
-           : Globals.contains(S) ? Globals.get(S)
+    return Locals.contains(S)    ? Locals.at(S)
+           : Globals.contains(S) ? Globals.at(S)
                                  : TK_Null;
   }
 
   void setType(std::string_view S, TypeKind T) {
     if (Locals.contains(S))
-      Locals.set(S, T);
-    Globals.set(S, T);
+      Locals[S] = T;
+    Globals[S] = T;
   }
 };
 

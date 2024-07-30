@@ -35,13 +35,11 @@ void Exec::load(TranslationUnitDecl *T, std::vector<std::string> Filepaths) {
 void Exec::exec() { Process->operator()(); }
 
 void Exec::addFunction(const FunctionDecl *F) {
-  Functions.set(F->getIdentifier().getIdentifier(),
-                const_cast<FunctionDecl *>(F));
+  Functions.emplace(F->getIdentifier().getIdentifier(),
+                    const_cast<FunctionDecl *>(F));
 }
 
-void Exec::addInput(std::string Filepath) {
-  Inputs.emplace_back(Filepath);
-}
+void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
 
 void Exec::operator()() {
   visit(AST);
@@ -343,7 +341,7 @@ Value Exec::visit(CallExpr *C) {
   auto Callee =
       ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getIdentifier();
   assert(Functions.contains(Callee) && "awk: calling undefined function");
-  const auto &Fn = Functions.get(Callee);
+  const auto &Fn = Functions.at(Callee);
   const auto &Params = Fn->getParams();
   const auto &Args = C->getArgs();
 
@@ -355,10 +353,12 @@ Value Exec::visit(CallExpr *C) {
 
   int I = 0;
   for (Expr *E : Args)
-    Locals.set(Params[I++]->getIdentifier().getIdentifier().data(), visit(E));
+    Locals.emplace(Params[I++]->getIdentifier().getIdentifier().data(),
+                   visit(E));
 
   for (const auto N = std::size(Params); I < N; ++I)
-    Locals.set(Params[I]->getIdentifier().getLiteralData().data(), {});
+    Locals.emplace(Params[I]->getIdentifier().getLiteralData().data(),
+                   Value::VK_Null);
 
   ++CallLevel;
   visit(const_cast<CompoundStmt *>(Fn->getBody()));
@@ -432,8 +432,8 @@ Value Exec::visit(UnaryOperator *U) {
 }
 
 Value &Exec::getValue(std::string_view Name) {
-  return Locals.contains(Name)    ? Locals.get(Name)
-         : Globals.contains(Name) ? Globals.get(Name)
+  return Locals.contains(Name)    ? Locals[Name]
+         : Globals.contains(Name) ? Globals[Name]
                                   : NullValue;
 }
 
@@ -443,9 +443,9 @@ Value &Exec::getValue(DeclRefExpr *E) {
 
 void Exec::setValue(std::string_view Name, Value V) {
   if (Locals.contains(Name))
-    Locals.set(Name, V);
+    Locals.insert_or_assign(Name, V);
   else
-    Globals.set(Name, V);
+    Globals.insert_or_assign(Name, V);
 }
 
 void Exec::setValue(DeclRefExpr *D, Value V) {
