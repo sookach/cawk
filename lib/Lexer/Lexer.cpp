@@ -72,7 +72,7 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     return charinfo::isWhitespace<Newline>(C);
   });
 
-  if (BufferPtr == BufferEnd) {
+  if (BufferPtr == BufferEnd || *BufferPtr == EOF) {
     T.Kind = tok::eof;
     return;
   }
