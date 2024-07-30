@@ -1,0 +1,7 @@
+#ifndef DIAG
+#define DIAG(LEVEL, ID, TEXT)
+#endif
+
+DIAG(error, lex_unterminated_string, "unterminated string starting on line %d")
+
+#undef DIAG
