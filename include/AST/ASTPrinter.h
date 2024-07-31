@@ -4,15 +4,19 @@
 
 #include <cstdio>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 namespace cawk {
-class ASTPrinter : public ASTVisitor<ASTPrinter, trav::RecursiveDescent> {
-  std::vector<void *> Stack;
+class ASTPrinter : public ASTVisitor<ASTPrinter, trav::RecursiveDescent, true> {
+  std::unordered_set<void *> Table;
+  std::size_t Offset = 0;
+
+  friend class ASTVisitor<ASTPrinter, trav::RecursiveDescent, true>;
 
 private:
   void print(std::string Text) {
-    std::string S(std::size(Text), ' ');
+    std::string S(Offset, ' ');
     S += Text;
     std::puts(S.c_str());
   }
@@ -23,177 +27,183 @@ private:
     return Buffer;
   }
 
-  bool traverse(void *P) {
-    if (std::empty(Stack) || Stack.back() != P) {
-      Stack.push_back(P);
+  bool enter(void *P) {
+    if (!Table.contains(P)) {
+      Table.insert(P);
+      ++Offset;
       return true;
     }
-    Stack.pop_back();
+    Table.erase(P);
+    --Offset;
     return false;
   }
 
-public:
   bool visit(FunctionDecl *F) {
-    if (traverse(F))
+    if (enter(F))
       print(std::string("FunctionDecl ") + toString(F));
 
     return true;
   }
 
   bool visit(ParamVarDecl *P) {
-    if (traverse(P))
+    if (enter(P))
       print(std::string("ParamVarDecl ") + toString(P));
     return true;
   }
 
   bool visit(RuleDecl *R) {
-    if (traverse(R))
+    if (enter(R))
       print(std::string("RuleDecl ") + toString(R));
     return true;
   }
 
   bool visit(TranslationUnitDecl *T) {
-    if (traverse(T))
+    if (enter(T))
       print(std::string("TranslationUnitDecl ") + toString(T));
     return true;
   }
 
   bool visit(BreakStmt *B) {
-    if (traverse(B))
+    if (enter(B))
       print(std::string("BreakStmt ") + toString(B));
     return true;
   }
 
   bool visit(ContinueStmt *C) {
-    if (traverse(C))
+    if (enter(C))
       print(std::string("ContinueStmt ") + toString(C));
     return true;
   }
 
   bool visit(CompoundStmt *C) {
-    if (traverse(C))
+    if (enter(C))
       print(std::string("CompoundStmt ") + toString(C));
     return true;
   }
 
   bool visit(DeleteStmt *D) {
-    if (traverse(D))
+    if (enter(D))
       print(std::string("DeleteStmt ") + toString(D));
     return true;
   }
 
   bool visit(DoStmt *D) {
-    if (traverse(D))
+    if (enter(D))
       print(std::string("DoStmt ") + toString(D));
     return true;
   }
 
   bool visit(ExitStmt *E) {
-    if (traverse(E))
+    if (enter(E))
       print(std::string("ExitStmt ") + toString(E));
     return true;
   }
 
   bool visit(ForStmt *F) {
-    if (traverse(F))
+    if (enter(F))
       print(std::string("ForStmt ") + toString(F));
     return true;
   }
 
   bool visit(ForRangeStmt *F) {
-    if (traverse(F))
+    if (enter(F))
       print(std::string("ForRangeStmt ") + toString(F));
     return true;
   }
 
   bool visit(IfStmt *I) {
-    if (traverse(I))
+    if (enter(I))
       print(std::string("IfStmt ") + toString(I));
     return true;
   }
 
   bool visit(NextStmt *N) {
-    if (traverse(N))
+    if (enter(N))
       print(std::string("NextStmt ") + toString(N));
     return true;
   }
 
   bool visit(NextfileStmt *N) {
-    if (traverse(N))
+    if (enter(N))
       print(std::string("Nextfile ") + toString(N));
     return true;
   }
 
   bool visit(PrintStmt *P) {
-    if (traverse(P))
+    if (enter(P))
       print(std::string("PrintStnt ") + toString(P));
     return true;
   }
 
   bool visit(ReturnStmt *R) {
-    if (traverse(R))
+    if (enter(R))
       print(std::string("ReturnStmt ") + toString(R));
     return true;
   }
 
   bool visit(ValueStmt *V) {
-    if (traverse(V))
+    if (enter(V))
       print(std::string("ValueStmt ") + toString(V));
     return true;
   }
 
   bool visit(WhileStmt *W) {
-    if (traverse(W))
+    if (enter(W))
       print(std::string("WhileStmt ") + toString(W));
     return true;
   }
 
   bool visit(ArraySubscriptExpr *A) {
-    if (traverse(A))
+    if (enter(A))
       print(std::string("ArraySubscriptExpr ") + toString(A));
     return true;
   }
 
   bool visit(BinaryOperator *B) {
-    if (traverse(B))
+    if (enter(B))
       print(std::string("BinaryOperator ") + toString(B));
     return true;
   }
 
   bool visit(CallExpr *C) {
-    if (traverse(C))
+    if (enter(C))
       print(std::string("CallExpr ") + toString(C));
     return true;
   }
 
   bool visit(DeclRefExpr *D) {
-    if (traverse(D))
+    if (enter(D))
       print(std::string("DeclRefExpr ") + toString(D));
     return true;
   }
 
   bool visit(FloatingLiteral *F) {
-    if (traverse(F))
+    if (enter(F))
       print(std::string("FloatingLiteral ") + toString(F));
     return true;
   }
 
   bool visit(RegexLiteral *R) {
-    if (traverse(R))
+    if (enter(R))
       print(std::string("RegexLiteral ") + toString(R));
     return true;
   }
 
   bool visit(StringLiteral *S) {
-    if (traverse(S))
+    if (enter(S))
       print(std::string("StringLiteral ") + toString(S));
     return true;
   }
 
   bool visit(UnaryOperator *U) {
-    if (traverse(U))
+    if (enter(U))
       print(std::string("UnaryOperator ") + toString(U));
     return true;
+  }
+
+public:
+  bool traverse(auto *P) {
+    return ASTVisitor<ASTPrinter, trav::RecursiveDescent, true>::visit(P);
   }
 };
 }; // namespace cawk

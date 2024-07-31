@@ -11,11 +11,11 @@ template <typename Derived, trav::TraversalKind Traversal,
           bool CheckNull = false>
 class ASTVisitor {
 public:
-  consteval bool isPreorder() {
+  bool isPreorder() {
     return Traversal == trav::Preorder || Traversal == trav::RecursiveDescent;
   }
 
-  consteval bool isPostorder() {
+  bool isPostorder() {
     return Traversal == trav::Postorder || Traversal == trav::RecursiveDescent;
   }
 
@@ -38,7 +38,7 @@ public:
       if (F == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
     for (ParamVarDecl *P : F->getParams())
@@ -46,7 +46,7 @@ public:
 
     visit(F->getBody());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(F);
 
     return true;
@@ -66,13 +66,13 @@ public:
       if (R == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(R);
 
     visit(R->getPattern());
     visit(R->getAction());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(R);
 
     return true;
@@ -83,13 +83,13 @@ public:
       if (T == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(T);
 
     for (Decl *D : T->getDecls())
       visit(D);
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(T);
 
     return true;
@@ -142,13 +142,13 @@ public:
       if (C == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(C);
 
     for (Stmt *S : C->getBody())
       visit(S);
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(C);
 
     return true;
@@ -159,12 +159,12 @@ public:
       if (D == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(D);
 
     visit(D->getArgument());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(D);
 
     return true;
@@ -175,13 +175,13 @@ public:
       if (D == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(D);
 
     visit(D->getBody());
     visit(D->getCond());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(D);
 
     return true;
@@ -192,12 +192,12 @@ public:
       if (E == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(E);
 
     visit(E->getValue());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(E);
 
     return true;
@@ -208,7 +208,7 @@ public:
       if (F == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
     visit(F->getInit());
@@ -216,7 +216,7 @@ public:
     visit(F->getInc());
     visit(F->getBody());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(F);
 
     return true;
@@ -227,14 +227,14 @@ public:
       if (F == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
     visit(F->getLoopVar());
     visit(F->getRange());
     visit(F->getBody());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(F);
 
     return true;
@@ -245,14 +245,14 @@ public:
       if (I == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(I);
 
     visit(I->getCond());
     visit(I->getThen());
     visit(I->getElse());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(I);
 
     return true;
@@ -281,13 +281,13 @@ public:
       if (P == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(P);
 
     for (Expr *E : P->getArgs())
       visit(E);
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(P);
 
     return true;
@@ -298,12 +298,12 @@ public:
       if (R == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(R);
 
     visit(R->getValue());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(R);
 
     return true;
@@ -314,12 +314,12 @@ public:
       if (V == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(V);
 
     visit(V->getValue());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(V);
 
     return true;
@@ -330,13 +330,13 @@ public:
       if (W == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(W);
 
     visit(W->getCond());
     visit(W->getBody());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(W);
 
     return true;
@@ -364,13 +364,14 @@ public:
       if (A == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(A);
 
     visit(A->getLHS());
-    visit(A->getRHS());
+    for (Expr *E : A->getRHS())
+      visit(E);
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(A);
 
     return true;
@@ -381,13 +382,13 @@ public:
       if (B == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(B);
 
     visit(B->getLHS());
     visit(B->getRHS());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(B);
 
     return true;
@@ -398,7 +399,7 @@ public:
       if (C == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(C);
 
     visit(C->getCallee());
@@ -406,7 +407,7 @@ public:
     for (Expr *E : C->getArgs())
       visit(E);
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(C);
 
     return true;
@@ -453,12 +454,12 @@ public:
       if (U == nullptr)
         return true;
 
-    if constexpr (isPreorder())
+    if (isPreorder())
       static_cast<Derived *>(this)->visit(U);
 
     visit(U->getSubExpr());
 
-    if constexpr (isPostorder())
+    if (isPostorder())
       static_cast<Derived *>(this)->visit(U);
 
     return true;
