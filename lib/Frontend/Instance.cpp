@@ -4,6 +4,8 @@
 #include "Parse/Parser.h"
 #include "Sema/SemaDecl.h"
 #include "Sema/SemaType.h"
+#include "AST/ASTVisitor.h"
+#include "AST/ASTPrinter.h"
 
 using namespace cawk;
 
