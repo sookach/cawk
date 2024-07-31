@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
-#include "Exec/FunctionSymbol.h"
+#include "Sema/FunctionSymbol.h"
 #include "Exec/IO.h"
 #include "Exec/Value.h"
 #include "Support/StringMap.h"

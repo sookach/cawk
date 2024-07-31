@@ -38,7 +38,8 @@ void Exec::addFunction(const FunctionDecl *F) {
   std::vector<std::string> Params;
   for (ParamVarDecl *P : F->getParams())
     Params.emplace_back(P->getIdentifier().getIdentifier());
-  Functions.emplace(F->getIdentifier().getIdentifier(), Params, F->getBody());
+  Functions.emplace(F->getIdentifier().getIdentifier(),
+                    F->getIdentifier().getIdentifier(), Params, F->getBody());
 }
 
 void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
