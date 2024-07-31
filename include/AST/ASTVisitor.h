@@ -7,7 +7,9 @@ namespace trav {
 enum TraversalKind { Preorder, Postorder, RecursiveDescent };
 };
 
-template <typename Derived, trav::TraversalKind Traversal> class ASTVisitor {
+template <typename Derived, trav::TraversalKind Traversal,
+          bool CheckNull = false>
+class ASTVisitor {
 public:
   consteval bool isPreorder() {
     return Traversal == trav::Preorder || Traversal == trav::RecursiveDescent;
@@ -32,6 +34,10 @@ public:
   }
 
   bool visit(FunctionDecl *F) {
+    if constexpr (CheckNull)
+      if (F == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
@@ -47,11 +53,19 @@ public:
   }
 
   bool visit(ParamVarDecl *P) {
+    if constexpr (CheckNull)
+      if (P == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(P);
     return true;
   }
 
   bool visit(RuleDecl *R) {
+    if constexpr (CheckNull)
+      if (R == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(R);
 
@@ -65,6 +79,10 @@ public:
   }
 
   bool visit(TranslationUnitDecl *T) {
+    if constexpr (CheckNull)
+      if (T == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(T);
 
@@ -102,16 +120,28 @@ public:
   }
 
   bool visit(BreakStmt *B) {
+    if constexpr (CheckNull)
+      if (B == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(B);
     return true;
   }
 
   bool visit(ContinueStmt *C) {
+    if constexpr (CheckNull)
+      if (C == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(C);
     return true;
   }
 
   bool visit(CompoundStmt *C) {
+    if constexpr (CheckNull)
+      if (C == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(C);
 
@@ -125,6 +155,10 @@ public:
   }
 
   bool visit(DeleteStmt *D) {
+    if constexpr (CheckNull)
+      if (D == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(D);
 
@@ -137,6 +171,10 @@ public:
   }
 
   bool visit(DoStmt *D) {
+    if constexpr (CheckNull)
+      if (D == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(D);
 
@@ -150,6 +188,10 @@ public:
   }
 
   bool visit(ExitStmt *E) {
+    if constexpr (CheckNull)
+      if (E == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(E);
 
@@ -162,6 +204,10 @@ public:
   }
 
   bool visit(ForStmt *F) {
+    if constexpr (CheckNull)
+      if (F == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
@@ -177,6 +223,10 @@ public:
   }
 
   bool visit(ForRangeStmt *F) {
+    if constexpr (CheckNull)
+      if (F == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
@@ -191,6 +241,10 @@ public:
   }
 
   bool visit(IfStmt *I) {
+    if constexpr (CheckNull)
+      if (I == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(I);
 
@@ -205,16 +259,28 @@ public:
   }
 
   bool visit(NextStmt *N) {
+    if constexpr (CheckNull)
+      if (N == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(N);
     return true;
   }
 
   bool visit(NextfileStmt *N) {
+    if constexpr (CheckNull)
+      if (N == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(N);
     return true;
   }
 
   bool visit(PrintStmt *P) {
+    if constexpr (CheckNull)
+      if (P == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(P);
 
@@ -228,6 +294,10 @@ public:
   }
 
   bool visit(ReturnStmt *R) {
+    if constexpr (CheckNull)
+      if (R == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(R);
 
@@ -240,6 +310,10 @@ public:
   }
 
   bool visit(ValueStmt *V) {
+    if constexpr (CheckNull)
+      if (V == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(V);
 
@@ -252,6 +326,10 @@ public:
   }
 
   bool visit(WhileStmt *W) {
+    if constexpr (CheckNull)
+      if (W == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(W);
 
@@ -282,6 +360,10 @@ public:
   }
 
   bool visit(ArraySubscriptExpr *A) {
+    if constexpr (CheckNull)
+      if (A == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(A);
 
@@ -295,6 +377,10 @@ public:
   }
 
   bool visit(BinaryOperator *B) {
+    if constexpr (CheckNull)
+      if (B == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(B);
 
@@ -308,6 +394,10 @@ public:
   }
 
   bool visit(CallExpr *C) {
+    if constexpr (CheckNull)
+      if (C == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(C);
 
@@ -323,26 +413,46 @@ public:
   }
 
   bool visit(DeclRefExpr *D) {
+    if constexpr (CheckNull)
+      if (D == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(D);
     return true;
   }
 
   bool visit(FloatingLiteral *F) {
+    if constexpr (CheckNull)
+      if (F == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(F);
     return true;
   }
 
   bool visit(RegexLiteral *R) {
+    if constexpr (CheckNull)
+      if (R == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(R);
     return true;
   }
 
   bool visit(StringLiteral *S) {
+    if constexpr (CheckNull)
+      if (S == nullptr)
+        return true;
+
     static_cast<Derived *>(this)->visit(S);
     return true;
   }
 
   bool visit(UnaryOperator *U) {
+    if constexpr (CheckNull)
+      if (U == nullptr)
+        return true;
+
     if constexpr (isPreorder())
       static_cast<Derived *>(this)->visit(U);
 
