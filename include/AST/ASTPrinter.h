@@ -15,8 +15,9 @@ class ASTPrinter : public ASTVisitor<ASTPrinter, trav::Preorder, true> {
   friend class ASTVisitor<ASTPrinter, trav::Preorder, true>;
 
 private:
-  void print(std::string Name, void *P) {
-    std::string S = std::string(Table[P], ' ') + Name + toString(P);
+  void print(std::string Name, void *P, auto &&...Text) {
+    std::string S = std::string(Table[P] * 2, ' ') + Name + toString(P) +
+                    (std::string() + ... + std::string(Text));
     std::puts(S.c_str());
   }
 
@@ -27,12 +28,12 @@ private:
   }
 
   bool visit(FunctionDecl *F) {
-    print(std::string("FunctionDecl "), F);
+    print(std::string("FunctionDecl "), F, " ", F->getName());
     return true;
   }
 
   bool visit(ParamVarDecl *P) {
-    print(std::string("ParamVarDecl "), P);
+    print(std::string("ParamVarDecl "), P, " ", P->getName());
     return true;
   }
 
@@ -42,7 +43,6 @@ private:
   }
 
   bool visit(TranslationUnitDecl *T) {
-
     print(std::string("TranslationUnitDecl "), T);
     return true;
   }
@@ -138,22 +138,24 @@ private:
   }
 
   bool visit(DeclRefExpr *D) {
-    print(std::string("DeclRefExpr "), D);
+    print(std::string("DeclRefExpr "), D, " ", D->getName());
     return true;
   }
 
   bool visit(FloatingLiteral *F) {
-    print(std::string("FloatingLiteral "), F);
+    print(std::string("FloatingLiteral "), F, " ",
+          F->getValue().getLiteralData());
     return true;
   }
 
   bool visit(RegexLiteral *R) {
-    print(std::string("RegexLiteral "), R);
+    print(std::string("RegexLiteral "), R, " ", R->getValue().getLiteralData());
     return true;
   }
 
   bool visit(StringLiteral *S) {
-    print(std::string("StringLiteral "), S);
+    print(std::string("StringLiteral "), S, " ",
+          S->getValue().getLiteralData());
     return true;
   }
 

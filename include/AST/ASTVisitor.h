@@ -20,6 +20,9 @@ public:
   }
 
   bool visit(Decl *D) {
+    if constexpr (CheckNull)
+      if (D == nullptr)
+        return true;
     switch (D->getKind()) {
 #define CASE(KIND, CLASS)                                                      \
   case Decl::DK_##KIND:                                                        \
@@ -96,6 +99,9 @@ public:
   }
 
   bool visit(Stmt *S) {
+    if constexpr (CheckNull)
+      if (S == nullptr)
+        return true;
     switch (S->getKind()) {
 #define CASE(KIND, CLASS)                                                      \
   case Stmt::SK_##KIND:                                                        \
@@ -343,6 +349,9 @@ public:
   }
 
   bool visit(Expr *E) {
+    if constexpr (CheckNull)
+      if (E == nullptr)
+        return true;
     switch (E->getKind()) {
 #define CASE(KIND, CLASS)                                                      \
   case Expr::EK_##KIND:                                                        \

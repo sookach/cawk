@@ -104,6 +104,8 @@ public:
 
   const CompoundStmt *getBody() const { return Body; }
 
+  std::string_view getName() const { return getIdentifier().getIdentifier(); }
+
   static FunctionDecl *Create(Token Identifier,
                               std::vector<ParamVarDecl *> Params,
                               CompoundStmt *Body) {
@@ -154,6 +156,8 @@ public:
   }
 
   Token getIdentifier() { return Identifier; }
+
+  std::string_view getName() { return getIdentifier().getIdentifier(); }
 
   static VarDecl *Create(Token Identifier) {
     return new VarDecl(DK_Var, Identifier);
@@ -566,6 +570,8 @@ public:
   static bool classof(const Expr *E) { return E->getKind() == EK_DeclRef; }
 
   Token getIdentifier() const { return Identifier; }
+
+  std::string_view getName() const { return getIdentifier().getRawData(); }
 
   static DeclRefExpr *Create(Token Identifier) {
     return new DeclRefExpr(Identifier);

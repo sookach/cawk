@@ -32,5 +32,7 @@ public:
            "Cannot get literal data of non-literal");
     return {Ptr, Length};
   }
+
+  std::string_view getRawData() const { return {Ptr, Length}; }
 };
 } // namespace cawk
