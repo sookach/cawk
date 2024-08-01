@@ -484,9 +484,14 @@ protected:
 
 private:
   const ExprKind Kind;
+  bool IsLValue = false;
 
 public:
   ExprKind getKind() const { return Kind; }
+
+  bool isLValue() const { return IsLValue; }
+
+  void markAsLValue() { IsLValue = true; }
 };
 
 class ArraySubscriptExpr : public Expr {
