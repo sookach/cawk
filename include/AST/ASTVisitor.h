@@ -4,7 +4,7 @@
 
 namespace cawk {
 namespace trav {
-enum TraversalKind { Preorder, Postorder, RecursiveDescent };
+enum TraversalKind { Preorder, Postorder, RecursiveDescent, None };
 };
 
 template <typename Derived, trav::TraversalKind Traversal,
@@ -18,6 +18,8 @@ public:
   bool isPostorder() {
     return Traversal == trav::Postorder || Traversal == trav::RecursiveDescent;
   }
+
+  bool isNone() { return Traversal == trav::None; }
 
   bool visit(Decl *D) {
     if constexpr (CheckNull)
@@ -41,6 +43,9 @@ public:
       if (F == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(F);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
@@ -60,14 +65,16 @@ public:
       if (P == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(P);
-    return true;
+    return static_cast<Derived *>(this)->visit(P);
   }
 
   bool visit(RuleDecl *R) {
     if constexpr (CheckNull)
       if (R == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(R);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(R);
@@ -85,6 +92,9 @@ public:
     if constexpr (CheckNull)
       if (T == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(T);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(T);
@@ -130,8 +140,7 @@ public:
       if (B == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(B);
-    return true;
+    return static_cast<Derived *>(this)->visit(B);
   }
 
   bool visit(ContinueStmt *C) {
@@ -139,14 +148,16 @@ public:
       if (C == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(C);
-    return true;
+    return static_cast<Derived *>(this)->visit(C);
   }
 
   bool visit(CompoundStmt *C) {
     if constexpr (CheckNull)
       if (C == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(C);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(C);
@@ -165,6 +176,9 @@ public:
       if (D == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(D);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(D);
 
@@ -180,6 +194,9 @@ public:
     if constexpr (CheckNull)
       if (D == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(D);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(D);
@@ -198,6 +215,9 @@ public:
       if (E == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(D);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(E);
 
@@ -213,6 +233,9 @@ public:
     if constexpr (CheckNull)
       if (F == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(F);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(F);
@@ -233,6 +256,9 @@ public:
       if (F == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(D);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(F);
 
@@ -250,6 +276,9 @@ public:
     if constexpr (CheckNull)
       if (I == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(I);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(I);
@@ -269,8 +298,7 @@ public:
       if (N == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(N);
-    return true;
+    return static_cast<Derived *>(this)->visit(N);
   }
 
   bool visit(NextfileStmt *N) {
@@ -278,14 +306,16 @@ public:
       if (N == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(N);
-    return true;
+    return static_cast<Derived *>(this)->visit(N);
   }
 
   bool visit(PrintStmt *P) {
     if constexpr (CheckNull)
       if (P == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(P);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(P);
@@ -304,6 +334,9 @@ public:
       if (R == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(R);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(R);
 
@@ -320,6 +353,9 @@ public:
       if (V == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(V);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(V);
 
@@ -335,6 +371,9 @@ public:
     if constexpr (CheckNull)
       if (W == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(W);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(W);
@@ -373,6 +412,9 @@ public:
       if (A == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(A);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(A);
 
@@ -391,6 +433,9 @@ public:
       if (B == nullptr)
         return true;
 
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(B);
+
     if (isPreorder())
       static_cast<Derived *>(this)->visit(B);
 
@@ -407,6 +452,9 @@ public:
     if constexpr (CheckNull)
       if (C == nullptr)
         return true;
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(C);
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(C);
@@ -427,8 +475,7 @@ public:
       if (D == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(D);
-    return true;
+    return static_cast<Derived *>(this)->visit(D);
   }
 
   bool visit(FloatingLiteral *F) {
@@ -436,8 +483,7 @@ public:
       if (F == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(F);
-    return true;
+    return static_cast<Derived *>(this)->visit(F);
   }
 
   bool visit(RegexLiteral *R) {
@@ -445,8 +491,7 @@ public:
       if (R == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(R);
-    return true;
+    return static_cast<Derived *>(this)->visit(R);
   }
 
   bool visit(StringLiteral *S) {
@@ -454,8 +499,7 @@ public:
       if (S == nullptr)
         return true;
 
-    static_cast<Derived *>(this)->visit(S);
-    return true;
+    return static_cast<Derived *>(this)->visit(S);
   }
 
   bool visit(UnaryOperator *U) {
@@ -465,6 +509,9 @@ public:
 
     if (isPreorder())
       static_cast<Derived *>(this)->visit(U);
+
+    if (isNone())
+      return static_cast<Derived *>(this)->visit(U);
 
     visit(U->getSubExpr());
 

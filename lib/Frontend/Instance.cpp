@@ -4,8 +4,7 @@
 #include "Exec/Exec.h"
 #include "Lexer/Lexer.h"
 #include "Parse/Parser.h"
-#include "Sema/SemaDecl.h"
-#include "Sema/SemaType.h"
+#include "Sema/Sema.h"
 
 using namespace cawk;
 

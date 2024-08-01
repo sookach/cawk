@@ -4,87 +4,34 @@
 
 using namespace cawk;
 
-bool SemaDecl::visit(Decl *D) {
-  switch (D->getKind()) {
-#define CASE(KIND, CLASS)                                                      \
-  case Decl::DK_##KIND:                                                        \
-    return visit(static_cast<CLASS *>(D))
-    CASE(Function, FunctionDecl);
-    CASE(ParamVar, ParamVarDecl);
-    CASE(Rule, RuleDecl);
-    CASE(TranslationUnit, TranslationUnitDecl);
-    CASE(Var, VarDecl);
-#undef CASE
-  }
-}
-
 bool SemaDecl::visit(FunctionDecl *F) {
-  assert(!FunctionMap.contains(F->getIdentifier().getIdentifier()));
-  FunctionMap[F->getIdentifier().getIdentifier()] = F;
-  FunctionDecls.push_back(F);
-  return true;
-}
-
-bool SemaDecl::visit(ParamVarDecl *P) { return true; }
-
-bool SemaDecl::visit(RuleDecl *R) {
-  if (R->getPattern() != nullptr && !visit(R->getPattern()))
+  if (!GlobalRefs.try_emplace(std::string(F->getName()), F))
     return false;
-  if (R->getAction() != nullptr)
-    return visit(R->getAction());
+
+  LocalRefs.clear();
   return true;
 }
 
-bool SemaDecl::visit(TranslationUnitDecl *T) {
-  for (Decl *D : T->getDecls())
-    if (isa<FunctionDecl>(D))
-      visit(D);
-
-  for (Decl *D : T->getDecls())
-    if (isa<RuleDecl>(D))
-      visit(D);
-
-  return true;
+bool SemaDecl::visit(ParamVarDecl *P) {
+  if (!LocalRefs.try_emplace(std::string(P->getName())), P)
+    return false;
 }
+
+bool SemaDecl::visit(RuleDecl *R) { return true; }
+
+bool SemaDecl::visit(TranslationUnitDecl *T) { return true; }
 
 bool SemaDecl::visit(VarDecl *V) { return true; }
 
-bool SemaDecl::visit(Stmt *S) {
-  switch (S->getKind()) {
-#define CASE(KIND, CLASS)                                                      \
-  case Stmt::SK_##KIND:                                                        \
-    return visit(static_cast<CLASS *>(S))
-    CASE(Break, BreakStmt);
-    CASE(Compound, CompoundStmt);
-    CASE(Continue, ContinueStmt);
-    CASE(Delete, DeleteStmt);
-    CASE(Do, DoStmt);
-    CASE(Exit, ExitStmt);
-    CASE(For, ForStmt);
-    CASE(ForRange, ForRangeStmt);
-    CASE(If, IfStmt);
-    CASE(Next, NextStmt);
-    CASE(Nextfile, NextfileStmt);
-    CASE(Print, PrintStmt);
-    CASE(Return, ReturnStmt);
-    CASE(Value, ValueStmt);
-    CASE(While, WhileStmt);
-#undef CASE
-  }
-}
-
 bool SemaDecl::visit(BreakStmt *B) { return true; }
 
-bool SemaDecl::visit(CompoundStmt *C) {
-  for (Stmt *S : C->getBody())
-    if (!visit(S))
-      return false;
-  return true;
-}
+bool SemaDecl::visit(CompoundStmt *C) { return true; }
 
 bool SemaDecl::visit(ContinueStmt *C) { return true; }
 
-bool SemaDecl::visit(DeleteStmt *D) { return visit(D->getArgument()); }
+bool SemaDecl::visit(DeleteStmt *D) {
+    
+}
 
 bool SemaDecl::visit(DoStmt *D) {
   return visit(D->getBody()) && visit(D->getCond());
@@ -182,7 +129,12 @@ bool SemaDecl::visit(StringLiteral *S) { return true; }
 
 bool SemaDecl::visit(UnaryOperator *U) { return true; }
 
-StringMap<FunctionDecl *> SemaDecl::getFunctionMap() { return FunctionMap; }
+bool SemaDecl::check(TranslationUnitDecl *T) { return visit(T); }
+
+std::unordered_map<std::string_view, FunctionDecl *>
+SemaDecl::getFunctionMap() {
+  return FunctionMap;
+}
 
 std::vector<FunctionDecl *> SemaDecl::getFunctionDecls() {
   return FunctionDecls;

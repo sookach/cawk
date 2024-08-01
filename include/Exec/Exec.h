@@ -1,25 +1,26 @@
 #pragma once
 
 #include "AST/AST.h"
-#include "Sema/FunctionSymbol.h"
+#include "AST/ASTVisitor.h"
 #include "Exec/IO.h"
 #include "Exec/Value.h"
+#include "Sema/FunctionSymbol.h"
 #include "Support/StringMap.h"
 #include "Support/Support.h"
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace cawk {
-class Exec {
+class Exec : ASTVisitor<Exec, trav::Postorder, true> {
+  friend class ASTVisitor<Exec, trav::Postorder, true>;
+
   static std::unique_ptr<Exec> Process;
 
   TranslationUnitDecl *AST;
-  StringMap<FunctionSymbol> Functions;
-  StringMap<Value> Globals;
-  StringMap<Value> Locals;
   std::vector<Value> Fields;
   std::vector<InputFile> Inputs;
   Value NullValue;
@@ -42,40 +43,39 @@ public:
   static void exec();
 
 private:
-  void addFunction(const FunctionDecl *F);
   void addInput(std::string Filepath);
 
   void operator()();
 
-  void visit(TranslationUnitDecl *T);
-  void visit(RuleDecl *R);
+  bool visit(TranslationUnitDecl *T);
+  bool visit(RuleDecl *R);
 
-  void visit(Stmt *S);
-  void visit(BreakStmt *B);
-  void visit(ContinueStmt *C);
-  void visit(CompoundStmt *C);
-  void visit(DeleteStmt *D);
-  void visit(DoStmt *D);
-  void visit(ExitStmt *E);
-  void visit(ForStmt *F);
-  void visit(ForRangeStmt *F);
-  void visit(IfStmt *I);
-  void visit(NextStmt *N);
-  void visit(NextfileStmt *N);
-  void visit(PrintStmt *P);
-  void visit(ReturnStmt *R);
-  void visit(ValueStmt *V);
-  void visit(WhileStmt *W);
+  bool visit(Stmt *S);
+  bool visit(BreakStmt *B);
+  bool visit(ContinueStmt *C);
+  bool visit(CompoundStmt *C);
+  bool visit(DeleteStmt *D);
+  bool visit(DoStmt *D);
+  bool visit(ExitStmt *E);
+  bool visit(ForStmt *F);
+  bool visit(ForRangeStmt *F);
+  bool visit(IfStmt *I);
+  bool visit(NextStmt *N);
+  bool visit(NextfileStmt *N);
+  bool visit(PrintStmt *P);
+  bool visit(ReturnStmt *R);
+  bool visit(ValueStmt *V);
+  bool visit(WhileStmt *W);
 
-  Value visit(Expr *E);
-  Value &visit(ArraySubscriptExpr *A);
-  Value visit(BinaryOperator *B);
-  Value visit(CallExpr *C);
-  Value visit(DeclRefExpr *D);
-  Value visit(FloatingLiteral *F);
-  Value visit(RegexLiteral *R);
-  Value visit(StringLiteral *S);
-  Value visit(UnaryOperator *U);
+  bool visit(Expr *E);
+  bool visit(ArraySubscriptExpr *A);
+  bool visit(BinaryOperator *B);
+  bool visit(CallExpr *C);
+  bool visit(DeclRefExpr *D);
+  bool visit(FloatingLiteral *F);
+  bool visit(RegexLiteral *R);
+  bool visit(StringLiteral *S);
+  bool visit(UnaryOperator *U);
 
   Value &getValue(std::string_view Name);
   Value &getValue(DeclRefExpr *E);

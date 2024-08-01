@@ -1,16 +1,26 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "AST/ASTVisitor.h"
 #include "Support/StringMap.h"
 
+#include <string_view>
+#include <unordered_map>
+
 namespace cawk {
-class SemaDecl {
-  StringMap<FunctionDecl *> FunctionMap;
+class SemaDecl : ASTVisitor<SemaDecl, trav::Preorder, true> {
+  friend class ASTVisitor<SemaDecl, trav::Preorder, true>;
+
+  std::unordered_map<std::string_view, FunctionDecl *> FunctionMap;
   std::vector<FunctionDecl *> FunctionDecls;
   std::vector<RuleDecl *> RuleDecls;
+  std::unordered_map<std::string, std::variant<FunctionDecl *, DeclRefExpr *>>
+      GlobalRefs;
+  std::unordered_map<std::string, ParamVarDecl *> LocalRefs;
 
 public:
-  StringMap<FunctionDecl *> getFunctionMap();
+  bool check(TranslationUnitDecl *T);
+  std::unordered_map<std::string_view, FunctionDecl *> getFunctionMap();
   std::vector<FunctionDecl *> getFunctionDecls();
   std::vector<RuleDecl *> getRuleDecls();
 
@@ -49,4 +59,4 @@ private:
   bool visit(StringLiteral *S);
   bool visit(UnaryOperator *U);
 };
-} // namespace cawk::sema
+} // namespace cawk

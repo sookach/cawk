@@ -3,27 +3,18 @@
 #include "AST/AST.h"
 #include "Sema/FunctionSymbol.h"
 #include "Support/StringMap.h"
+#include "Sema/Type.h"
 
 #include <vector>
 
 namespace cawk {
 class SemaType {
-  enum TypeKind {
-    TK_Primitive,
-    TK_Array,
-    TK_PrimitiveOrArray,
-    TK_Function,
-    TK_Null,
-    TK_Any,
-    TK_Error,
-  };
-
   StringMap<std::vector<TypeKind>> FunctionPrototypes;
   StringMap<TypeKind> Globals;
   StringMap<TypeKind> Locals;
 
 public:
-  bool check();
+  bool check(TranslationUnitDecl *T);
 
 private:
   bool visit(Decl *D);

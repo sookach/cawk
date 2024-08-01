@@ -1,6 +1,8 @@
 #pragma once
 
+#include "Exec/Value.h"
 #include "Lexer/Lexer.h"
+#include "Sema/Type.h"
 
 #include <vector>
 
@@ -140,6 +142,8 @@ public:
 class VarDecl : public Decl {
 protected:
   Token Identifier;
+  Value Val;
+  type::TypeKind Type;
 
   VarDecl(DeclKind Kind, Token Identifier)
       : Decl(Kind), Identifier(Identifier) {}
@@ -485,6 +489,8 @@ protected:
 private:
   const ExprKind Kind;
   bool IsLValue = false;
+  Value Val;
+  type::TypeKind Type;
 
 public:
   ExprKind getKind() const { return Kind; }
@@ -492,6 +498,14 @@ public:
   bool isLValue() const { return IsLValue; }
 
   void markAsLValue() { IsLValue = true; }
+
+  Value getValue() { return Val; }
+
+  void setValue(Value V) { Val = V; }
+
+  type::TypeKind getType() { return Type; }
+
+  void setType(type::TypeKind T) { Type = T; }
 };
 
 class ArraySubscriptExpr : public Expr {
@@ -548,6 +562,7 @@ public:
 class CallExpr : public Expr {
   Expr *Callee;
   std::vector<Expr *> Args;
+  FunctionDecl *TheFunction;
 
 protected:
   CallExpr(Expr *Callee, std::vector<Expr *> Args)
@@ -559,6 +574,10 @@ public:
   Expr *getCallee() { return Callee; }
 
   std::vector<Expr *> getArgs() { return Args; }
+
+  FunctionDecl *getFunction() { return TheFunction; }
+
+  void setFunction(FunctionDecl *F) { TheFunction = F; }
 
   static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args) {
     return new CallExpr(Callee, Args);

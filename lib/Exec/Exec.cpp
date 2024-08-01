@@ -25,22 +25,9 @@ void Exec::load(TranslationUnitDecl *T, std::vector<std::string> Filepaths) {
 
   for (const auto &Filepath : Filepaths)
     Process->addInput(Filepath);
-
-  for (const Decl *F : T->getDecls() | std::views::filter([](const Decl *D) {
-                         return isa<FunctionDecl>(D);
-                       }))
-    Process->addFunction(ptr_cast<const FunctionDecl>(F));
 }
 
 void Exec::exec() { Process->operator()(); }
-
-void Exec::addFunction(const FunctionDecl *F) {
-  std::vector<std::string> Params;
-  for (ParamVarDecl *P : F->getParams())
-    Params.emplace_back(P->getIdentifier().getIdentifier());
-  Functions.emplace(F->getIdentifier().getIdentifier(),
-                    F->getIdentifier().getIdentifier(), Params, F->getBody());
-}
 
 void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
 
@@ -85,69 +72,31 @@ void Exec::visit(TranslationUnitDecl *T) {
   }
 }
 
-void Exec::visit(RuleDecl *R) {
-  if (visit(R->getPattern()))
+bool Exec::visit(RuleDecl *R) {
+  if (R->getPattern() == nullptr || R->getPattern().getValue())
     visit(R->getAction());
 }
 
-void Exec::visit(Stmt *S) {
-  switch (S->getKind()) {
-#if defined(CASE)
-    static_assert(false);
-#else
-#define CASE(KIND, CLASS)                                                      \
-  case Stmt::SK_##KIND:                                                        \
-    return visit(static_cast<CLASS *>(S))
-#endif
-    CASE(Break, BreakStmt);
-    CASE(Continue, ContinueStmt);
-    CASE(Compound, CompoundStmt);
-    CASE(Delete, DeleteStmt);
-    CASE(Do, DoStmt);
-    CASE(Exit, ExitStmt);
-    CASE(For, ForStmt);
-    CASE(ForRange, ForRangeStmt);
-    CASE(If, IfStmt);
-    CASE(Next, NextStmt);
-    CASE(Nextfile, NextfileStmt);
-    CASE(Print, PrintStmt);
-    CASE(Return, ReturnStmt);
-    CASE(Value, ValueStmt);
-    CASE(While, WhileStmt);
-#undef CASE
-  }
-}
-
-void Exec::visit(BreakStmt *B) {
-  assert(NestedLevel != 0 && "awk: break illegal outside of loops");
+bool Exec::visit(BreakStmt *B) {
   ShouldBreak = true;
+  return true;
 }
 
-void Exec::visit(ContinueStmt *C) {
-  assert(NestedLevel != 0 && "awk: continue illegal outside of loops");
+bool Exec::visit(ContinueStmt *C) {
   ShouldContinue = true;
+  return true;
 }
 
-void Exec::visit(CompoundStmt *C) {
+bool Exec::visit(CompoundStmt *C) {
   for (Stmt *S : C->getBody())
     if (visit(S); isEarlyExit())
       break;
 }
 
-void Exec::visit(DeleteStmt *D) {
-  if (isa<DeclRefExpr>(D->getArgument())) {
-    getValue(ptr_cast<DeclRefExpr>(D->getArgument())).clear();
-  } else if (isa<ArraySubscriptExpr>(D->getArgument())) {
-    //   getValue(ptr_cast<DeclRefExpr>(
-    //               ptr_cast<ArraySubscriptExpr>(D->getArgument())->getLHS()))
-    //      .erase(visit(ptr_cast<ArraySubscriptExpr>(D->getArgument())->getRHS()));
-  } else {
-    cawk_unreachable("awk: delete illegal for non-arrays");
-  }
-}
+void Exec::visit(DeleteStmt *D) { D->getArgument()->getValue().clear(); }
 
 void Exec::visit(DoStmt *D) {
-  ++NestedLevel;
+
   for (;;) {
     visit(D->getBody());
 
@@ -169,9 +118,11 @@ void Exec::visit(ForStmt *F) {
 
   ++NestedLevel;
   for (;;) {
-    if (F->getCond() != nullptr && !visit(F->getCond()))
-      break;
-
+    if (F->getCond() != nullptr) {
+      visit(F->getCond());
+      if (!F->getCond()->getValue())
+        break;
+    }
     if (F->getBody() != nullptr)
       visit(F->getBody());
     ShouldContinue = false;
@@ -201,7 +152,7 @@ void Exec::visit(ForRangeStmt *F) {
 }
 
 void Exec::visit(IfStmt *I) {
-  if (visit(I->getCond()))
+  if (I->getCond()->getValue())
     visit(I->getThen());
   else if (I->getElse() != nullptr)
     visit(I->getElse());
@@ -345,7 +296,7 @@ Value Exec::visit(CallExpr *C) {
       ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getIdentifier();
   assert(Functions.contains(Callee) && "awk: calling undefined function");
   const auto &Fn = Functions.at(Callee);
-  const auto &Params = Fn.getParams();
+  const auto &Params = Fn->getParams();
   const auto &Args = C->getArgs();
 
   assert(std::size(Args) <= std::size(Params) &&
@@ -362,7 +313,7 @@ Value Exec::visit(CallExpr *C) {
     Locals.emplace(Params[I], Value::VK_Null);
 
   ++CallLevel;
-  visit(const_cast<CompoundStmt *>(Fn.getBody()));
+  visit(const_cast<CompoundStmt *>(Fn->getBody()));
   --CallLevel;
 
   Locals = std::move(Save);
