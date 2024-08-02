@@ -8,12 +8,12 @@
 #include <variant>
 
 namespace cawk {
-class SymbolResolver : ASTVisitor<Resolver, trav::Preorder, true> {
-  friend class ASTVisitor<Resolver, trav::Preorder, true>;
+class SymbolResolver : ASTVisitor<SymbolResolver, trav::Preorder, true> {
+  friend class ASTVisitor<SymbolResolver, trav::Preorder, true>;
 
   std::unordered_map<std::string, FunctionDecl *> FunctionResolutions;
   std::unordered_map<std::string, DeclRefExpr *> GlobalResolutions;
-  std::unordered_map<std::string, ParamVarDecl *> LocalResolutions;
+  std::unordered_map<std::string, DeclRefExpr *> LocalResolutions;
   std::unordered_set<std::string> LocalSymbols;
   std::vector<CallExpr *> UnresolvedSymbols;
 

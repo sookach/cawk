@@ -5,7 +5,7 @@
 using namespace cawk;
 
 bool SymbolResolver::visit(FunctionDecl *F) {
-  if (!FunctionResolutions.try_emplace(std::string(F->getName()), F) ||
+  if (!FunctionResolutions.try_emplace(std::string(F->getName()), F).second ||
       GlobalResolutions.contains(std::string(F->getName())))
     return false;
 
@@ -15,7 +15,7 @@ bool SymbolResolver::visit(FunctionDecl *F) {
 }
 
 bool SymbolResolver::visit(ParamVarDecl *P) {
-  if (!LocalSymbols.try_emplace(std::string(P->getName())))
+  if (!LocalSymbols.insert(std::string(P->getName())).second)
     return false;
   return true;
 }
@@ -94,7 +94,7 @@ bool SymbolResolver::visit(ValueStmt *V) {
 }
 
 bool SymbolResolver::visit(WhileStmt *W) {
-  if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(W->getValue()))
+  if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(W->getCond()))
     W->setCond(D);
   return true;
 }
@@ -126,7 +126,7 @@ bool SymbolResolver::visit(CallExpr *C) {
   }
 
   for (int I = 0; I != std::size(C->getArgs()); ++I)
-    if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(B->getRHS()))
+    if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(C->getArgs()[I]))
       C->setArg(I, D);
 
   return true;
@@ -147,19 +147,19 @@ bool SymbolResolver::check(TranslationUnitDecl *T) {
     return false;
 
   for (CallExpr *C : UnresolvedSymbols)
-    if (!FunctionResolutions.contains(
-            ptr_cast<DeclRefExpr>(C->getCallee())->getName()))
+    if (std::string Name(ptr_cast<DeclRefExpr>(C->getCallee())->getName());
+        !FunctionResolutions.contains(Name))
       return false;
     else
-      C->setFunction(ptr_cast<DeclRefExpr>(C->getCallee())->getName());
+      C->setFunction(FunctionResolutions[Name]);
 
   return true;
 }
 
 DeclRefExpr *SymbolResolver::resolve(DeclRefExpr *D) {
-  auto Name = D->getName();
+  std::string Name(D->getName());
   if (LocalSymbols.contains(Name))
-    return LocalResolutions.try_emplace(Name, D);
+    return LocalResolutions.try_emplace(Name, D).first->second;
   assert(!FunctionResolutions.contains(Name));
-  return GlobalResolutions.try_emplace(Name, D);
+  return GlobalResolutions.try_emplace(Name, D).first->second;
 }
