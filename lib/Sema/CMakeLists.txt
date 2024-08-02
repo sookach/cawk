@@ -1,2 +1,2 @@
-add_library(Sema SemaDecl.cpp SemaType.cpp SemaLValue.cpp Sema.cpp Resolver.cpp)
+add_library(Sema SemaType.cpp SemaLValue.cpp Sema.cpp SymbolResolver.cpp)
 target_include_directories(Sema PRIVATE ${CMAKE_SOURCE_DIR}/include)
