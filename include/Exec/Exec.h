@@ -15,8 +15,8 @@
 #include <vector>
 
 namespace cawk {
-class Exec : ASTVisitor<Exec, trav::Postorder, true> {
-  friend class ASTVisitor<Exec, trav::Postorder, true>;
+class Exec : public ASTVisitor<Exec, trav::None, true> {
+  friend class ASTVisitor<Exec, trav::None, true>;
 
   static std::unique_ptr<Exec> Process;
 
@@ -50,7 +50,6 @@ private:
   bool visit(TranslationUnitDecl *T);
   bool visit(RuleDecl *R);
 
-  bool visit(Stmt *S);
   bool visit(BreakStmt *B);
   bool visit(ContinueStmt *C);
   bool visit(CompoundStmt *C);
@@ -67,7 +66,6 @@ private:
   bool visit(ValueStmt *V);
   bool visit(WhileStmt *W);
 
-  bool visit(Expr *E);
   bool visit(ArraySubscriptExpr *A);
   bool visit(BinaryOperator *B);
   bool visit(CallExpr *C);
@@ -77,10 +75,6 @@ private:
   bool visit(StringLiteral *S);
   bool visit(UnaryOperator *U);
 
-  Value &getValue(std::string_view Name);
-  Value &getValue(DeclRefExpr *E);
-  void setValue(std::string_view Name, Value V);
-  void setValue(DeclRefExpr *D, Value V);
   Value &getField(std::size_t I);
 
   static bool isBuiltin(tok::TokenKind Kind);

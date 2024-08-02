@@ -62,18 +62,15 @@ void Exec::operator()() {
   visit(AST);
 }
 
-void Exec::visit(TranslationUnitDecl *T) {
-  for (Decl *D : T->getDecls() | std::views::filter([](Decl *D) {
-                   return isa<RuleDecl>(D);
-                 })) {
-    if (isEarlyExit())
-      break;
-    visit(static_cast<RuleDecl *>(D));
-  }
+bool Exec::visit(TranslationUnitDecl *T) {
+  for (Decl *D : T->getDecls())
+    if (RuleDecl *R = dyn_cast<RuleDecl>(D))
+      visit(R);
+  return true;
 }
 
 bool Exec::visit(RuleDecl *R) {
-  if (R->getPattern() == nullptr || R->getPattern().getValue())
+  if (R->getPattern() == nullptr || R->getPattern()->getValue())
     visit(R->getAction());
 }
 
@@ -93,9 +90,9 @@ bool Exec::visit(CompoundStmt *C) {
       break;
 }
 
-void Exec::visit(DeleteStmt *D) { D->getArgument()->getValue().clear(); }
+bool Exec::visit(DeleteStmt *D) { D->getArgument()->getValue().clear(); }
 
-void Exec::visit(DoStmt *D) {
+bool Exec::visit(DoStmt *D) {
 
   for (;;) {
     visit(D->getBody());
@@ -110,9 +107,9 @@ void Exec::visit(DoStmt *D) {
   --NestedLevel;
 }
 
-void Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue()).toNumber()); }
+bool Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue()).toNumber()); }
 
-void Exec::visit(ForStmt *F) {
+bool Exec::visit(ForStmt *F) {
   if (F->getInit() != nullptr)
     visit(F->getInit());
 
@@ -137,7 +134,7 @@ void Exec::visit(ForStmt *F) {
   --NestedLevel;
 }
 
-void Exec::visit(ForRangeStmt *F) {
+bool Exec::visit(ForRangeStmt *F) {
   auto LoopVar = F->getLoopVar()->getIdentifier().getLiteralData();
   ++NestedLevel;
   for (auto &Elem : getValue(F->getRange()).toArray()) {
@@ -151,18 +148,18 @@ void Exec::visit(ForRangeStmt *F) {
   --NestedLevel;
 }
 
-void Exec::visit(IfStmt *I) {
+bool Exec::visit(IfStmt *I) {
   if (I->getCond()->getValue())
     visit(I->getThen());
   else if (I->getElse() != nullptr)
     visit(I->getElse());
 }
 
-void Exec::visit(NextStmt *N) { SkipToNext = true; }
+bool Exec::visit(NextStmt *N) { SkipToNext = true; }
 
-void Exec::visit(NextfileStmt *N) { SkipToNextfile = true; }
+bool Exec::visit(NextfileStmt *N) { SkipToNextfile = true; }
 
-void Exec::visit(PrintStmt *P) {
+bool Exec::visit(PrintStmt *P) {
   assert(P->getOpcode().is(tok::unknown) && P->getOutput() == nullptr &&
          "unimplemented");
   if (P->getIden().is(tok::kw_print)) {
@@ -185,15 +182,15 @@ void Exec::visit(PrintStmt *P) {
   }
 }
 
-void Exec::visit(ReturnStmt *R) {
+bool Exec::visit(ReturnStmt *R) {
   assert(CallLevel > 0 && "cannot return from non-function");
   ReturnValue = visit(R->getValue());
   ShouldReturn = true;
 }
 
-void Exec::visit(ValueStmt *V) { visit(V->getValue()); }
+bool Exec::visit(ValueStmt *V) { visit(V->getValue()); }
 
-void Exec::visit(WhileStmt *W) {
+bool Exec::visit(WhileStmt *W) {
   assert(W->getCond() != nullptr && "while loop must have condition");
 
   ++NestedLevel;
@@ -206,28 +203,7 @@ void Exec::visit(WhileStmt *W) {
   --NestedLevel;
 }
 
-Value Exec::visit(Expr *E) {
-  switch (E->getKind()) {
-#if defined(CASE)
-    static_assert(false);
-#else
-#define CASE(KIND, CLASS)                                                      \
-  case Expr::EK_##KIND:                                                        \
-    return visit(static_cast<CLASS *>(E));
-#endif
-    CASE(ArraySubscript, ArraySubscriptExpr)
-    CASE(BinaryOperator, BinaryOperator)
-    CASE(Call, CallExpr)
-    CASE(DeclRef, DeclRefExpr)
-    CASE(FloatingLiteral, FloatingLiteral)
-    CASE(RegexLiteral, RegexLiteral);
-    CASE(StringLiteral, StringLiteral)
-    CASE(UnaryOperator, UnaryOperator)
-#undef CASE
-  }
-}
-
-Value &Exec::visit(ArraySubscriptExpr *A) {
+bool Exec::visit(ArraySubscriptExpr *A) {
   assert(isa<DeclRefExpr>(A->getLHS()));
 
   auto *V = &getValue(ptr_cast<DeclRefExpr>(A->getLHS()));
@@ -249,7 +225,7 @@ Value &Exec::visit(ArraySubscriptExpr *A) {
   return *V;
 }
 
-Value Exec::visit(BinaryOperator *B) {
+bool Exec::visit(BinaryOperator *B) {
   switch (B->getOpcode().getKind()) {
   default:
     cawk_unreachable("Invalid binary operation");
@@ -280,7 +256,7 @@ Value Exec::visit(BinaryOperator *B) {
   }
 }
 
-Value Exec::visit(CallExpr *C) {
+bool Exec::visit(CallExpr *C) {
   assert(isa<DeclRefExpr>(C->getCallee()) && "Invalid function call.");
   if (isBuiltin(
           ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind()))
@@ -321,7 +297,7 @@ Value Exec::visit(CallExpr *C) {
   return std::exchange(ReturnValue, {});
 }
 
-Value Exec::visit(DeclRefExpr *D) {
+bool Exec::visit(DeclRefExpr *D) {
   switch (D->getIdentifier().getKind()) {
   default:
     return getValue(D);
@@ -332,13 +308,13 @@ Value Exec::visit(DeclRefExpr *D) {
   }
 }
 
-Value Exec::visit(FloatingLiteral *F) {
+bool Exec::visit(FloatingLiteral *F) {
   return std::stod(F->getValue().getLiteralData().data());
 }
 
-Value Exec::visit(RegexLiteral *R) { return Value(0); }
+bool Exec::visit(RegexLiteral *R) { return Value(0); }
 
-Value Exec::visit(StringLiteral *S) {
+bool Exec::visit(StringLiteral *S) {
   std::string String(S->getValue().getLiteralData());
   String = std::regex_replace(String, std::regex(R"(\\')"), "'");
   String = std::regex_replace(String, std::regex(R"(\\")"), "\"");
@@ -354,7 +330,7 @@ Value Exec::visit(StringLiteral *S) {
   return Value(std::string(std::cbegin(String) + 1, std::cend(String) - 1));
 }
 
-Value Exec::visit(UnaryOperator *U) {
+bool Exec::visit(UnaryOperator *U) {
   switch (U->getOpcode().getKind()) {
   default:
     cawk_unreachable("Invalid Unary Operation.");
@@ -381,27 +357,6 @@ Value Exec::visit(UnaryOperator *U) {
   case tok::dollar:
     return getField(visit(U->getSubExpr()).toNumber());
   }
-}
-
-Value &Exec::getValue(std::string_view Name) {
-  return Locals.contains(Name)    ? Locals[Name]
-         : Globals.contains(Name) ? Globals[Name]
-                                  : NullValue;
-}
-
-Value &Exec::getValue(DeclRefExpr *E) {
-  return getValue(E->getIdentifier().getIdentifier());
-}
-
-void Exec::setValue(std::string_view Name, Value V) {
-  if (Locals.contains(Name))
-    Locals.insert_or_assign(Name, V);
-  else
-    Globals.insert_or_assign(Name, V);
-}
-
-void Exec::setValue(DeclRefExpr *D, Value V) {
-  setValue(D->getIdentifier().getIdentifier(), V);
 }
 
 Value &Exec::getField(std::size_t I) {
