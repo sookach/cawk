@@ -1,5 +1,5 @@
 #pragma once
 
 namespace type {
-enum TypeKind { primitive, array, null, any };
+enum TypeKind { null, primitive, array, any };
 };
