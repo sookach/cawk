@@ -1,13 +1,12 @@
 #pragma once
 
 #include "AST/AST.h"
-#include "Sema/SemaDecl.h"
+#include "Sema/SymbolResolver.h"
 #include "Sema/SemaLValue.h"
 #include "Sema/SemaType.h"
 
 namespace cawk {
 class Sema {
-  SemaDecl DeclSema;
   SemaType TypeSema;
   SemaLValue LValueSema;
 

@@ -2,6 +2,4 @@
 
 using namespace cawk;
 
-bool Sema::check(TranslationUnitDecl *T) {
-    
-}
+bool Sema::check(TranslationUnitDecl *T) { return true; }
