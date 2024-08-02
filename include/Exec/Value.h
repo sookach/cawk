@@ -7,280 +7,82 @@
 
 namespace cawk {
 
-class Value {
+class Scalar {
 public:
-  enum ValueKind { VK_Null, VK_Number, VK_String, VK_Array };
+  enum TypeKind { Null, Number, String };
 
 private:
-  ValueKind Kind = VK_Null;
-  double NumberValue;
-  std::string StringValue;
-  std::unordered_map<std::size_t, Value *> ArrayValue;
-
-  struct {
-    std::size_t operator()(const Value *V) const {
-      switch (V->getKind()) {
-      case VK_Null:
-        return std::hash<const Value *>()(V);
-      case VK_Number:
-        return std::hash<double>()(V->getNumber());
-      case VK_String:
-        return std::hash<std::string>()(V->getString());
-      case VK_Array:
-        assert("awk: can't read value of a; it's an array name.");
-        exit(EXIT_FAILURE);
-      }
-    }
-
-    std::size_t operator()(const Value &V) const {
-      switch (V.getKind()) {
-      case VK_Null:
-        return std::hash<const Value *>()(&V);
-      case VK_Number:
-        return std::hash<double>()(V.getNumber());
-      case VK_String:
-        return std::hash<std::string>()(V.getString());
-      case VK_Array:
-        assert("awk: can't read value of a; it's an array name.");
-        exit(EXIT_FAILURE);
-      }
-    }
-  } Hash;
+  std::variant<double, std::string> Value;
+  auto Type = Null;
 
 public:
-  Value() = default;
-
-  Value(double Value) : Kind(VK_Number), NumberValue(Value) {}
-
-  Value(std::string_view Value) : Kind(VK_String), StringValue(Value) {}
-
-  Value(Value *Key, Value *Val) : Kind(VK_Array) {
-    ArrayValue[Hash(Key)] = Val;
-  }
-
-  ValueKind getKind() const { return Kind; }
-
-  void setKind(ValueKind NewKind) { Kind = NewKind; }
-
-  double getNumber() const { return NumberValue; }
-
-  std::string getString() const { return StringValue; }
-
-  std::unordered_map<std::size_t, Value *> getArray() const {
-    return ArrayValue;
-  }
-
-  double toNumber() const {
-    switch (Kind) {
-    case VK_Null:
-      return 0;
-    case VK_Number:
-      return NumberValue;
-    case VK_String:
-      try {
-        return std::stod(StringValue);
-      } catch (...) {
+  template <TypeKind T> auto getAs() {
+    if constexpr (T == Number) {
+      if (Type == Null)
         return 0;
-      }
-      return NumberValue;
-    case VK_Array:
-      assert("Cannot convert non-scalar to scalar value.");
-      exit(EXIT_FAILURE);
-    }
-  }
-
-  std::string toString() const {
-    switch (Kind) {
-    case VK_Null:
-      return "";
-    case VK_Number: {
-      auto S = std::to_string(NumberValue);
-      for (; S.back() == '0'; S.pop_back())
-        ;
-
-      if (S.back() == '.')
-        S.pop_back();
-
-      return S;
-    }
-    case VK_String:
-      return StringValue;
-    case VK_Array:
-      assert("Cannot convert non-scalar to scalar value.");
-      exit(EXIT_FAILURE);
-    }
-  }
-
-  std::unordered_map<std::size_t, Value *> toArray() const {
-    if (Kind != VK_Array) {
-      assert("Cannot convert scalar to non-scalar value.");
-      exit(EXIT_FAILURE);
-    }
-    return ArrayValue;
-  }
-
-  Value &operator+=(const Value &V) {
-    makeNumber();
-    if (V.getKind() == VK_Number) {
-      NumberValue += V.getNumber();
+      if (Type == Number)
+        return std::get<double>(Value);
+      assert(Type == String);
+      char *C;
+      return std::strtod(std::get<std::string>(Value).c_str(), &C);
     } else {
-      auto Temp = V;
-      Temp.makeNumber();
-      NumberValue += Temp.getNumber();
+      assert(T == String);
+      if (Type == Null)
+        return "";
+      if (Type == Number)
+        return std::to_string(std::get<double>(Value));
+      assert(Type == String);
+      char *C;
+      return std::get<std::string>(Value);
     }
-
-    return *this;
   }
 
-  Value &operator-=(const Value &V) {
-    makeNumber();
-    if (V.getKind() == VK_Number) {
-      NumberValue -= V.getNumber();
+  template <TypeKind T> auto get() {
+    if constexpr (T == Number) {
+      return std::get<double>(Value);
     } else {
-      auto Temp = V;
-      Temp.makeNumber();
-      NumberValue -= Temp.getNumber();
+      assert(T == String);
+      return std::get<std::string>(Value);
     }
-
-    return *this;
   }
 
-  Value &operator*=(const Value &V) {
-    makeNumber();
-    if (V.getKind() == VK_Number) {
-      NumberValue *= V.getNumber();
-    } else {
-      auto Temp = V;
-      Temp.makeNumber();
-      NumberValue *= Temp.getNumber();
-    }
-
-    return *this;
+  void setValue(double V) {
+    Value = V;
+    Type = Number;
   }
 
-  Value &operator/=(const Value &V) {
-    makeNumber();
-    if (V.getKind() == VK_Number) {
-      NumberValue /= V.getNumber();
-    } else {
-      auto Temp = V;
-      Temp.makeNumber();
-      NumberValue /= Temp.getNumber();
-    }
-
-    return *this;
+  void setValue(std::string V) {
+    Value = V;
+    Type = String;
   }
 
-  Value &operator[](const Value *V) {
-    auto H = Hash(V);
-    if (!ArrayValue.contains(H))
-      ArrayValue[H] = new Value;
-    return *ArrayValue[H];
-  }
-
-  Value &operator[](const Value &V) {
-    auto H = Hash(V);
-    if (!ArrayValue.contains(H))
-      ArrayValue[H] = new Value;
-    assert(ArrayValue.contains(H));
-    return *ArrayValue[H];
-  }
-
-  Value &operator++() {
-    makeNumber();
-    ++NumberValue;
-    return *this;
-  }
-
-  Value operator++(int) {
-    makeNumber();
-    auto Temp = *this;
-    ++NumberValue;
-    return Temp;
-  }
-
-  Value &operator--() {
-    makeNumber();
-    --NumberValue;
-    return *this;
-  }
-
-  Value operator--(int) {
-    makeNumber();
-    auto Temp = *this;
-    --NumberValue;
-    return Temp;
-  }
-
-  friend Value operator+(const Value &, const Value &);
-  friend Value operator-(const Value &, const Value &);
-  friend Value operator*(const Value &, const Value &);
-  friend Value operator/(const Value &, const Value &);
-  friend bool operator==(const Value &, const Value &);
-
-  explicit operator bool() const {
-    switch (Kind) {
-    case VK_Null:
+  bool isTrue() {
+    if (Type == Null)
       return false;
-    case VK_Number:
-      return NumberValue != 0;
-    case VK_String:
-      return !std::empty(StringValue);
-    case VK_Array:
-      return true;
-    }
+
+    if (Type == Number)
+      return Value != 0;
+
+    assert(Type == String);
+    return !std::empty(Value);
   }
 
-  void makeNumber() {
-    NumberValue = toNumber();
-    Kind = VK_Number;
-  }
-
-  void makeString() {
-    StringValue = toString();
-    Kind = VK_String;
-  }
-
-  void makeArray() {
-    ArrayValue = toArray();
-    Kind = VK_Array;
-  }
-
-  void erase(Value &V) {
-    assert(Kind == VK_Array && "Cannot erase from non-array.");
-    ArrayValue.erase(Hash(V));
-  }
-
-  void erase(Value &&V) { erase(V); }
-
-  void clear() {
-    assert(Kind == VK_Array && "Cannot clear a non-array.");
-    ArrayValue.clear();
-  }
+  void is(TypeKind T) { return Type == T; }
 };
 
-inline Value operator+(const Value &V1, const Value &V2) {
-  auto V3 = V1;
-  return V3 += V2;
-}
+class Array {
+  std::unordered_map<std::size_t, Scalar> Data;
 
-inline Value operator-(const Value &V1, const Value &V2) {
-  auto V3 = V1;
-  return V3 -= V2;
-}
+  std::size_t hash(Scalar X) {
+    if (X.is(Scalar::Null))
+      return 0;
+    if (X.is(Scalar::Number))
+      return std::hash<double>()(X.get<Scalar::Number>());
+    assert(X.is(Scalar::String));
+    return std::hash<std::string>()(X.get<Scalar::String>());
+  }
 
-inline Value operator*(const Value &V1, const Value &V2) {
-  auto V3 = V1;
-  return V3 *= V2;
-}
-
-inline Value operator/(const Value &V1, const Value &V2) {
-  auto V3 = V1;
-  return V3 /= V2;
-}
-
-inline bool operator==(const Value &V1, const Value &V2) {
-  return V1.toString() == V2.toString();
-}
-
+public:
+  Scalar getValue(auto &&...X) { return Data[(hash(X) ^ ...)]; }
+};
 } // namespace cawk
