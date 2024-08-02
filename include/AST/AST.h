@@ -134,6 +134,8 @@ public:
 
   CompoundStmt *getAction() const { return Action; }
 
+  void setPattern(Expr *E) { Pattern = E; }
+
   static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action) {
     return new RuleDecl(Pattern, Action);
   }
@@ -252,6 +254,8 @@ public:
 
   Stmt *getElse() { return Else; }
 
+  void setCond(Expr *E) { Cond = E; }
+
   static IfStmt *Create(Expr *Cond, Stmt *Then, Stmt *Else) {
     return new IfStmt(Cond, Then, Else);
   }
@@ -280,6 +284,8 @@ public:
 
   Stmt *getBody() { return Body; }
 
+  void setCond(Expr *E) { Cond = E; }
+
   static ForStmt *Create(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body) {
     return new ForStmt(Init, Cond, Inc, Body);
   }
@@ -300,6 +306,10 @@ public:
   DeclRefExpr *getLoopVar() { return LoopVar; }
 
   DeclRefExpr *getRange() { return Range; }
+
+  void setLoopVar(DeclRefExpr *E) { LoopVar = E; }
+
+  void setRange(DeclRefExpr *E) { Range = E; }
 
   Stmt *getBody() { return Body; }
 
@@ -338,6 +348,8 @@ public:
 
   Expr *getValue() { return Value; }
 
+  void setValue(Expr *E) { Value = E; }
+
   static ExitStmt *Create(Expr *Value) { return new ExitStmt(Value); }
 };
 
@@ -375,6 +387,8 @@ public:
 
   Stmt *getBody() { return Body; }
 
+  void setCond(Expr *E) { Cond = E; }
+
   static WhileStmt *Create(Expr *Cond, Stmt *Body) {
     return new WhileStmt(Cond, Body);
   }
@@ -390,6 +404,8 @@ public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Delete; }
 
   Expr *getArgument() { return Argument; }
+
+  void setArgument(Expr *E) { Argument = E; }
 
   static DeleteStmt *Create(Expr *Argument) { return new DeleteStmt(Argument); }
 };
@@ -436,6 +452,11 @@ public:
 
   Expr *getOutput() { return Output; }
 
+  void setArg(std::size_t I, Expr *E) {
+    assert(I < std::size(Args));
+    Args[I] = E;
+  }
+
   static PrintStmt *Create(Token Iden, std::vector<Expr *> Args,
                            Token Opcode = {}, Expr *Output = nullptr) {
     return new PrintStmt(Iden, Args, Opcode, Output);
@@ -453,6 +474,8 @@ public:
 
   Expr *getValue() { return Value; }
 
+  void setValue(Expr *E) { Value = E; }
+
   static ReturnStmt *Create(Expr *Value) { return new ReturnStmt(Value); }
 };
 
@@ -466,6 +489,8 @@ public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Value; }
 
   Expr *getValue() { return Value; }
+
+  void setValue(Expr *E) { Value = E; }
 
   static ValueStmt *Create(Expr *Value) { return new ValueStmt(Value); }
 };
@@ -490,7 +515,7 @@ private:
   const ExprKind Kind;
   bool IsLValue = false;
   Value Val;
-  type::TypeKind Type;
+  type::TypeKind Type = type::null;
 
 public:
   ExprKind getKind() const { return Kind; }
@@ -506,6 +531,11 @@ public:
   type::TypeKind getType() { return Type; }
 
   void setType(type::TypeKind T) { Type = T; }
+
+  void setTypeIfNull(type::TypeKind T) {
+    if (Type == type::null)
+      setType(T);
+  }
 };
 
 class ArraySubscriptExpr : public Expr {
@@ -523,11 +553,16 @@ public:
 
   Expr *getLHS() const { return LHS; }
 
-  void SetLHS(Expr *E) { LHS = E; }
+  void setLHS(Expr *E) { LHS = E; }
 
   std::vector<Expr *> getRHS() const { return RHS; }
 
-  void SetRHS(std::vector<Expr *> E) { RHS = E; }
+  void setRHS(int I, Expr *E) {
+    assert(I < std::size(RHS));
+    RHS[I] = E;
+  }
+
+  void setRHS(std::vector<Expr *> E) { RHS = E; }
 
   static ArraySubscriptExpr *Create(Expr *LHS, std::vector<Expr *> RHS) {
     return new ArraySubscriptExpr(LHS, RHS);
@@ -550,7 +585,11 @@ public:
 
   Expr *getLHS() { return LHS; }
 
+  void setLHS(Expr *E) { LHS = E; }
+
   Expr *getRHS() { return RHS; }
+
+  void setRHS(Expr *E) { RHS = E; }
 
   Token getOpcode() { return Opcode; }
 
@@ -574,6 +613,11 @@ public:
   Expr *getCallee() { return Callee; }
 
   std::vector<Expr *> getArgs() { return Args; }
+
+  void setArg(int I, Expr *E) {
+    assert(I < std::size(Args));
+    Args[I] = E;
+  }
 
   FunctionDecl *getFunction() { return TheFunction; }
 
@@ -667,6 +711,8 @@ public:
   Token getOpcode() { return Opcode; }
 
   Expr *getSubExpr() { return SubExpr; }
+
+  void setSubExpr(Expr *E) { SubExpr = E; }
 
   FixKind getFix() { return Fix; }
 

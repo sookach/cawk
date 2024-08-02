@@ -10,6 +10,7 @@ enum TraversalKind { Preorder, Postorder, RecursiveDescent, None };
 template <typename Derived, trav::TraversalKind Traversal,
           bool CheckNull = false>
 class ASTVisitor {
+protected:
   bool visit(Decl *D) {
     if constexpr (CheckNull)
       if (D == nullptr)
