@@ -514,7 +514,7 @@ protected:
 private:
   const ExprKind Kind;
   bool IsLValue = false;
-  Value Val;
+  Value *Val;
   type::TypeKind Type = type::null;
 
 public:
@@ -524,9 +524,9 @@ public:
 
   void markAsLValue() { IsLValue = true; }
 
-  Value getValue() { return Val; }
+  Value* getValue() { return Val; }
 
-  void setValue(Value V) { Val = V; }
+  void setValue(Scalar S) { Val->setValue(S); }
 
   type::TypeKind getType() { return Type; }
 
@@ -647,49 +647,51 @@ public:
 };
 
 class FloatingLiteral : public Expr {
-  Token Value;
+  Token Literal;
 
 protected:
-  FloatingLiteral(Token Value) : Expr(EK_FloatingLiteral), Value(Value) {}
+  FloatingLiteral(Token Literal) : Expr(EK_FloatingLiteral), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) {
     return E->getKind() == EK_FloatingLiteral;
   }
 
-  Token getValue() { return Value; }
+  Token getLiteral() { return Literal; }
 
-  static FloatingLiteral *Create(Token Value) {
-    return new FloatingLiteral(Value);
+  static FloatingLiteral *Create(Token Literal) {
+    return new FloatingLiteral(Literal);
   }
 };
 
 class RegexLiteral : public Expr {
-  Token Value;
+  Token Literal;
 
 protected:
-  RegexLiteral(Token Value) : Expr(EK_RegexLiteral), Value(Value) {}
+  RegexLiteral(Token Literal) : Expr(EK_RegexLiteral), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) { return E->getKind() == EK_RegexLiteral; }
 
-  Token getValue() { return Value; }
+  Token getLiteral() { return Literal; }
 
-  static RegexLiteral *Create(Token Value) { return new RegexLiteral(Value); }
+  static RegexLiteral *Create(Token Literal) {
+    return new RegexLiteral(Literal);
+  }
 };
 
 class StringLiteral : public Expr {
-  Token Value;
+  Token Literal;
 
 protected:
-  StringLiteral(Token Value) : Expr(EK_StringLiteral), Value(Value) {}
+  StringLiteral(Token Literal) : Expr(EK_StringLiteral), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) {
     return E->getKind() == EK_StringLiteral;
   }
 
-  Token getValue() { return Value; }
+  Token getLiteral() { return Literal; }
 
   static StringLiteral *Create(Token Value) { return new StringLiteral(Value); }
 };

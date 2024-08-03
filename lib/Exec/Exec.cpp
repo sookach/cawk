@@ -315,7 +315,7 @@ bool Exec::visit(FloatingLiteral *F) {
 bool Exec::visit(RegexLiteral *R) { return Value(0); }
 
 bool Exec::visit(StringLiteral *S) {
-  std::string String(S->getValue().getLiteralData());
+  std::string String(S->getLiteral().getLiteralData());
   String = std::regex_replace(String, std::regex(R"(\\')"), "'");
   String = std::regex_replace(String, std::regex(R"(\\")"), "\"");
   String = std::regex_replace(String, std::regex(R"(\\\?)"), "?");
@@ -327,35 +327,15 @@ bool Exec::visit(StringLiteral *S) {
   String = std::regex_replace(String, std::regex(R"(\\r)"), "\r");
   String = std::regex_replace(String, std::regex(R"(\\t)"), "\t");
   String = std::regex_replace(String, std::regex(R"(\\v)"), "\v");
-  return Value(std::string(std::cbegin(String) + 1, std::cend(String) - 1));
+  S->setValue((String));
 }
 
 bool Exec::visit(UnaryOperator *U) {
-  switch (U->getOpcode().getKind()) {
-  default:
-    cawk_unreachable("Invalid Unary Operation.");
-    exit(EXIT_FAILURE);
-  case tok::plusplus: {
-    assert(isa<DeclRefExpr>(U->getSubExpr()) &&
-           "++ can only be performed on variables.");
-    auto Name =
-        ptr_cast<DeclRefExpr>(U->getSubExpr())->getIdentifier().getIdentifier();
-    return U->getFix() == UnaryOperator::Prefix ? ++getValue(Name)
-                                                : getValue(Name)++;
-  }
-  case tok::minusminus: {
-    assert(isa<DeclRefExpr>(U->getSubExpr()) &&
-           "-- can only be performed on variables.");
-    auto Name = ptr_cast<DeclRefExpr>(U->getSubExpr())
-                    ->getIdentifier()
-                    .getLiteralData();
-    return U->getFix() == UnaryOperator::Prefix ? --getValue(Name)
-                                                : getValue(Name)--;
-  }
-  case tok::exclaim:
-    return !visit(U->getSubExpr());
-  case tok::dollar:
-    return getField(visit(U->getSubExpr()).toNumber());
+  switch(U->getOpcode().getKind()) {
+    case tok::plus:
+    case tok::minus:
+    case tok::plusplus:
+    case tok::minusminus:
   }
 }
 
