@@ -146,6 +146,7 @@ protected:
   Token Identifier;
   Value Val;
   type::TypeKind Type;
+  DeclRefExpr *E;
 
   VarDecl(DeclKind Kind, Token Identifier)
       : Decl(Kind), Identifier(Identifier) {}
@@ -164,6 +165,10 @@ public:
   Token getIdentifier() { return Identifier; }
 
   std::string_view getName() { return getIdentifier().getIdentifier(); }
+
+  DeclRefExpr *getExpr() { return E; }
+
+  void setExpr(DeclRefExpr *D) { E = D; }
 
   static VarDecl *Create(Token Identifier) {
     return new VarDecl(DK_Var, Identifier);
@@ -524,7 +529,7 @@ public:
 
   void markAsLValue() { IsLValue = true; }
 
-  Value* getValue() { return Val; }
+  Value *getValue() { return Val; }
 
   void setValue(Scalar S) { Val->setValue(S); }
 

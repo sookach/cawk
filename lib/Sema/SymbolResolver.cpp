@@ -15,7 +15,8 @@ bool SymbolResolver::visit(FunctionDecl *F) {
 }
 
 bool SymbolResolver::visit(ParamVarDecl *P) {
-  if (!LocalSymbols.insert(std::string(P->getName())).second)
+  if (!LocalResolutions.try_emplace(std::string(P->getName()),
+                                    DeclRefExpr::Create(P->getIdentifier())))
     return false;
   return true;
 }
@@ -158,7 +159,7 @@ bool SymbolResolver::check(TranslationUnitDecl *T) {
 
 DeclRefExpr *SymbolResolver::resolve(DeclRefExpr *D) {
   std::string Name(D->getName());
-  if (LocalSymbols.contains(Name))
+  if (LocalResolutions.contains(Name))
     return LocalResolutions.try_emplace(Name, D).first->second;
   assert(!FunctionResolutions.contains(Name));
   return GlobalResolutions.try_emplace(Name, D).first->second;

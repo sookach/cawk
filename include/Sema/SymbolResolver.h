@@ -14,7 +14,7 @@ class SymbolResolver : ASTVisitor<SymbolResolver, trav::Preorder, true> {
   std::unordered_map<std::string, FunctionDecl *> FunctionResolutions;
   std::unordered_map<std::string, DeclRefExpr *> GlobalResolutions;
   std::unordered_map<std::string, DeclRefExpr *> LocalResolutions;
-  std::unordered_set<std::string> LocalSymbols;
+  std::unordered_map<std::string, ParamVarDecl *> LocalSymbols;
   std::vector<CallExpr *> UnresolvedSymbols;
 
 public:

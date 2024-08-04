@@ -257,7 +257,6 @@ bool Exec::visit(BinaryOperator *B) {
 }
 
 bool Exec::visit(CallExpr *C) {
-  assert(isa<DeclRefExpr>(C->getCallee()) && "Invalid function call.");
   if (isBuiltin(
           ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind()))
     return execBuiltin(
@@ -268,15 +267,19 @@ bool Exec::visit(CallExpr *C) {
                                  return Args;
                                }));
 
-  auto Callee =
-      ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getIdentifier();
-  assert(Functions.contains(Callee) && "awk: calling undefined function");
-  const auto &Fn = Functions.at(Callee);
-  const auto &Params = Fn->getParams();
-  const auto &Args = C->getArgs();
+  FunctionDecl *Function = C->getFunction();
+  auto Params = Function->getParams();
+  auto Args = C->getArgs();
 
   assert(std::size(Args) <= std::size(Params) &&
          "awk: function f called with x args, uses only y");
+
+  for (int I = 0; I != std::size(Args); ++I) {
+    if (Args[I]->getValue()->is(Value::TK_Array))
+      Params[I]->setExpr(Args[I]);
+    else
+      Params[I]->getExpr(new Scalar(Args[I]));
+  }
 
   auto Save = std::move(Locals);
   Locals = {};
@@ -297,22 +300,15 @@ bool Exec::visit(CallExpr *C) {
   return std::exchange(ReturnValue, {});
 }
 
-bool Exec::visit(DeclRefExpr *D) {
-  switch (D->getIdentifier().getKind()) {
-  default:
-    return getValue(D);
-  case tok::kw_BEGIN:
-    return IsBegin;
-  case tok::kw_END:
-    return IsEnd;
-  }
-}
+bool Exec::visit(DeclRefExpr *D) { return true; }
 
 bool Exec::visit(FloatingLiteral *F) {
-  return std::stod(F->getValue().getLiteralData().data());
+  F->setValue(Scalar(std::string(F->getLiteral().getLiteralData())));
+  F->setValue(F->getValue()->getAs<Value::TK_Number>());
+  return true;
 }
 
-bool Exec::visit(RegexLiteral *R) { return Value(0); }
+bool Exec::visit(RegexLiteral *R) { return true; }
 
 bool Exec::visit(StringLiteral *S) {
   std::string String(S->getLiteral().getLiteralData());
@@ -331,15 +327,15 @@ bool Exec::visit(StringLiteral *S) {
 }
 
 bool Exec::visit(UnaryOperator *U) {
-  switch(U->getOpcode().getKind()) {
-    case tok::plus:
-    case tok::minus:
-    case tok::plusplus:
-    case tok::minusminus:
+  switch (U->getOpcode().getKind()) {
+  case tok::plus:
+  case tok::minus:
+  case tok::plusplus:
+  case tok::minusminus:
   }
 }
 
-Value &Exec::getField(std::size_t I) {
+bool Exec::getField(std::size_t I) {
   return std::clamp(I, 0UL, std::size(Fields) - 1) == I ? Fields[I] : NullValue;
 }
 
