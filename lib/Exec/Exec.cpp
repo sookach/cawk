@@ -107,52 +107,53 @@ bool Exec::visit(DoStmt *D) {
   --NestedLevel;
 }
 
-bool Exec::visit(ExitStmt *E) { std::exit(visit(E->getValue()).toNumber()); }
+bool Exec::visit(ExitStmt *E) {
+  if (E->getValue() != nullptr) {
+    visit(E->getValue());
+    std::exit(dyn_cast<Scalar>(E->getValue())->getAs<Value::TK_Number>());
+  }
+  std::exit(EXIT_SUCCESS);
+}
 
 bool Exec::visit(ForStmt *F) {
   if (F->getInit() != nullptr)
     visit(F->getInit());
 
-  ++NestedLevel;
   for (;;) {
-    if (F->getCond() != nullptr) {
+    if (F->getCound() != nullptr) {
       visit(F->getCond());
-      if (!F->getCond()->getValue())
+      if (F->getCond()->getValue()->is(Value::TK_Number) &&
+              !F->getCond()->getValue()->get<TK_Number>() ||
+          F->getCond()->getValue()->is(Value::TK_String) &&
+              !F->getCond()->getValue()->get<TK_String>())
         break;
     }
+
     if (F->getBody() != nullptr)
       visit(F->getBody());
-    ShouldContinue = false;
-
-    if (isEarlyExit())
-      break;
 
     if (F->getInc() != nullptr)
       visit(F->getInc());
   }
-  ShouldBreak = ShouldContinue = false;
-  --NestedLevel;
+
+  return true;
 }
 
 bool Exec::visit(ForRangeStmt *F) {
-  auto LoopVar = F->getLoopVar()->getIdentifier().getLiteralData();
-  ++NestedLevel;
-  for (auto &Elem : getValue(F->getRange()).toArray()) {
-    getValue(LoopVar) = Elem.first;
+  for (auto &[Key, Val] : F->getRange()->getValue()->getAs<Value::TK_Array>()) {
+    F->getLoopVar()->setValue(Scalar(Key));
     visit(F->getBody());
-
-    if (isEarlyExit())
-      break;
   }
-  ShouldBreak = ShouldContinue = false;
-  --NestedLevel;
+  return true;
 }
 
 bool Exec::visit(IfStmt *I) {
-  if (I->getCond()->getValue())
+  visit(I->getCond());
+  if (dyn_cast<Scalar>(I->getCond()->getValue())->isTrue())
     visit(I->getThen());
   else if (I->getElse() != nullptr)
     visit(I->getElse());
+  return true;
 }
 
 bool Exec::visit(NextStmt *N) { SkipToNext = true; }
