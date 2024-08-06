@@ -258,45 +258,32 @@ bool Exec::visit(BinaryOperator *B) {
 }
 
 bool Exec::visit(CallExpr *C) {
-  if (isBuiltin(
-          ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind()))
-    return execBuiltin(
-        ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind(),
-        std::ranges::fold_left(C->getArgs(), std::vector<Value>(),
-                               [this](std::vector<Value> Args, Expr *E) {
-                                 Args.push_back(visit(E));
+  auto IdenKind =
+      ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind();
+  if (isBuiltin(IdenKind)) {
+    auto Args =
+        std::ranges::fold_left(C->getArgs(), std::vector<Value *>(),
+                               [this](std::vector<Value *> Args, Expr *E) {
+                                 visit(E);
+                                 Args.push_back(E->getValue());
                                  return Args;
-                               }));
+                               });
+    execBuiltin(IdenKind, Args);
+    return true;
+  }
 
   FunctionDecl *Function = C->getFunction();
   auto Params = Function->getParams();
   auto Args = C->getArgs();
 
-  assert(std::size(Args) <= std::size(Params) &&
-         "awk: function f called with x args, uses only y");
-
   for (int I = 0; I != std::size(Args); ++I) {
     if (Args[I]->getValue()->is(Value::TK_Array))
-      Params[I]->setExpr(Args[I]);
+      Params[I]->setExpr(new (Params[I]->getExpr()) Array(Args[I]));
     else
-      Params[I]->getExpr(new Scalar(Args[I]));
+      Params[I]->setExpr(new (Params[I]->getExpr()) Scalar(Args[I]));
   }
 
-  auto Save = std::move(Locals);
-  Locals = {};
-
-  int I = 0;
-  for (Expr *E : Args)
-    Locals.emplace(Params[I++], visit(E));
-
-  for (const auto N = std::size(Params); I < N; ++I)
-    Locals.emplace(Params[I], Value::VK_Null);
-
-  ++CallLevel;
   visit(const_cast<CompoundStmt *>(Fn->getBody()));
-  --CallLevel;
-
-  Locals = std::move(Save);
 
   return std::exchange(ReturnValue, {});
 }

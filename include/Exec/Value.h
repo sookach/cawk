@@ -9,125 +9,77 @@
 
 namespace cawk {
 
+enum TypeKind { NullTy, NumberTy, StringTy, ArrayTy };
+
 class Value {
 public:
-  enum ValueKind { VK_Scalar, VK_Array };
-  enum TypeKind { TK_Null, TK_Number, TK_String, TK_Array };
+  struct Scalar;
+  using Array = std::unordered_map<std::string, Scalar>;
 
 private:
-  ValueKind Kind;
-  TypeKind Type = TK_Null;
+  TypeKind Type;
+
+  struct Scalar {
+    TypeKind Type;
+    std::variant<double, std::string> Raw;
+  };
+
+  std::variant<Scalar, Array> Raw;
 
 public:
-  Value(TypeKind Type = TK_Null)
-      : Kind(Type == TK_Array ? VK_Array : VK_Scalar), Type(Type) {}
-
-  ValueKind getKind() { return Kind; }
-
-  template <TypeKind T> auto getAs() {
-    if (Kind == VK_Scalar)
-      return static_cast<Scalar *>(this)->getAs<T>();
-    return static_cast<Array *>(this)->getAs<T>();
-  }
+  TypeKind getType() { return Type; }
 
   template <TypeKind T> auto get() {
-    if (Kind == VK_Scalar)
-      return static_cast<Scalar *>(this)->get<T>();
-    return static_cast<Array *>(this)->get<T>();
-  }
-
-  bool is(TypeKind T) {
-    if (Kind == VK_Scalar)
-      return static_cast<Scalar *>(this)->is(T);
-    return static_cast<Array *>(this)->is(T);
-  }
-
-  void setValue(Scalar S) {
-    if (Kind == VK_Scalar)
-      static_cast<Scalar *>(this)->setValue(S);
-    else
-      assert(0);
-  }
-};
-
-class Scalar : public Value {
-private:
-  std::variant<double, std::string> Raw;
-
-public:
-  Scalar(double Raw) : Value(TK_Number), Raw(Raw) {}
-  Scalar(std::string Raw) : Value(TK_String), Raw(Raw) {}
-
-  template <TypeKind T> auto get() {
-    if constexpr (T == Number)
-      return std::get<double>(Raw);
-    else
-      return std::get<std::string>(Raw);
+    if constexpr (T == NumberTy)
+      return std::get<double>(std::get<Scalar>(Raw).Raw);
+    if constexpr (T == StringTy)
+      return std::get<std::string>(std::get<Scalar>(Raw).Raw);
+    if constexpr (T == Array)
+      return std::get<ArrayTy>(Raw);
   }
 
   template <TypeKind T> auto getAs() {
-    if constexpr (T == TK_Number) {
-      if (Type == TK_Null)
-        return 0;
-      if (Type == TK_Number)
-        return std::get<double>(Raw);
-      assert(Type == String);
-      char *C;
-      return std::strtod(std::get<std::string>(Raw).c_str(), &C);
-    } else if (Type == TK_String) {
-      assert(T == TK_String);
-      if (Type == TK_Null)
-        return "";
-      if (Type == TK_Number)
-        return std::to_string(std::get<double>(Raw));
-      assert(Type == TK_String);
-      char *C;
-      return std::get<std::string>(Raw);
+    if constexpr (T == NumberTy) {
+      if (Type == NumberTy)
+        return std::get<double>(std::get<Scalar>(Raw).Raw);
+
+      if (Type == StringTy)
+        return std::strtod(std::get<std::string>(std::get<Scalar>(Raw).Raw),
+                           nullptr);
+
+      assert(is<NullTy>());
+      return 0;
+    }
+
+    if constexpr (T == StringTy) {
+      if (Type == NumberTy)
+        return std::to_string(std::get<double>(std::get<Scalar>(Raw).Raw));
+
+      if (Type == StringTy)
+        return std::get<std::string>(std::get<Scalar>(Raw).Raw);
+
+      assert(is<NullTy>());
+      return "";
+    }
+
+    if constexpr (T == ArrayTy)
+      static_assert("use get<Array>() instead");
+  }
+
+  template <TypeKind T> bool is() { return Type == T; }
+
+  void setValue(Value V) {
+    if (V.is<NumberTy>()) {
+      Type = NumberTy;
+      Raw = Scalar(NumberTy, V.get<NumberTy>());
+    } else if (V.is<StringTy>()) {
+      Type = StringTy;
+      Raw = Scalar(StringTy, V.get<StringTy>());
     } else {
-      return {};
+      assert(V.is<Null>());
+      Type = NullTy;
+      Raw = Scalar(NumberTy, 0);
     }
   }
-
-  void setValue(Scalar V) { *this = V; }
-
-  bool is(TypeKind T) { return Type == T; }
-
-  bool isTrue() {
-    if (Type == TK_Null)
-      return false;
-
-    if (Type == TK_Number)
-      return std::get<double>(Raw);
-
-    assert(Type == TK_String);
-    return !std::empty(std::get<std::string>(Raw));
-  }
-
-  static bool classof(Value *V) { return V->getKind() == VK_Scalar; }
-};
-
-class Array : public Value {
-  std::unordered_map<std::string, Scalar> Raw;
-
-public:
-  template <TypeKind T> std::unordered_map<std::string, Scalar> get() {
-    static_assert(T == TK_Array);
-    return Raw;
-  }
-
-  template <TypeKind T> std::unordered_map<std::string, Scalar> getAs() {
-    static_assert(T == TK_Array);
-    return Raw;
-  }
-
-  Scalar getValue(std::vector<Scalar> Indexes) {
-    return Raw[std::ranges::fold_left(Indexes, std::string(), std::plus())];
-  }
-
-  void setValue(std::vector<Scalar> Indexes, Scalar S) {
-    Raw[std::ranges::fold_left(Indexes, std::string(), std::plus())] = S;
-  }
-
-  static bool classof(Value *V) { return V->getKind() == VK_Scalar; }
 };
 } // namespace cawk

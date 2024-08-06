@@ -24,7 +24,7 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   std::vector<Value> Fields;
   std::vector<InputFile> Inputs;
   Value NullValue;
-  Value ReturnValue;
+  CallExpr *ParentFunction;
   std::uint32_t NestedLevel = 0;
   std::uint32_t CallLevel = 0;
   bool IsBegin = true;
