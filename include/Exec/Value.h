@@ -46,7 +46,7 @@ public:
             std::get<std::string>(std::get<Scalar>(Raw).Raw).c_str(), nullptr);
 
       assert(is<NullTy>());
-      return 0;
+      return 0.0;
     }
 
     if constexpr (T == StringTy) {
@@ -57,7 +57,7 @@ public:
         return std::get<std::string>(std::get<Scalar>(Raw).Raw);
 
       assert(is<NullTy>());
-      return "";
+      return std::string();
     }
 
     if constexpr (T == ArrayTy)
