@@ -16,6 +16,18 @@ public:
   struct Scalar {
     TypeKind Type;
     std::variant<double, std::string> Raw;
+
+    Scalar() { Type = NullTy; }
+
+    Scalar(double D) {
+      Type = NumberTy;
+      Raw = D;
+    }
+
+    Scalar(std::string S) {
+      Type = StringTy;
+      Raw = S;
+    }
   };
   using Array = std::unordered_map<std::string, Scalar>;
 
@@ -25,6 +37,12 @@ private:
   std::variant<Scalar, Array> Raw;
 
 public:
+  Value(TypeKind Type) : Type(Type), Raw(Array()) {}
+
+  Value(double Raw) : Type(NumberTy), Raw(Raw) {}
+
+  Value(std::string Raw) : Type(StringTy), Raw(Raw) {}
+
   TypeKind getType() { return Type; }
 
   template <TypeKind T> auto get() {
@@ -66,18 +84,28 @@ public:
 
   template <TypeKind T> bool is() { return Type == T; }
 
-  void setValue(Value V) {
-    if (V.is<NumberTy>()) {
+  void setValue(Scalar S) {
+    if (S.Type == NumberTy) {
       Type = NumberTy;
-      Raw = Scalar(NumberTy, V.get<NumberTy>());
-    } else if (V.is<StringTy>()) {
+    } else if (S.Type == StringTy) {
       Type = StringTy;
-      Raw = Scalar(StringTy, V.get<StringTy>());
     } else {
-      assert(V.is<NullTy>());
+      assert(S.Type == NullTy);
       Type = NullTy;
-      Raw = Scalar(NumberTy, 0.0);
     }
+    Raw = std::variant<Scalar, Array>(S);
+  }
+
+  void setValue(Value V) { setValue(V.getValue()); }
+
+  Scalar getValue() {
+    assert(Type == NumberTy || Type == StringTy || Type == NullTy);
+    return std::get<Scalar>(Raw);
+  }
+
+  Scalar &operator[](std::string Key) {
+    assert(Type == ArrayTy);
+    return std::get<Array>(Raw)[Key];
   }
 };
 } // namespace cawk

@@ -7,12 +7,12 @@ using namespace cawk;
 
 Value cawk::split(Value String, Value &Array, Value FieldSep) {
   int I = 0;
-  auto S = String.toString();
-  std::regex Re(FieldSep.toString());
+  auto S = String.getAs<StringTy>();
+  std::regex Re(FieldSep.getAs<StringTy>());
   std::sregex_token_iterator It(std::cbegin(S), std::cend(S), Re, -1), End;
 
   for (; It != End; ++It)
-    Array[++I] = Value(It->str());
+    Array[std::to_string(++I)] = It->str();
 
   return I;
 }

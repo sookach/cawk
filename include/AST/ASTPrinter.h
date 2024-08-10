@@ -144,18 +144,18 @@ private:
 
   bool visit(FloatingLiteral *F) {
     print(std::string("FloatingLiteral "), F, " ",
-          F->getValue().getLiteralData());
+          F->getLiteral().getLiteralData());
     return true;
   }
 
   bool visit(RegexLiteral *R) {
-    print(std::string("RegexLiteral "), R, " ", R->getValue().getLiteralData());
+    print(std::string("RegexLiteral "), R, " ", R->getLiteral().getLiteralData());
     return true;
   }
 
   bool visit(StringLiteral *S) {
     print(std::string("StringLiteral "), S, " ",
-          S->getValue().getLiteralData());
+          S->getLiteral().getLiteralData());
     return true;
   }
 

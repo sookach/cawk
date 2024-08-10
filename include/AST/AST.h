@@ -531,7 +531,7 @@ public:
 
   Value *getValue() { return Val; }
 
-  void setValue(Scalar S) { Val->setValue(S); }
+  void setValue(Value::Scalar S) { Val->setValue(S); }
 
   type::TypeKind getType() { return Type; }
 
