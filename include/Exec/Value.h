@@ -13,16 +13,14 @@ enum TypeKind { NullTy, NumberTy, StringTy, ArrayTy };
 
 class Value {
 public:
-  struct Scalar;
-  using Array = std::unordered_map<std::string, Scalar>;
-
-private:
-  TypeKind Type;
-
   struct Scalar {
     TypeKind Type;
     std::variant<double, std::string> Raw;
   };
+  using Array = std::unordered_map<std::string, Scalar>;
+
+private:
+  TypeKind Type;
 
   std::variant<Scalar, Array> Raw;
 
@@ -34,8 +32,8 @@ public:
       return std::get<double>(std::get<Scalar>(Raw).Raw);
     if constexpr (T == StringTy)
       return std::get<std::string>(std::get<Scalar>(Raw).Raw);
-    if constexpr (T == Array)
-      return std::get<ArrayTy>(Raw);
+    if constexpr (T == ArrayTy)
+      return std::get<Array>(Raw);
   }
 
   template <TypeKind T> auto getAs() {
@@ -44,8 +42,8 @@ public:
         return std::get<double>(std::get<Scalar>(Raw).Raw);
 
       if (Type == StringTy)
-        return std::strtod(std::get<std::string>(std::get<Scalar>(Raw).Raw),
-                           nullptr);
+        return std::strtod(
+            std::get<std::string>(std::get<Scalar>(Raw).Raw).c_str(), nullptr);
 
       assert(is<NullTy>());
       return 0;
@@ -76,9 +74,9 @@ public:
       Type = StringTy;
       Raw = Scalar(StringTy, V.get<StringTy>());
     } else {
-      assert(V.is<Null>());
+      assert(V.is<NullTy>());
       Type = NullTy;
-      Raw = Scalar(NumberTy, 0);
+      Raw = Scalar(NumberTy, 0.0);
     }
   }
 };

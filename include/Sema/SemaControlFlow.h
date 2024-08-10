@@ -14,7 +14,7 @@ private:
   std::uint16_t LoopDepth = 0;
   bool InFunction = false;
 
-  bool isInLoop() { return loopDepth != 0; }
+  bool isInLoop() { return LoopDepth != 0; }
 
   void enterLoop() { ++LoopDepth; }
 
