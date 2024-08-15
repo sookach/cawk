@@ -37,6 +37,8 @@ private:
   std::variant<Scalar, Array> Raw;
 
 public:
+  Value() : Type(NullTy), Raw(Scalar()) {}
+
   Value(TypeKind Type) : Type(Type), Raw(Array()) {}
 
   Value(double Raw) : Type(NumberTy), Raw(Raw) {}
