@@ -15,8 +15,10 @@ bool SymbolResolver::visit(FunctionDecl *F) {
 }
 
 bool SymbolResolver::visit(ParamVarDecl *P) {
-  if (!LocalResolutions.try_emplace(std::string(P->getName()),
-                                    DeclRefExpr::Create(P->getIdentifier())))
+  if (!LocalResolutions
+           .try_emplace(std::string(P->getName()),
+                        DeclRefExpr::Create(P->getIdentifier()))
+           .second)
     return false;
   return true;
 }

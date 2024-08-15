@@ -14,7 +14,7 @@ Value cawk::split(Value String, Value &Array, Value FieldSep) {
   for (; It != End; ++It)
     Array[std::to_string(++I)] = It->str();
 
-  return I;
+  return Value(I);
 }
 
 std::vector<std::string> cawk::split(std::string String, std::string Delim) {

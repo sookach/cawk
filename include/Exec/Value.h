@@ -37,13 +37,13 @@ private:
   std::variant<Scalar, Array> Raw;
 
 public:
-  Value() : Type(NullTy), Raw(Scalar()) {}
+  explicit Value() : Type(NullTy), Raw(Scalar()) {}
 
-  Value(TypeKind Type) : Type(Type), Raw(Array()) {}
+  explicit Value(TypeKind Type) : Type(Type), Raw(Array()) {}
 
-  Value(double Raw) : Type(NumberTy), Raw(Raw) {}
+  explicit Value(double Raw) : Type(NumberTy), Raw(Raw) {}
 
-  Value(std::string Raw) : Type(StringTy), Raw(Raw) {}
+  explicit Value(std::string Raw) : Type(StringTy), Raw(Raw) {}
 
   TypeKind getType() { return Type; }
 

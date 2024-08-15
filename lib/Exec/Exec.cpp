@@ -41,14 +41,16 @@ void Exec::operator()() {
   for (auto &Input : Inputs) {
     SkipToNextfile = false;
     for (; !Input.isEOF() && !SkipToNextfile;) {
-      auto Fields = split(Input.getLine(), getValue("FS").toString());
+      auto Fields =
+          split(Input.getLine(), BuiltinVariables["FS"]->get<StringTy>());
       if (!std::empty(Fields))
         continue;
       for (int I = 1; auto Field : Fields)
-        setValue("$" + std::to_string(I++), Value(Field));
+        BuiltinVariables["$" + std::to_string(I++)]->setValue(Field);
 
-      setValue("NF", Value(std::size(Fields)));
-      setValue("NR", getValue("NR") + 1);
+      BuiltinVariables["NF"]->setValue(Value(std::size(Fields)));
+      BuiltinVariables["NF"]->setValue(BuiltinVariables["NF"]->get<NumberTy>() +
+                                       1);
 
       SkipToNext = false;
       visit(AST);
@@ -72,6 +74,7 @@ bool Exec::visit(TranslationUnitDecl *T) {
 bool Exec::visit(RuleDecl *R) {
   if (R->getPattern() == nullptr || R->getPattern()->getValue())
     visit(R->getAction());
+  return true;
 }
 
 bool Exec::visit(BreakStmt *B) {
@@ -86,21 +89,25 @@ bool Exec::visit(ContinueStmt *C) {
 
 bool Exec::visit(CompoundStmt *C) {
   for (Stmt *S : C->getBody())
-    if (visit(S); isEarlyExit())
+    if (traverse(S); isEarlyExit())
       break;
+  return true;
 }
 
-bool Exec::visit(DeleteStmt *D) { D->getArgument()->getValue().clear(); }
+bool Exec::visit(DeleteStmt *D) { return true; }
 
 bool Exec::visit(DoStmt *D) {
-
   for (;;) {
-    visit(D->getBody());
+    traverse(D->getBody());
 
     if (isEarlyExit())
       break;
 
-    if (!visit(D->getCond()))
+    if (traverse(D->getCond());
+        D->getCond()->getValue()->is<NumberTy>() &&
+            !D->getCond()->getValue()->get<NumberTy>() ||
+        D->getCond()->getValue()->is<StringTy>() &&
+            !std::empty(D->getCond()->getValue()->get<StringTy>()))
       break;
   }
   ShouldBreak = ShouldContinue = false;
@@ -109,50 +116,53 @@ bool Exec::visit(DoStmt *D) {
 
 bool Exec::visit(ExitStmt *E) {
   if (E->getValue() != nullptr) {
-    visit(E->getValue());
-    std::exit(dyn_cast<Scalar>(E->getValue())->getAs<Value::TK_Number>());
+    traverse(E->getValue());
+    std::exit(E->getValue()->getValue()->getAs<NumberTy>());
   }
   std::exit(EXIT_SUCCESS);
 }
 
 bool Exec::visit(ForStmt *F) {
   if (F->getInit() != nullptr)
-    visit(F->getInit());
+    traverse(F->getInit());
 
   for (;;) {
-    if (F->getCound() != nullptr) {
-      visit(F->getCond());
-      if (F->getCond()->getValue()->is(Value::TK_Number) &&
-              !F->getCond()->getValue()->get<TK_Number>() ||
-          F->getCond()->getValue()->is(Value::TK_String) &&
-              !F->getCond()->getValue()->get<TK_String>())
+    if (F->getCond() != nullptr) {
+      traverse(F->getCond());
+      if (F->getCond()->getValue()->is<NumberTy>() &&
+              !F->getCond()->getValue()->get<NumberTy>() ||
+          F->getCond()->getValue()->is<StringTy>() &&
+              !std::empty(F->getCond()->getValue()->get<StringTy>()))
         break;
     }
 
     if (F->getBody() != nullptr)
-      visit(F->getBody());
+      traverse(F->getBody());
 
     if (F->getInc() != nullptr)
-      visit(F->getInc());
+      traverse(F->getInc());
   }
 
   return true;
 }
 
 bool Exec::visit(ForRangeStmt *F) {
-  for (auto &[Key, Val] : F->getRange()->getValue()->getAs<Value::TK_Array>()) {
-    F->getLoopVar()->setValue(Scalar(Key));
-    visit(F->getBody());
+  for (auto &[Key, Val] : F->getRange()->getValue()->get<ArrayTy>()) {
+    F->getLoopVar()->setValue(Value::Scalar(Key));
+    traverse(F->getBody());
   }
   return true;
 }
 
 bool Exec::visit(IfStmt *I) {
-  visit(I->getCond());
-  if (dyn_cast<Scalar>(I->getCond()->getValue())->isTrue())
-    visit(I->getThen());
+  traverse(I->getCond());
+  if (I->getCond()->getValue()->is<NumberTy>() &&
+          !I->getCond()->getValue()->get<NumberTy>() ||
+      I->getCond()->getValue()->is<StringTy>() &&
+          !std::empty(I->getCond()->getValue()->get<StringTy>()))
+    traverse(I->getThen());
   else if (I->getElse() != nullptr)
-    visit(I->getElse());
+    traverse(I->getElse());
   return true;
 }
 
@@ -166,7 +176,10 @@ bool Exec::visit(PrintStmt *P) {
   if (P->getIden().is(tok::kw_print)) {
     std::puts(std::ranges::fold_left(P->getArgs(), std::string(),
                                      [this](std::string S, Expr *E) {
-                                       return S + visit(E).toString() + ' ';
+                                       traverse(E);
+                                       return S +
+                                              E->getValue()->getAs<StringTy>() +
+                                              ' ';
                                      })
                   .c_str());
   } else {
@@ -174,10 +187,12 @@ bool Exec::visit(PrintStmt *P) {
       auto Args = std::ranges::fold_left(
           P->getArgs() | std::views::drop(1), std::vector<Value>(),
           [this](std::vector<Value> Args, Expr *E) {
-            Args.push_back(visit(E));
+            traverse(E);
+            Args.push_back(*E->getValue());
             return Args;
           });
-      auto S = format(visit(P->getArgs().front()).toString(), Args);
+      traverse(P->getArgs().front());
+      auto S = format(P->getArgs().front()->getValue()->get<StringTy>(), Args);
       std::printf("%s", S.c_str());
     }
   }
@@ -185,18 +200,24 @@ bool Exec::visit(PrintStmt *P) {
 
 bool Exec::visit(ReturnStmt *R) {
   assert(CallLevel > 0 && "cannot return from non-function");
-  ReturnValue = visit(R->getValue());
+  traverse(R->getValue());
+  ParentFunction->setValue(*R->getValue()->getValue());
   ShouldReturn = true;
+  return true;
 }
 
-bool Exec::visit(ValueStmt *V) { visit(V->getValue()); }
+bool Exec::visit(ValueStmt *V) {
+  traverse(V->getValue());
+  return true;
+}
 
 bool Exec::visit(WhileStmt *W) {
   assert(W->getCond() != nullptr && "while loop must have condition");
 
   ++NestedLevel;
-  for (; visit(W->getCond());) {
-    visit(W->getBody());
+  for (;;) {
+    traverse(W->getCond());
+    traverse(W->getBody());
     if (isEarlyExit())
       break;
   }
@@ -205,25 +226,15 @@ bool Exec::visit(WhileStmt *W) {
 }
 
 bool Exec::visit(ArraySubscriptExpr *A) {
-  assert(isa<DeclRefExpr>(A->getLHS()));
+  traverse(A->getLHS());
+//   Value::Scalar *S = &A->operator[](std::ranges::fold_left(
+//       A->getRHS(), std::string(), [this](std::string S, Expr * E) {
+//         traverse(E);
+//         return S + E->getValue()->getAs<StringTy>();
+//       }));
 
-  auto *V = &getValue(ptr_cast<DeclRefExpr>(A->getLHS()));
 
-  if (V->getKind() == Value::VK_Null) {
-    assert(!Functions.contains(
-        ptr_cast<DeclRefExpr>(A->getLHS())->getIdentifier().getIdentifier()));
-    V->setKind(Value::VK_Array);
-  }
-
-  if (V->getKind() != Value::VK_Array) {
-    std::fputs("Attempting to use scalar in non-scalar context", stderr);
-    std::exit(EXIT_FAILURE);
-  }
-
-  for (Expr *E : A->getRHS())
-    V = &V->operator[](visit(E));
-
-  return *V;
+//   return *V;
 }
 
 bool Exec::visit(BinaryOperator *B) {

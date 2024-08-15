@@ -533,6 +533,8 @@ public:
 
   void setValue(Value::Scalar S) { Val->setValue(S); }
 
+  void setValue(Value V) { *Val = V; }
+
   type::TypeKind getType() { return Type; }
 
   void setType(type::TypeKind T) { Type = T; }

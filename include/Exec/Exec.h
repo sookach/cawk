@@ -23,6 +23,7 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   TranslationUnitDecl *AST;
   std::vector<Value> Fields;
   std::vector<InputFile> Inputs;
+  std::unordered_map<std::string, Value *> BuiltinVariables;
   Value NullValue;
   CallExpr *ParentFunction;
   std::uint32_t NestedLevel = 0;
