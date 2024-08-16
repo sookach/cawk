@@ -112,6 +112,7 @@ bool Exec::visit(DoStmt *D) {
   }
   ShouldBreak = ShouldContinue = false;
   --NestedLevel;
+  return true;
 }
 
 bool Exec::visit(ExitStmt *E) {
@@ -166,9 +167,15 @@ bool Exec::visit(IfStmt *I) {
   return true;
 }
 
-bool Exec::visit(NextStmt *N) { SkipToNext = true; }
+bool Exec::visit(NextStmt *N) {
+  SkipToNext = true;
+  return true;
+}
 
-bool Exec::visit(NextfileStmt *N) { SkipToNextfile = true; }
+bool Exec::visit(NextfileStmt *N) {
+  SkipToNextfile = true;
+  return true;
+}
 
 bool Exec::visit(PrintStmt *P) {
   assert(P->getOpcode().is(tok::unknown) && P->getOutput() == nullptr &&
@@ -196,6 +203,7 @@ bool Exec::visit(PrintStmt *P) {
       std::printf("%s", S.c_str());
     }
   }
+  return true;
 }
 
 bool Exec::visit(ReturnStmt *R) {
@@ -223,18 +231,19 @@ bool Exec::visit(WhileStmt *W) {
   }
   ShouldBreak = ShouldContinue = false;
   --NestedLevel;
+  return true;
 }
 
 bool Exec::visit(ArraySubscriptExpr *A) {
   traverse(A->getLHS());
-//   Value::Scalar *S = &A->operator[](std::ranges::fold_left(
-//       A->getRHS(), std::string(), [this](std::string S, Expr * E) {
-//         traverse(E);
-//         return S + E->getValue()->getAs<StringTy>();
-//       }));
+  //   Value::Scalar *S = &A->operator[](std::ranges::fold_left(
+  //       A->getRHS(), std::string(), [this](std::string S, Expr * E) {
+  //         traverse(E);
+  //         return S + E->getValue()->getAs<StringTy>();
+  //       }));
 
-
-//   return *V;
+  //   return *V;
+  return true;
 }
 
 bool Exec::visit(BinaryOperator *B) {
@@ -244,7 +253,13 @@ bool Exec::visit(BinaryOperator *B) {
     exit(EXIT_FAILURE);
 #define CASE(TOK, OP)                                                          \
   case TOK:                                                                    \
-    return visit(B->getLHS()) OP visit(B->getRHS())
+    traverse(B->getLHS());                                                     \
+    traverse(B->getRHS());                                                     \
+    return B->getLHS()                                                         \
+        ->getValue()                                                           \
+        ->getAs<NumberTy>() OP B->getRHS()                                     \
+        ->getValue()                                                           \
+        ->getAs<NumberTy>();
     CASE(tok::plus, +);
     CASE(tok::minus, -);
     CASE(tok::star, *);
@@ -255,17 +270,13 @@ bool Exec::visit(BinaryOperator *B) {
     assert((isa<DeclRefExpr>(B->getLHS()) ||
             isa<ArraySubscriptExpr>(B->getLHS())) &&
            "Cannot assign to non-lvalue.");
-    if (isa<DeclRefExpr>(B->getLHS())) {
-      setValue(ptr_cast<DeclRefExpr>(B->getLHS()), visit(B->getRHS()));
-      return getValue(ptr_cast<DeclRefExpr>(B->getLHS()));
-    } else {
-      visit(ptr_cast<ArraySubscriptExpr>(B->getLHS())) = visit(B->getRHS());
-      assert(visit(ptr_cast<ArraySubscriptExpr>(B->getLHS())) ==
-             visit(B->getRHS()));
-      return visit(ptr_cast<ArraySubscriptExpr>(B->getLHS()));
-    }
+    traverse(B->getLHS());
+    traverse(B->getRHS());
+    B->getLHS()->setValue(*B->getRHS()->getValue());
+
 #undef CASE
   }
+  return true;
 }
 
 bool Exec::visit(CallExpr *C) {
@@ -275,11 +286,11 @@ bool Exec::visit(CallExpr *C) {
     auto Args =
         std::ranges::fold_left(C->getArgs(), std::vector<Value *>(),
                                [this](std::vector<Value *> Args, Expr *E) {
-                                 visit(E);
+                                 traverse(E);
                                  Args.push_back(E->getValue());
                                  return Args;
                                });
-    execBuiltin(IdenKind, Args);
+    // execBuiltin(IdenKind, Args);
     return true;
   }
 
@@ -288,22 +299,20 @@ bool Exec::visit(CallExpr *C) {
   auto Args = C->getArgs();
 
   for (int I = 0; I != std::size(Args); ++I) {
-    if (Args[I]->getValue()->is(Value::TK_Array))
-      Params[I]->setExpr(new (Params[I]->getExpr()) Array(Args[I]));
-    else
-      Params[I]->setExpr(new (Params[I]->getExpr()) Scalar(Args[I]));
+    // if (Args[I]->getValue()->is<ArrayTy>())
+    //   Params[I]->setExpr(new (Params[I]->getExpr()) Array(Args[I]));
+    // else
+    //   Params[I]->setExpr(new (Params[I]->getExpr()) Scalar(Args[I]));
   }
 
-  visit(const_cast<CompoundStmt *>(Fn->getBody()));
-
-  return std::exchange(ReturnValue, {});
+  visit(const_cast<CompoundStmt *>(Function->getBody()));
+  return true;
 }
 
 bool Exec::visit(DeclRefExpr *D) { return true; }
 
 bool Exec::visit(FloatingLiteral *F) {
-  F->setValue(Scalar(std::string(F->getLiteral().getLiteralData())));
-  F->setValue(F->getValue()->getAs<Value::TK_Number>());
+  F->setValue(Value(std::stod(std::string(F->getLiteral().getLiteralData()))));
   return true;
 }
 
@@ -323,19 +332,18 @@ bool Exec::visit(StringLiteral *S) {
   String = std::regex_replace(String, std::regex(R"(\\t)"), "\t");
   String = std::regex_replace(String, std::regex(R"(\\v)"), "\v");
   S->setValue((String));
+  return true;
 }
 
 bool Exec::visit(UnaryOperator *U) {
   switch (U->getOpcode().getKind()) {
+  default:
   case tok::plus:
   case tok::minus:
   case tok::plusplus:
   case tok::minusminus:
   }
-}
-
-bool Exec::getField(std::size_t I) {
-  return std::clamp(I, 0UL, std::size(Fields) - 1) == I ? Fields[I] : NullValue;
+  return true;
 }
 
 bool Exec::isBuiltin(tok::TokenKind Kind) {
@@ -354,23 +362,25 @@ bool Exec::isBuiltin(tok::TokenKind Kind) {
 }
 
 Value Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value> Args) {
-  switch (Kind) {
-  default:
-    return false;
-  case tok::kw_gsub:
-  case tok::kw_index:
-    assert(std::size(Args) == 2 && "invalid call to index");
-    return Value(index(Args.front().toString(), Args.back().toString()));
-  case tok::kw_match:
-  case tok::kw_split:
-  case tok::kw_sprintf:
-    assert(!std::empty(Args) && "invalid call to sprintf");
-    return Value(sprintf(Args.front().toString(),
-                         std::vector(std::cbegin(Args) + 1, std::cend(Args))));
-  case tok::kw_sub:
-  case tok::kw_substr:
-    return true;
-  }
+  //   switch (Kind) {
+  //   default:
+  //     return false;
+  //   case tok::kw_gsub:
+  //   case tok::kw_index:
+  //     assert(std::size(Args) == 2 && "invalid call to index");
+  //     return Value(index(Args.front().toString(), Args.back().toString()));
+  //   case tok::kw_match:
+  //   case tok::kw_split:
+  //   case tok::kw_sprintf:
+  //     assert(!std::empty(Args) && "invalid call to sprintf");
+  //     return Value(sprintf(Args.front().toString(),
+  //                          std::vector(std::cbegin(Args) + 1,
+  //                          std::cend(Args))));
+  //   case tok::kw_sub:
+  //   case tok::kw_substr:
+  //     return true;
+  //   }
+  return Value();
 }
 
 bool Exec::isEarlyExit() {

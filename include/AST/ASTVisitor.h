@@ -665,8 +665,8 @@ protected:
   }
 
 public:
-  void traverse(Decl *D) { return visit(D); }
-  void traverse(Stmt *S) { return visit(S); }
-  void traverse(Expr *E) { return visit(E); }
+  bool traverse(Decl *D) { return visit(D); }
+  bool traverse(Stmt *S) { return visit(S); }
+  bool traverse(Expr *E) { return visit(E); }
 };
 } // namespace cawk
