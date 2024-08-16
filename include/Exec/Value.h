@@ -29,7 +29,7 @@ public:
       Raw = S;
     }
   };
-  using Array = std::unordered_map<std::string, Scalar>;
+  using Array = std::unordered_map<std::string, Value *>;
 
 private:
   TypeKind Type;
@@ -105,7 +105,7 @@ public:
     return std::get<Scalar>(Raw);
   }
 
-  Scalar &operator[](std::string Key) {
+  Value *operator[](std::string Key) {
     assert(Type == ArrayTy);
     return std::get<Array>(Raw)[Key];
   }
