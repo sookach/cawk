@@ -1,13 +1,15 @@
 #pragma once
 
-#include "AST/AST.h"
+#include "AST/ASTVisitor.h"
 #include "Sema/FunctionSymbol.h"
 #include "Support/StringMap.h"
 
 #include <vector>
 
 namespace cawk {
-class SemaLValue {
+class SemaLValue : public ASTVisitor<SemaLValue, trav::Preorder, true> {
+  friend class ASTVisitor<SemaLValue, trav::Preorder, true>;
+
 public:
   bool check(TranslationUnitDecl *T);
 
