@@ -7,21 +7,19 @@
 #include <vector>
 
 namespace cawk {
-class SemaLValue : public ASTVisitor<SemaLValue, trav::Preorder, true> {
-  friend class ASTVisitor<SemaLValue, trav::Preorder, true>;
+class SemaLValue : public ASTVisitor<SemaLValue, trav::Postorder, true> {
+  friend class ASTVisitor<SemaLValue, trav::Postorder, true>;
 
 public:
   bool check(TranslationUnitDecl *T);
 
 private:
-  bool visit(Decl *D);
   bool visit(FunctionDecl *F);
   bool visit(ParamVarDecl *P);
   bool visit(RuleDecl *R);
   bool visit(TranslationUnitDecl *T);
   bool visit(VarDecl *V);
 
-  bool visit(Stmt *S);
   bool visit(BreakStmt *B);
   bool visit(CompoundStmt *C);
   bool visit(ContinueStmt *C);
@@ -38,7 +36,6 @@ private:
   bool visit(ValueStmt *V);
   bool visit(WhileStmt *W);
 
-  bool visit(Expr *E);
   bool visit(ArraySubscriptExpr *A);
   bool visit(BinaryOperator *B);
   bool visit(CallExpr *C);
