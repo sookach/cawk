@@ -8,7 +8,7 @@ enum TraversalKind { Preorder, Postorder, RecursiveDescent, None };
 };
 
 template <typename Derived, trav::TraversalKind Traversal,
-          bool CheckNull = false>
+          bool CheckNull = false, bool ShortCircuit = true>
 class ASTVisitor {
 protected:
   bool visit(Decl *D) {
@@ -36,22 +36,39 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(F);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(F);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(F))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(F);
+      }
+    }
 
     if constexpr (Traversal == trav::RecursiveDescent)
       static_cast<Derived *>(this)->template visit<true>(F);
 
-    for (ParamVarDecl *P : F->getParams())
-      visit(P);
+    for (ParamVarDecl *P : F->getParams()) {
+      if constexpr (ShortCircuit) {
+        if (!visit(P))
+          return false;
+      } else {
+        visit(P);
+      }
+    }
 
-    visit(F->getBody());
+    if constexpr (ShortCircuit) {
+      if (!visit(F->getBody()))
+        return false;
+    } else {
+      visit(F->getBody());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(F);
+      return static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(F);
+      return static_cast<Derived *>(this)->template visit<false>(F);
 
     return true;
   }
@@ -61,12 +78,11 @@ protected:
       if (P == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(P) &&
              static_cast<Derived *>(this)->template visit<false>(P);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(P);
-    }
   }
 
   bool visit(RuleDecl *R) {
@@ -77,20 +93,37 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(R);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(R);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(R))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(R);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(R);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(R))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(R);
+      }
+    }
 
-    visit(R->getPattern());
-    visit(R->getAction());
+    if constexpr (ShortCircuit) {
+      if (!visit(R->getPattern()) || !visit(R->getAction()))
+        return false;
+    } else {
+      visit(R->getPattern());
+      visit(R->getAction());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(R);
+      return static_cast<Derived *>(this)->visit(R);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(R);
+      return static_cast<Derived *>(this)->template visit<false>(R);
 
     return true;
   }
@@ -103,20 +136,38 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(T);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(T);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(T))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(T);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(T);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(T))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(T);
+      }
+    }
 
-    for (Decl *D : T->getDecls())
-      visit(D);
+    for (Decl *D : T->getDecls()) {
+      if constexpr (ShortCircuit) {
+        if (!visit(D))
+          return false;
+      } else {
+        visit(D);
+      }
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(T);
+      return static_cast<Derived *>(this)->visit(T);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(T);
+      return static_cast<Derived *>(this)->template visit<false>(T);
 
     return true;
   }
@@ -153,12 +204,11 @@ protected:
       if (B == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(B) &&
              static_cast<Derived *>(this)->template visit<false>(B);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(B);
-    }
   }
 
   bool visit(ContinueStmt *C) {
@@ -166,12 +216,11 @@ protected:
       if (C == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(C) &&
              static_cast<Derived *>(this)->template visit<false>(C);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(C);
-    }
   }
 
   bool visit(CompoundStmt *C) {
@@ -182,20 +231,38 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(C);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(C);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(C))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(C);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(C);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(C))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(C);
+      }
+    }
 
-    for (Stmt *S : C->getBody())
-      visit(S);
+    for (Stmt *S : C->getBody()) {
+      if constexpr (ShortCircuit) {
+        if (!visit(S))
+          return false;
+      } else {
+        visit(S);
+      }
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(C);
+      return static_cast<Derived *>(this)->visit(C);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(C);
+      return static_cast<Derived *>(this)->template visit<false>(C);
 
     return true;
   }
@@ -208,19 +275,36 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(D);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(D);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(D))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(D);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(D);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(D))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(D);
+      }
+    }
 
-    visit(D->getArgument());
+    if constexpr (ShortCircuit) {
+      if (!visit(D->getArgument()))
+        return false;
+    } else {
+      visit(D->getArgument());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(D);
+      return static_cast<Derived *>(this)->visit(D);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(D);
+      return static_cast<Derived *>(this)->template visit<false>(D);
 
     return true;
   }
@@ -233,20 +317,37 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(D);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(D);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(D))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(D);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(D);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(D))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(D);
+      }
+    }
 
-    visit(D->getBody());
-    visit(D->getCond());
+    if constexpr (ShortCircuit) {
+      if (!visit(D->getBody()) || !visit(D->getCond()))
+        return false;
+    } else {
+      visit(D->getBody());
+      visit(D->getCond());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(D);
+      return static_cast<Derived *>(this)->visit(D);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(D);
+      return static_cast<Derived *>(this)->template visit<false>(D);
 
     return true;
   }
@@ -259,19 +360,36 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(E);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(E);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(E))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(E);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(E);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(E))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(E);
+      }
+    }
 
-    visit(E->getValue());
+    if constexpr (ShortCircuit) {
+      if (!visit(E->getValue()))
+        return false;
+    } else {
+      visit(E->getValue());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(E);
+      return static_cast<Derived *>(this)->visit(E);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(E);
+      return static_cast<Derived *>(this)->template visit<false>(E);
 
     return true;
   }
@@ -284,22 +402,40 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(F);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(F);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(F))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(F);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(F);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(F))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(F);
+      }
+    }
 
-    visit(F->getInit());
-    visit(F->getCond());
-    visit(F->getInc());
-    visit(F->getBody());
+    if constexpr (ShortCircuit) {
+      if (!visit(F->getInit()) || !visit(F->getCond()) || !visit(F->getInc()) ||
+          !visit(F->getBody()))
+        return false;
+    } else {
+      visit(F->getInit());
+      visit(F->getCond());
+      visit(F->getInc());
+      visit(F->getBody());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(F);
+      return static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(F);
+      return static_cast<Derived *>(this)->template visit<false>(F);
 
     return true;
   }
@@ -312,21 +448,39 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(F);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(F);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(F))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(F);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(F);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(F))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(F);
+      }
+    }
 
-    visit(F->getLoopVar());
-    visit(F->getRange());
-    visit(F->getBody());
+    if constexpr (ShortCircuit) {
+      if (!visit(F->getLoopVar()) || !visit(F->getRange()) ||
+          !visit(F->getBody()))
+        return false;
+    } else {
+      visit(F->getLoopVar());
+      visit(F->getRange());
+      visit(F->getBody());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(F);
+      return static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(F);
+      return static_cast<Derived *>(this)->template visit<false>(F);
 
     return true;
   }
@@ -339,21 +493,38 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(I);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(I);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(I))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(I);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(I);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(I))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(I);
+      }
+    }
 
-    visit(I->getCond());
-    visit(I->getThen());
-    visit(I->getElse());
+    if constexpr (ShortCircuit) {
+      if (!visit(I->getCond()) || !visit(I->getThen()) || !visit(I->getElse()))
+        return false;
+    } else {
+      visit(I->getCond());
+      visit(I->getThen());
+      visit(I->getElse());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(I);
+      return static_cast<Derived *>(this)->visit(I);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(I);
+      return static_cast<Derived *>(this)->template visit<false>(I);
 
     return true;
   }
@@ -363,12 +534,11 @@ protected:
       if (N == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(N) &&
              static_cast<Derived *>(this)->template visit<false>(N);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(N);
-    }
   }
 
   bool visit(NextfileStmt *N) {
@@ -376,12 +546,11 @@ protected:
       if (N == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(N) &&
              static_cast<Derived *>(this)->template visit<false>(N);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(N);
-    }
   }
 
   bool visit(PrintStmt *P) {
@@ -392,20 +561,38 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(P);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(P);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(P))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(P);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(P);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(P))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(P);
+      }
+    }
 
-    for (Expr *E : P->getArgs())
-      visit(E);
+    for (Expr *E : P->getArgs()) {
+      if constexpr (ShortCircuit) {
+        if (!visit(E))
+          return false;
+      } else {
+        visit(E);
+      }
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(P);
+      return static_cast<Derived *>(this)->visit(P);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(P);
+      return static_cast<Derived *>(this)->template visit<true>(P);
 
     return true;
   }
@@ -418,19 +605,36 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(R);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(R);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(R))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(R);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(R);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(R))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(R);
+      }
+    }
 
-    visit(R->getValue());
+    if constexpr (ShortCircuit) {
+      if (!visit(R->getValue()))
+        return false;
+    } else {
+      visit(R->getValue());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(R);
+      return static_cast<Derived *>(this)->visit(R);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(R);
+      return static_cast<Derived *>(this)->template visit<false>(R);
 
     return true;
   }
@@ -443,19 +647,36 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(V);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(V);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(V))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(V);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(V);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(V))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(V);
+      }
+    }
 
-    visit(V->getValue());
+    if constexpr (ShortCircuit) {
+      if (!visit(V->getValue()))
+        return false;
+    } else {
+      visit(V->getValue());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(V);
+      return static_cast<Derived *>(this)->visit(V);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(V);
+      return static_cast<Derived *>(this)->template visit<false>(V);
 
     return true;
   }
@@ -468,20 +689,37 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(W);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(W);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(W))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(W);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(W);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(W))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(W);
+      }
+    }
 
-    visit(W->getCond());
-    visit(W->getBody());
+    if constexpr (ShortCircuit) {
+      if (!visit(W->getCond()) || !visit(W->getBody()))
+        return false;
+    } else {
+      visit(W->getCond());
+      visit(W->getBody());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(W);
+      return static_cast<Derived *>(this)->visit(W);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(W);
+      return static_cast<Derived *>(this)->template visit<false>(W);
 
     return true;
   }
@@ -514,21 +752,45 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(A);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(A);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(A))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(A);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(A);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(A))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(A);
+      }
+    }
 
-    visit(A->getLHS());
-    for (Expr *E : A->getRHS())
-      visit(E);
+    if constexpr (ShortCircuit) {
+      if (!visit(A->getLHS()))
+        return false;
+    } else {
+      visit(A->getLHS());
+    }
+
+    for (Expr *E : A->getRHS()) {
+      if constexpr (ShortCircuit) {
+        if (!visit(E))
+          return false;
+      } else {
+        visit(E);
+      }
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(A);
+      return static_cast<Derived *>(this)->visit(A);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(A);
+      return static_cast<Derived *>(this)->template visit<false>(A);
 
     return true;
   }
@@ -541,20 +803,37 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(B);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(B);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(B))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(B);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(B);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(B))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(B);
+      }
+    }
 
-    visit(B->getLHS());
-    visit(B->getRHS());
+    if constexpr (ShortCircuit) {
+      if (!visit(B->getLHS()) || !visit(B->getRHS()))
+        return false;
+    } else {
+      visit(B->getLHS());
+      visit(B->getRHS());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(B);
+      return static_cast<Derived *>(this)->visit(B);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(B);
+      return static_cast<Derived *>(this)->template visit<false>(B);
 
     return true;
   }
@@ -567,22 +846,45 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(C);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(C);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(C))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(C);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(C);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(C))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(C);
+      }
+    }
 
-    visit(C->getCallee());
+    if constexpr (ShortCircuit) {
+      if (!visit(C->getCallee()))
+        return false;
+    } else {
+      visit(C->getCallee());
+    }
 
-    for (Expr *E : C->getArgs())
-      visit(E);
+    for (Expr *E : C->getArgs()) {
+      if constexpr (ShortCircuit) {
+        if (!visit(E))
+          return false;
+      } else {
+        visit(E);
+      }
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(C);
+      return static_cast<Derived *>(this)->visit(C);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(C);
+      return static_cast<Derived *>(this)->template visit<false>(C);
 
     return true;
   }
@@ -592,12 +894,11 @@ protected:
       if (D == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(D) &&
              static_cast<Derived *>(this)->template visit<false>(D);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(D);
-    }
   }
 
   bool visit(FloatingLiteral *F) {
@@ -605,12 +906,11 @@ protected:
       if (F == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(F) &&
              static_cast<Derived *>(this)->template visit<false>(F);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(F);
-    }
   }
 
   bool visit(RegexLiteral *R) {
@@ -618,12 +918,11 @@ protected:
       if (R == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(R) &&
              static_cast<Derived *>(this)->template visit<false>(R);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(R);
-    }
   }
 
   bool visit(StringLiteral *S) {
@@ -631,12 +930,11 @@ protected:
       if (S == nullptr)
         return true;
 
-    if constexpr (Traversal == trav::RecursiveDescent) {
+    if constexpr (Traversal == trav::RecursiveDescent)
       return static_cast<Derived *>(this)->template visit<true>(S) &&
              static_cast<Derived *>(this)->template visit<false>(S);
-    } else {
+    else
       return static_cast<Derived *>(this)->visit(S);
-    }
   }
 
   bool visit(UnaryOperator *U) {
@@ -647,19 +945,36 @@ protected:
     if constexpr (Traversal == trav::None)
       return static_cast<Derived *>(this)->visit(U);
 
-    if constexpr (Traversal == trav::Preorder)
-      static_cast<Derived *>(this)->visit(U);
+    if constexpr (Traversal == trav::Preorder) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->visit(U))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->visit(U);
+      }
+    }
 
-    if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<true>(U);
+    if constexpr (Traversal == trav::RecursiveDescent) {
+      if constexpr (ShortCircuit) {
+        if (!static_cast<Derived *>(this)->template visit<true>(U))
+          return false;
+      } else {
+        static_cast<Derived *>(this)->template visit<true>(U);
+      }
+    }
 
-    visit(U->getSubExpr());
+    if constexpr (ShortCircuit) {
+      if (!visit(U->getSubExpr()))
+        return false;
+    } else {
+      visit(U->getSubExpr());
+    }
 
     if constexpr (Traversal == trav::Postorder)
-      static_cast<Derived *>(this)->visit(U);
+      return static_cast<Derived *>(this)->visit(U);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->template visit<false>(U);
+      return static_cast<Derived *>(this)->template visit<false>(U);
 
     return true;
   }
