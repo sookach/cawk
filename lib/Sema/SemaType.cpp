@@ -120,4 +120,4 @@ bool SemaType::visit(StringLiteral *S) { return true; }
 
 bool SemaType::visit(UnaryOperator *U) { return true; }
 
-bool SemaType::check(TranslationUnitDecl *T) { return true; }
+bool SemaType::check(TranslationUnitDecl *T) { return traverse(T); }

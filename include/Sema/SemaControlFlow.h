@@ -24,14 +24,12 @@ public:
   bool check(TranslationUnitDecl *T);
 
 private:
-  template <bool FirstVisit> bool visit(Decl *D);
   template <bool FirstVisit> bool visit(FunctionDecl *F);
   template <bool FirstVisit> bool visit(ParamVarDecl *P);
   template <bool FirstVisit> bool visit(RuleDecl *R);
   template <bool FirstVisit> bool visit(TranslationUnitDecl *T);
   template <bool FirstVisit> bool visit(VarDecl *V);
 
-  template <bool FirstVisit> bool visit(Stmt *S);
   template <bool FirstVisit> bool visit(BreakStmt *B);
   template <bool FirstVisit> bool visit(CompoundStmt *C);
   template <bool FirstVisit> bool visit(ContinueStmt *C);
@@ -48,7 +46,6 @@ private:
   template <bool FirstVisit> bool visit(ValueStmt *V);
   template <bool FirstVisit> bool visit(WhileStmt *W);
 
-  template <bool FirstVisit> bool visit(Expr *E);
   template <bool FirstVisit> bool visit(ArraySubscriptExpr *A);
   template <bool FirstVisit> bool visit(BinaryOperator *B);
   template <bool FirstVisit> bool visit(CallExpr *C);

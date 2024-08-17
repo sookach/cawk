@@ -215,4 +215,4 @@ bool SemaLValue::visit(StringLiteral *S) { return true; }
 
 bool SemaLValue::visit(UnaryOperator *U) { return true; }
 
-bool SemaLValue::check(TranslationUnitDecl *T) { return visit(T); }
+bool SemaLValue::check(TranslationUnitDecl *T) { return traverse(T); }

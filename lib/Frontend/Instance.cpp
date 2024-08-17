@@ -13,8 +13,6 @@ int Instance::execute() {
   Parser Parse(Lex);
   auto TLU = Parse.parse();
   ASTPrinter Printer;
-  Printer.traverse(TLU);
-  Exec::load(TLU, {});
-  Exec::exec();
+  Sema().check(TLU);
   return EXIT_SUCCESS;
 }

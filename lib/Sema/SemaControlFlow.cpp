@@ -9,6 +9,7 @@ template <bool FirstVisit> bool SemaControlFlow::visit(FunctionDecl *F) {
     InFunction = true;
   else
     InFunction = false;
+  return true;
 }
 
 template <bool> bool SemaControlFlow::visit(ParamVarDecl *P) { return true; }
@@ -36,7 +37,7 @@ template <bool FirstVisit> bool SemaControlFlow::visit(DoStmt *D) {
   return true;
 }
 
-bool SemaControlFlow::visit(ExitStmt *E) { return true; }
+template <bool> bool SemaControlFlow::visit(ExitStmt *E) { return true; }
 
 template <bool FirstVisit> bool SemaControlFlow::visit(ForStmt *F) {
   if constexpr (FirstVisit)
@@ -46,7 +47,7 @@ template <bool FirstVisit> bool SemaControlFlow::visit(ForStmt *F) {
   return true;
 }
 
-bool SemaControlFlow::visit(ForRangeStmt *F) {
+template <bool FirstVisit> bool SemaControlFlow::visit(ForRangeStmt *F) {
   if constexpr (FirstVisit)
     enterLoop();
   else
@@ -54,19 +55,21 @@ bool SemaControlFlow::visit(ForRangeStmt *F) {
   return true;
 }
 
-bool SemaControlFlow::visit(IfStmt *I) { return true; }
+template <bool> bool SemaControlFlow::visit(IfStmt *I) { return true; }
 
-bool SemaControlFlow::visit(NextStmt *N) { return true; }
+template <bool> bool SemaControlFlow::visit(NextStmt *N) { return true; }
 
-bool SemaControlFlow::visit(NextfileStmt *N) { return true; }
+template <bool> bool SemaControlFlow::visit(NextfileStmt *N) { return true; }
 
-bool SemaControlFlow::visit(PrintStmt *P) { return true; }
+template <bool> bool SemaControlFlow::visit(PrintStmt *P) { return true; }
 
-bool SemaControlFlow::visit(ReturnStmt *R) { return InFunction; }
+template <bool> bool SemaControlFlow::visit(ReturnStmt *R) {
+  return InFunction;
+}
 
-bool SemaControlFlow::visit(ValueStmt *V) { return true; }
+template <bool> bool SemaControlFlow::visit(ValueStmt *V) { return true; }
 
-bool SemaControlFlow::visit(WhileStmt *W) {
+template <bool FirstVisit> bool SemaControlFlow::visit(WhileStmt *W) {
   if constexpr (FirstVisit)
     enterLoop();
   else
@@ -74,20 +77,22 @@ bool SemaControlFlow::visit(WhileStmt *W) {
   return true;
 }
 
-bool SemaControlFlow::visit(ArraySubscriptExpr *A) { return true; }
+template <bool> bool SemaControlFlow::visit(ArraySubscriptExpr *A) {
+  return true;
+}
 
-bool SemaControlFlow::visit(BinaryOperator *B) { return true; }
+template <bool> bool SemaControlFlow::visit(BinaryOperator *B) { return true; }
 
-bool SemaControlFlow::visit(CallExpr *C) { return true; }
+template <bool> bool SemaControlFlow::visit(CallExpr *C) { return true; }
 
-bool SemaControlFlow::visit(DeclRefExpr *D) { return true; }
+template <bool> bool SemaControlFlow::visit(DeclRefExpr *D) { return true; }
 
-bool SemaControlFlow::visit(FloatingLiteral *F) { return true; }
+template <bool> bool SemaControlFlow::visit(FloatingLiteral *F) { return true; }
 
-bool SemaControlFlow::visit(RegexLiteral *R) { return true; }
+template <bool> bool SemaControlFlow::visit(RegexLiteral *R) { return true; }
 
-bool SemaControlFlow::visit(StringLiteral *S) { return true; }
+template <bool> bool SemaControlFlow::visit(StringLiteral *S) { return true; }
 
-bool SemaControlFlow::visit(UnaryOperator *U) { return true; }
+template <bool> bool SemaControlFlow::visit(UnaryOperator *U) { return true; }
 
-bool SemaControlFlow::check(TranslationUnitDecl *T) { return true; }
+bool SemaControlFlow::check(TranslationUnitDecl *T) { return traverse(T); }
