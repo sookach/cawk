@@ -40,7 +40,7 @@ protected:
       static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(F);
+      static_cast<Derived *>(this)->template visit<true>(F);
 
     for (ParamVarDecl *P : F->getParams())
       visit(P);
@@ -51,7 +51,7 @@ protected:
       static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(F);
+      static_cast<Derived *>(this)->template visit<false>(F);
 
     return true;
   }
@@ -62,8 +62,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(P);
-      static_cast<Derived *>(this)->visit<false>(P);
+      return static_cast<Derived *>(this)->template visit<true>(P) &&
+             static_cast<Derived *>(this)->template visit<false>(P);
     } else {
       return static_cast<Derived *>(this)->visit(P);
     }
@@ -81,7 +81,7 @@ protected:
       static_cast<Derived *>(this)->visit(R);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(R);
+      static_cast<Derived *>(this)->template visit<true>(R);
 
     visit(R->getPattern());
     visit(R->getAction());
@@ -90,7 +90,7 @@ protected:
       static_cast<Derived *>(this)->visit(R);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(R);
+      static_cast<Derived *>(this)->template visit<false>(R);
 
     return true;
   }
@@ -107,7 +107,7 @@ protected:
       static_cast<Derived *>(this)->visit(T);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(T);
+      static_cast<Derived *>(this)->template visit<true>(T);
 
     for (Decl *D : T->getDecls())
       visit(D);
@@ -116,7 +116,7 @@ protected:
       static_cast<Derived *>(this)->visit(T);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(T);
+      static_cast<Derived *>(this)->template visit<false>(T);
 
     return true;
   }
@@ -154,8 +154,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(B);
-      static_cast<Derived *>(this)->visit<false>(B);
+      return static_cast<Derived *>(this)->template visit<true>(B) &&
+             static_cast<Derived *>(this)->template visit<false>(B);
     } else {
       return static_cast<Derived *>(this)->visit(B);
     }
@@ -167,8 +167,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(C);
-      static_cast<Derived *>(this)->visit<false>(C);
+      return static_cast<Derived *>(this)->template visit<true>(C) &&
+             static_cast<Derived *>(this)->template visit<false>(C);
     } else {
       return static_cast<Derived *>(this)->visit(C);
     }
@@ -186,7 +186,7 @@ protected:
       static_cast<Derived *>(this)->visit(C);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(C);
+      static_cast<Derived *>(this)->template visit<true>(C);
 
     for (Stmt *S : C->getBody())
       visit(S);
@@ -195,7 +195,7 @@ protected:
       static_cast<Derived *>(this)->visit(C);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(C);
+      static_cast<Derived *>(this)->template visit<false>(C);
 
     return true;
   }
@@ -212,7 +212,7 @@ protected:
       static_cast<Derived *>(this)->visit(D);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(D);
+      static_cast<Derived *>(this)->template visit<true>(D);
 
     visit(D->getArgument());
 
@@ -220,7 +220,7 @@ protected:
       static_cast<Derived *>(this)->visit(D);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(D);
+      static_cast<Derived *>(this)->template visit<false>(D);
 
     return true;
   }
@@ -237,7 +237,7 @@ protected:
       static_cast<Derived *>(this)->visit(D);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(D);
+      static_cast<Derived *>(this)->template visit<true>(D);
 
     visit(D->getBody());
     visit(D->getCond());
@@ -246,7 +246,7 @@ protected:
       static_cast<Derived *>(this)->visit(D);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(D);
+      static_cast<Derived *>(this)->template visit<false>(D);
 
     return true;
   }
@@ -263,7 +263,7 @@ protected:
       static_cast<Derived *>(this)->visit(E);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(E);
+      static_cast<Derived *>(this)->template visit<true>(E);
 
     visit(E->getValue());
 
@@ -271,7 +271,7 @@ protected:
       static_cast<Derived *>(this)->visit(E);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(E);
+      static_cast<Derived *>(this)->template visit<false>(E);
 
     return true;
   }
@@ -288,7 +288,7 @@ protected:
       static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(F);
+      static_cast<Derived *>(this)->template visit<true>(F);
 
     visit(F->getInit());
     visit(F->getCond());
@@ -299,7 +299,7 @@ protected:
       static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(F);
+      static_cast<Derived *>(this)->template visit<false>(F);
 
     return true;
   }
@@ -316,7 +316,7 @@ protected:
       static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(F);
+      static_cast<Derived *>(this)->template visit<true>(F);
 
     visit(F->getLoopVar());
     visit(F->getRange());
@@ -326,7 +326,7 @@ protected:
       static_cast<Derived *>(this)->visit(F);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(F);
+      static_cast<Derived *>(this)->template visit<false>(F);
 
     return true;
   }
@@ -343,7 +343,7 @@ protected:
       static_cast<Derived *>(this)->visit(I);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(I);
+      static_cast<Derived *>(this)->template visit<true>(I);
 
     visit(I->getCond());
     visit(I->getThen());
@@ -353,7 +353,7 @@ protected:
       static_cast<Derived *>(this)->visit(I);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(I);
+      static_cast<Derived *>(this)->template visit<false>(I);
 
     return true;
   }
@@ -364,8 +364,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(N);
-      static_cast<Derived *>(this)->visit<false>(N);
+      return static_cast<Derived *>(this)->template visit<true>(N) &&
+             static_cast<Derived *>(this)->template visit<false>(N);
     } else {
       return static_cast<Derived *>(this)->visit(N);
     }
@@ -377,8 +377,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(N);
-      static_cast<Derived *>(this)->visit<false>(N);
+      return static_cast<Derived *>(this)->template visit<true>(N) &&
+             static_cast<Derived *>(this)->template visit<false>(N);
     } else {
       return static_cast<Derived *>(this)->visit(N);
     }
@@ -396,7 +396,7 @@ protected:
       static_cast<Derived *>(this)->visit(P);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(P);
+      static_cast<Derived *>(this)->template visit<true>(P);
 
     for (Expr *E : P->getArgs())
       visit(E);
@@ -405,7 +405,7 @@ protected:
       static_cast<Derived *>(this)->visit(P);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(P);
+      static_cast<Derived *>(this)->template visit<true>(P);
 
     return true;
   }
@@ -422,7 +422,7 @@ protected:
       static_cast<Derived *>(this)->visit(R);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(R);
+      static_cast<Derived *>(this)->template visit<true>(R);
 
     visit(R->getValue());
 
@@ -430,7 +430,7 @@ protected:
       static_cast<Derived *>(this)->visit(R);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(R);
+      static_cast<Derived *>(this)->template visit<false>(R);
 
     return true;
   }
@@ -447,7 +447,7 @@ protected:
       static_cast<Derived *>(this)->visit(V);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(V);
+      static_cast<Derived *>(this)->template visit<true>(V);
 
     visit(V->getValue());
 
@@ -455,7 +455,7 @@ protected:
       static_cast<Derived *>(this)->visit(V);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(V);
+      static_cast<Derived *>(this)->template visit<false>(V);
 
     return true;
   }
@@ -472,7 +472,7 @@ protected:
       static_cast<Derived *>(this)->visit(W);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(W);
+      static_cast<Derived *>(this)->template visit<true>(W);
 
     visit(W->getCond());
     visit(W->getBody());
@@ -481,7 +481,7 @@ protected:
       static_cast<Derived *>(this)->visit(W);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(W);
+      static_cast<Derived *>(this)->template visit<false>(W);
 
     return true;
   }
@@ -518,7 +518,7 @@ protected:
       static_cast<Derived *>(this)->visit(A);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(A);
+      static_cast<Derived *>(this)->template visit<true>(A);
 
     visit(A->getLHS());
     for (Expr *E : A->getRHS())
@@ -528,7 +528,7 @@ protected:
       static_cast<Derived *>(this)->visit(A);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(A);
+      static_cast<Derived *>(this)->template visit<false>(A);
 
     return true;
   }
@@ -545,7 +545,7 @@ protected:
       static_cast<Derived *>(this)->visit(B);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(B);
+      static_cast<Derived *>(this)->template visit<true>(B);
 
     visit(B->getLHS());
     visit(B->getRHS());
@@ -554,7 +554,7 @@ protected:
       static_cast<Derived *>(this)->visit(B);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(B);
+      static_cast<Derived *>(this)->template visit<false>(B);
 
     return true;
   }
@@ -571,7 +571,7 @@ protected:
       static_cast<Derived *>(this)->visit(C);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(C);
+      static_cast<Derived *>(this)->template visit<true>(C);
 
     visit(C->getCallee());
 
@@ -582,7 +582,7 @@ protected:
       static_cast<Derived *>(this)->visit(C);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(C);
+      static_cast<Derived *>(this)->template visit<false>(C);
 
     return true;
   }
@@ -593,8 +593,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(D);
-      static_cast<Derived *>(this)->visit<false>(D);
+      return static_cast<Derived *>(this)->template visit<true>(D) &&
+             static_cast<Derived *>(this)->template visit<false>(D);
     } else {
       return static_cast<Derived *>(this)->visit(D);
     }
@@ -606,8 +606,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(F);
-      static_cast<Derived *>(this)->visit<false>(F);
+      return static_cast<Derived *>(this)->template visit<true>(F) &&
+             static_cast<Derived *>(this)->template visit<false>(F);
     } else {
       return static_cast<Derived *>(this)->visit(F);
     }
@@ -619,8 +619,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(R);
-      static_cast<Derived *>(this)->visit<false>(R);
+      return static_cast<Derived *>(this)->template visit<true>(R) &&
+             static_cast<Derived *>(this)->template visit<false>(R);
     } else {
       return static_cast<Derived *>(this)->visit(R);
     }
@@ -632,8 +632,8 @@ protected:
         return true;
 
     if constexpr (Traversal == trav::RecursiveDescent) {
-      static_cast<Derived *>(this)->visit<true>(S);
-      static_cast<Derived *>(this)->visit<false>(S);
+      return static_cast<Derived *>(this)->template visit<true>(S) &&
+             static_cast<Derived *>(this)->template visit<false>(S);
     } else {
       return static_cast<Derived *>(this)->visit(S);
     }
@@ -651,7 +651,7 @@ protected:
       static_cast<Derived *>(this)->visit(U);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<true>(U);
+      static_cast<Derived *>(this)->template visit<true>(U);
 
     visit(U->getSubExpr());
 
@@ -659,7 +659,7 @@ protected:
       static_cast<Derived *>(this)->visit(U);
 
     if constexpr (Traversal == trav::RecursiveDescent)
-      static_cast<Derived *>(this)->visit<false>(U);
+      static_cast<Derived *>(this)->template visit<false>(U);
 
     return true;
   }
