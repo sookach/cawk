@@ -24,12 +24,7 @@ private:
   bool visit(FunctionDecl *F);
   bool visit(ParamVarDecl *P);
   bool visit(RuleDecl *R);
-  bool visit(TranslationUnitDecl *T);
-  bool visit(VarDecl *V);
 
-  bool visit(BreakStmt *B);
-  bool visit(CompoundStmt *C);
-  bool visit(ContinueStmt *C);
   bool visit(DeleteStmt *D);
   bool visit(DoStmt *D);
   bool visit(ExitStmt *E);
@@ -46,11 +41,6 @@ private:
   bool visit(ArraySubscriptExpr *A);
   bool visit(BinaryOperator *B);
   bool visit(CallExpr *C);
-  bool visit(DeclRefExpr *D);
-  bool visit(FloatingLiteral *F);
-  bool visit(RegexLiteral *R);
-  bool visit(StringLiteral *S);
-  bool visit(UnaryOperator *U);
 
   DeclRefExpr *resolve(DeclRefExpr *D);
 };

@@ -18,9 +18,12 @@ static bool areTypesConvertible(type::TypeKind FromType,
   return FromType == ToType;
 }
 
-bool SemaType::visit(FunctionDecl *F) { return true; }
-
-bool SemaType::visit(ParamVarDecl *P) { return true; }
+static bool isConvertibleTo(Expr *E, type::TypeKind Type) {
+  if (areTypesConvertible(E->getType(), Type))
+    return true;
+  outs() << "Error: " << toString(E->getType()) << " is not convertible to "
+         << toString(Type) << "\n";
+}
 
 bool SemaType::visit(RuleDecl *R) {
   if (R->getPattern() != nullptr &&
@@ -29,21 +32,13 @@ bool SemaType::visit(RuleDecl *R) {
   return true;
 }
 
-bool SemaType::visit(TranslationUnitDecl *T) { return true; }
-
-bool SemaType::visit(VarDecl *V) { return true; }
-
-bool SemaType::visit(BreakStmt *B) { return true; }
-
-bool SemaType::visit(CompoundStmt *C) { return true; }
-
-bool SemaType::visit(ContinueStmt *C) { return true; }
-
 bool SemaType::visit(DeleteStmt *D) {
   return areTypesConvertible(D->getArgument()->getType(), type::array);
 }
 
-bool SemaType::visit(DoStmt *D) { return true; }
+bool SemaType::visit(DoStmt *D) {
+  return areTypesConvertible(D->getCond()->getType(), type::primitive);
+}
 
 bool SemaType::visit(ExitStmt *E) {
   return areTypesConvertible(E->getValue()->getType(), type::primitive);
@@ -65,10 +60,6 @@ bool SemaType::visit(IfStmt *I) {
   return areTypesConvertible(I->getCond()->getType(), type::primitive);
 }
 
-bool SemaType::visit(NextStmt *N) { return true; }
-
-bool SemaType::visit(NextfileStmt *N) { return true; }
-
 bool SemaType::visit(PrintStmt *P) {
   for (Expr *E : P->getArgs())
     if (!areTypesConvertible(E->getType(), type::primitive))
@@ -81,8 +72,6 @@ bool SemaType::visit(ReturnStmt *R) {
     return areTypesConvertible(R->getValue()->getType(), type::primitive);
   return true;
 }
-
-bool SemaType::visit(ValueStmt *V) { return true; }
 
 bool SemaType::visit(WhileStmt *W) {
   return areTypesConvertible(W->getCond()->getType(), type::primitive);
@@ -110,14 +99,32 @@ bool SemaType::visit(CallExpr *C) {
   return true;
 }
 
-bool SemaType::visit(DeclRefExpr *D) { return true; }
+bool SemaType::visit(FloatingLiteral *F) {
+  F->setType(type::primitive);
+  return true;
+}
 
-bool SemaType::visit(FloatingLiteral *F) { return true; }
+bool SemaType::visit(RegexLiteral *R) {
+  R->setType(type::primitive);
+  return true;
+}
 
-bool SemaType::visit(RegexLiteral *R) { return true; }
+bool SemaType::visit(StringLiteral *S) {
+  S->setType(type::primitive);
+  return true;
+}
 
-bool SemaType::visit(StringLiteral *S) { return true; }
-
-bool SemaType::visit(UnaryOperator *U) { return true; }
+bool SemaType::visit(UnaryOperator *U) {
+  switch (U->getOpcode().getKind()) {
+  default:
+    return true;
+  case tok::minus:
+  case tok::plus:
+  case tok::exclaim:
+  case tok::plusplus:
+  case tok::minusminus:
+    return areTypesConvertible(U->getSubExpr()->getType(), type::primitive);
+  }
+}
 
 bool SemaType::check(TranslationUnitDecl *T) { return traverse(T); }

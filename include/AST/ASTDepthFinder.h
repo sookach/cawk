@@ -134,10 +134,6 @@ private:
   }
 
 public:
-  bool traverse(auto *P) {
-    return ASTVisitor<ASTDepthFinder, trav::Preorder, true>::visit(P);
-  }
-
   std::unordered_map<void *, std::size_t> getTable() { return Table; }
 
   std::unordered_map<void *, std::size_t> getDepths(auto *P) {

@@ -31,16 +31,6 @@ bool SymbolResolver::visit(RuleDecl *R) {
   return true;
 }
 
-bool SymbolResolver::visit(TranslationUnitDecl *T) { return true; }
-
-bool SymbolResolver::visit(VarDecl *V) { return true; }
-
-bool SymbolResolver::visit(BreakStmt *B) { return true; }
-
-bool SymbolResolver::visit(CompoundStmt *C) { return true; }
-
-bool SymbolResolver::visit(ContinueStmt *C) { return true; }
-
 bool SymbolResolver::visit(DeleteStmt *D) {
   if (DeclRefExpr *DRE = dyn_cast_or_null<DeclRefExpr>(D->getArgument()))
     D->setArgument(resolve(DRE));
@@ -113,9 +103,9 @@ bool SymbolResolver::visit(ArraySubscriptExpr *A) {
 
 bool SymbolResolver::visit(BinaryOperator *B) {
   if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(B->getLHS()))
-    B->setLHS(D);
+    B->setLHS(resolve(D));
   if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(B->getRHS()))
-    B->setRHS(D);
+    B->setRHS(resolve(D));
   return true;
 }
 
@@ -135,18 +125,8 @@ bool SymbolResolver::visit(CallExpr *C) {
   return true;
 }
 
-bool SymbolResolver::visit(DeclRefExpr *D) { return true; }
-
-bool SymbolResolver::visit(FloatingLiteral *F) { return true; }
-
-bool SymbolResolver::visit(RegexLiteral *R) { return true; }
-
-bool SymbolResolver::visit(StringLiteral *S) { return true; }
-
-bool SymbolResolver::visit(UnaryOperator *U) { return true; }
-
 bool SymbolResolver::check(TranslationUnitDecl *T) {
-  if (!visit(T))
+  if (!traverse(T))
     return false;
 
   for (CallExpr *C : UnresolvedSymbols)

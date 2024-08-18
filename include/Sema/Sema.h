@@ -11,6 +11,7 @@ class Sema {
   SemaType TypeSema;
   SemaLValue LValueSema;
   SemaControlFlow ControlFlowSema;
+  SymbolResolver Resolver;
 
 public:
   bool check(TranslationUnitDecl *T);
