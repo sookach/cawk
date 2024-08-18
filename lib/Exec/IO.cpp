@@ -24,4 +24,37 @@ std::string InputFile::getLine(char Delim) {
 
 bool InputFile::isEOF() { return Curr == End; }
 
-std::string InputFile::toString() { return std::string(std::cbegin(Buffer), End); }
+std::string InputFile::toString() {
+  return std::string(std::cbegin(Buffer), End);
+}
+
+OutputFile::OutputFile(std::string Pathname) {
+  FilePtr = std::fopen(Pathname.c_str(), "w");
+}
+
+OutputFile::OutputFile(FILE *FilePtr) : FilePtr(FilePtr) {}
+
+void OutputFile::put(char C) {
+  if (Curr == End) {
+    std::fwrite(std::data(Buffer), 1, std::size(Buffer), FilePtr);
+    Curr = std::begin(Buffer);
+  }
+
+  *Curr++ = C;
+}
+
+void OutputFile::put(std::string S) {
+  for (char C : S)
+    put(C);
+}
+
+void OutputFile::flush() {
+  std::fwrite(std::data(Buffer), 1, std::distance(std::begin(Buffer), Curr),
+              FilePtr);
+  Curr = std::begin(Buffer);
+}
+
+void OutputFile::close() {
+  flush();
+  std::fclose(FilePtr);
+}
