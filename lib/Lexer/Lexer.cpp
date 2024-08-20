@@ -193,6 +193,8 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     if (*(BufferPtr + 1) == '+')
       formToken(T, BufferPtr + 2, tok::plusplus);
     else if (*(BufferPtr + 1) == '=')
+      formToken(T, BufferPtr + 2, tok::plusequal);
+    else
       formToken(T, BufferPtr + 1, tok::plus);
     break;
   case '-':
