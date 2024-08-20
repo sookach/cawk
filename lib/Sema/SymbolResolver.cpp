@@ -121,6 +121,12 @@ bool SymbolResolver::visit(CallExpr *C) {
   return true;
 }
 
+bool SymbolResolver::visit(UnaryOperator *U) {
+  if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(U->getSubExpr()))
+    U->setSubExpr(resolve(D));
+  return true;
+}
+
 bool SymbolResolver::check(TranslationUnitDecl *T) {
   if (!traverse(T))
     return false;

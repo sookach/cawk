@@ -42,6 +42,7 @@ private:
   bool visit(ArraySubscriptExpr *A);
   bool visit(BinaryOperator *B);
   bool visit(CallExpr *C);
+  bool visit(UnaryOperator *U);
 
   DeclRefExpr *resolve(DeclRefExpr *D);
 };
