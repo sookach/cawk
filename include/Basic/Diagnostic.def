@@ -3,7 +3,9 @@
 #endif
 
 DIAG(error, lex_unterminated_string, "unterminated string")
-DIAG(error, sema_invalid_operand_type, "invalid operands type for '%': '%'")
+DIAG(error, sema_invalid_operand_type, "invalid operand type for '%': '%'")
+DIAG(error, sema_invalid_operand_types,
+     "invalid operand types for '%': '%' and '%'")
 DIAG(error, sema_primitive_subscript,
      "cannot use subscript operator on primitive '%'")
 

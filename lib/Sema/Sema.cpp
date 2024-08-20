@@ -15,12 +15,19 @@ bool Sema::check(TranslationUnitDecl *T) {
   SemaControlFlow ControlFlowSema(Diags);
   SymbolResolver Resolver(Diags);
   ASTPrinter Printer;
-  Printer.traverse(T);
+  bool Result = true;
 
-  std::printf("SymbolResolver: %s\n", Resolver.check(T) ? "pass" : "fail");
-  std::printf("SemaType: %s\n", TypeSema.check(T) ? "pass" : "fail");
-  std::printf("SemaLValue: %s\n", LValueSema.check(T) ? "pass" : "fail");
-  std::printf("SemaControlFlow: %s\n",
-              ControlFlowSema.check(T) ? "pass" : "fail");
+  Result = Resolver.check(T);
+  //   std::printf("SymbolResolver: %s\n", Result ? "pass" : "fail");
+
+  Result = TypeSema.check(T);
+  //   std::printf("SemaType: %s\n", Result ? "pass" : "fail");
+
+  Result = LValueSema.check(T);
+  //   std::printf("SemaLValue: %s\n", Result ? "pass" : "fail");
+
+  Result = ControlFlowSema.check(T);
+  //   std::printf("SemaControlFlow: %s\n", Result ? "pass" : "fail");
+
   return true;
 }

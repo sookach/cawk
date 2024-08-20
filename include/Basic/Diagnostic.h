@@ -77,17 +77,17 @@ public:
   void printErrors(std::string_view Source) {
     for (const auto &[Line, Error] : ErrorDiagnostics) {
       std::fprintf(stderr, "error: %s\n", Error.c_str());
-      std::fprintf(stderr, "%lu | %s\n", Line,
+      std::fprintf(stderr, "  %lu | %s\n", Line,
                    getSourceLine(Source, Line).c_str());
     }
   }
 
   std::string getSourceLine(std::string_view Source, std::size_t Line) {
-    auto Begin = Source.find_last_of('\n', Line);
-    auto End = Source.find('\n', Line);
-    if (End == std::string::npos)
-      End = Source.size();
-    return std::string(Source.data() + Begin, End - Begin);
+    auto Begin = std::cbegin(Source);
+    for (std::size_t I = 1; I != Line; ++I)
+      Begin = std::find(Begin, std::cend(Source), '\n') + 1;
+    auto End = std::find(Begin, std::cend(Source), '\n');
+    return std::string(Begin, End == std::cend(Source) ? End - 1 : End);
   }
 };
 } // namespace cawk

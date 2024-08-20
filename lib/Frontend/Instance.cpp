@@ -15,7 +15,7 @@ int Instance::execute() {
   auto TLU = Parse.parse();
   Sema Semantic(Diags);
   Semantic.check(TLU);
-  Printer.traverse(TLU);
+  //   Printer.traverse(TLU);
   Diags.printErrors(Source);
   return EXIT_SUCCESS;
 }

@@ -91,7 +91,15 @@ bool SemaType::visit(ArraySubscriptExpr *A) {
 }
 
 bool SemaType::visit(BinaryOperator *B) {
-  return areTypesConvertible(B->getLHS()->getType(), B->getRHS()->getType());
+  if (!isConvertibleTo(B->getLHS(), type::primitive) ||
+      !isConvertibleTo(B->getRHS(), type::primitive)) {
+    Diags.addError(B->getOpcode().getLine(), diag::sema_invalid_operand_types,
+                   "+", toString(B->getLHS()->getType()),
+                   toString(B->getRHS()->getType()));
+    return false;
+  }
+
+  return true;
 }
 
 bool SemaType::visit(CallExpr *C) {

@@ -32,8 +32,16 @@ public:
   template <bool, bool> void next(Token &T);
   void undo();
 
+  void formSpaceToken(Token &T, std::string_view::const_iterator It) {
+    T.Kind = tok::space;
+    T.Ptr = It;
+    T.Length = 1;
+  }
+
 private:
   void formToken(Token &T, std::string_view::const_iterator End,
                  tok::TokenKind Kind);
+
+  std::size_t getLine() const { return Line; }
 };
 } // namespace cawk

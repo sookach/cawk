@@ -299,10 +299,31 @@ Expr *Parser::parseExpr(prec::Level MinPrec) {
     }
   }(NUD());
 
-  for (; getBinOpPrecedence((Tok.is(tok::newline) ? peek(1) : Tok).getKind()) >
-         MinPrec;) {
+  for (;;) {
+    auto Prec = [this] {
+      if (!Tok.is(tok::newline))
+        return getBinOpPrecedence(Tok.getKind());
+      auto Peek = peek(1);
+      if (Peek.is(tok::identifier, tok::string_literal, tok::numeric_constant))
+        return prec::Unknown;
+      return getBinOpPrecedence(Peek.getKind());
+    }();
+
+    if (Prec <= MinPrec)
+      break;
+
     skip<tok::newline>();
-    auto OpCode = advance();
+
+    auto OpCode = [this, Prec] {
+      if (Prec == prec::StringConcat) {
+        auto SpaceTok = Tok;
+        Lex.formSpaceToken(SpaceTok,
+                           std::cbegin(SpaceTok.getLiteralData()) - 1);
+        return SpaceTok;
+      }
+      return advance();
+    }();
+
     switch (OpCode.getKind()) {
     default:
       LHS = BinaryOperator::Create(
