@@ -63,10 +63,6 @@ bool SymbolResolver::visit(IfStmt *I) {
   return true;
 }
 
-bool SymbolResolver::visit(NextStmt *N) { return true; }
-
-bool SymbolResolver::visit(NextfileStmt *N) { return true; }
-
 bool SymbolResolver::visit(PrintStmt *P) {
   for (int I = 0; I != std::size(P->getArgs()); ++I)
     if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(P->getArgs()[I]))
@@ -76,28 +72,28 @@ bool SymbolResolver::visit(PrintStmt *P) {
 
 bool SymbolResolver::visit(ReturnStmt *R) {
   if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(R->getValue()))
-    R->setValue(D);
+    R->setValue(resolve(D));
   return true;
 }
 
 bool SymbolResolver::visit(ValueStmt *V) {
   if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(V->getValue()))
-    V->setValue(D);
+    V->setValue(resolve(D));
   return true;
 }
 
 bool SymbolResolver::visit(WhileStmt *W) {
   if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(W->getCond()))
-    W->setCond(D);
+    W->setCond(resolve(D));
   return true;
 }
 
 bool SymbolResolver::visit(ArraySubscriptExpr *A) {
   if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(A->getLHS()))
-    A->setLHS(D);
+    A->setLHS(resolve(D));
   for (int I = 0; I != std::size(A->getRHS()); ++I)
     if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(A->getRHS()[I]))
-      A->setRHS(I, D);
+      A->setRHS(I, resolve(D));
   return true;
 }
 
@@ -120,7 +116,7 @@ bool SymbolResolver::visit(CallExpr *C) {
 
   for (int I = 0; I != std::size(C->getArgs()); ++I)
     if (DeclRefExpr *D = dyn_cast_or_null<DeclRefExpr>(C->getArgs()[I]))
-      C->setArg(I, D);
+      C->setArg(I, resolve(D));
 
   return true;
 }

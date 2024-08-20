@@ -34,8 +34,6 @@ private:
   bool visit(ForStmt *F);
   bool visit(ForRangeStmt *F);
   bool visit(IfStmt *I);
-  bool visit(NextStmt *N);
-  bool visit(NextfileStmt *N);
   bool visit(PrintStmt *P);
   bool visit(ReturnStmt *R);
   bool visit(ValueStmt *V);
