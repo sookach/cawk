@@ -19,10 +19,7 @@ static bool areTypesConvertible(type::TypeKind FromType,
 }
 
 static bool isConvertibleTo(Expr *E, type::TypeKind Type) {
-  if (areTypesConvertible(E->getType(), Type))
-    return true;
-  outs() << "Error: " << toString(E->getType()) << " is not convertible to "
-         << toString(Type) << "\n";
+  return areTypesConvertible(E->getType(), Type);
 }
 
 bool SemaType::visit(RuleDecl *R) {
@@ -123,7 +120,12 @@ bool SemaType::visit(UnaryOperator *U) {
   case tok::exclaim:
   case tok::plusplus:
   case tok::minusminus:
-    return areTypesConvertible(U->getSubExpr()->getType(), type::primitive);
+    if (areTypesConvertible(U->getSubExpr()->getType(), type::primitive))
+      return true;
+    Diags.addError(U->getOpcode().getLine(), diag::sema_invalid_operand_type,
+                   U->getOpcode().getLiteralData(),
+                   toString(U->getSubExpr()->getType()));
+    return false;
   }
 }
 

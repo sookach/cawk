@@ -2,14 +2,16 @@
 
 #include "AST/AST.h"
 #include "AST/ASTVisitor.h"
+#include "Basic/Diagnostic.h"
 #include "Exec/IO.h"
 
 namespace cawk {
 class SemaType : ASTVisitor<SemaType, trav::Postorder, true> {
   friend class ASTVisitor<SemaType, trav::Postorder, true>;
-  OutputFile Out = outs();
+  Diagnostic &Diags;
 
 public:
+  SemaType(Diagnostic &Diags) : Diags(Diags) {}
   bool check(TranslationUnitDecl *T);
 
 private:

@@ -13,6 +13,6 @@ int Instance::execute() {
   Parser Parse(Lex);
   auto TLU = Parse.parse();
   ASTPrinter Printer;
-  Sema().check(TLU);
+  Sema(Diags).check(TLU);
   return EXIT_SUCCESS;
 }

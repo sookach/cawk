@@ -2,6 +2,7 @@
 
 #include "AST/AST.h"
 #include "AST/ASTVisitor.h"
+#include "Basic/Diagnostic.h"
 
 #include <vector>
 
@@ -11,6 +12,7 @@ class SemaControlFlow
   friend class ASTVisitor<SemaControlFlow, trav::RecursiveDescent, true>;
 
 private:
+  Diagnostic &Diags;
   std::uint16_t LoopDepth = 0;
   bool InFunction = false;
 
@@ -21,6 +23,7 @@ private:
   void exitLoop() { --LoopDepth; }
 
 public:
+  SemaControlFlow(Diagnostic &Diags) : Diags(Diags) {}
   bool check(TranslationUnitDecl *T);
 
 private:

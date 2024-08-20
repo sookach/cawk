@@ -1,19 +1,14 @@
 #pragma once
 
 #include "AST/AST.h"
-#include "Sema/SemaControlFlow.h"
-#include "Sema/SemaLValue.h"
-#include "Sema/SemaType.h"
-#include "Sema/SymbolResolver.h"
+#include "Basic/Diagnostic.h"
 
 namespace cawk {
 class Sema {
-  SemaType TypeSema;
-  SemaLValue LValueSema;
-  SemaControlFlow ControlFlowSema;
-  SymbolResolver Resolver;
+  Diagnostic &Diags;
 
 public:
+  Sema(Diagnostic &Diags) : Diags(Diags) {}
   bool check(TranslationUnitDecl *T);
 };
 

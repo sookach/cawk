@@ -1,5 +1,6 @@
 #include "AST/AST.h"
 #include "AST/ASTVisitor.h"
+#include "Basic/Diagnostic.h"
 
 #include <string>
 #include <string_view>
@@ -10,6 +11,7 @@
 namespace cawk {
 class SymbolResolver : ASTVisitor<SymbolResolver, trav::Preorder, true> {
   friend class ASTVisitor<SymbolResolver, trav::Preorder, true>;
+  Diagnostic &Diags;
 
   std::unordered_map<std::string, FunctionDecl *> FunctionResolutions;
   std::unordered_map<std::string, DeclRefExpr *> GlobalResolutions;
@@ -18,6 +20,7 @@ class SymbolResolver : ASTVisitor<SymbolResolver, trav::Preorder, true> {
   std::vector<CallExpr *> UnresolvedSymbols;
 
 public:
+  SymbolResolver(Diagnostic &Diags) : Diags(Diags) {}
   bool check(TranslationUnitDecl *T);
 
 private:

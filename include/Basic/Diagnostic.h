@@ -37,6 +37,8 @@ class Diagnostic {
       FormattedText += Arg;
     else if constexpr (std::is_same_v<std::decay_t<T>, const char *>)
       FormattedText += std::string(Arg);
+    else if constexpr (std::is_same_v<std::decay_t<T>, std::string_view>)
+      FormattedText += std::string(Arg);
     else
       FormattedText += std::to_string(Arg);
     return FormattedText +
@@ -66,6 +68,22 @@ public:
   template <typename... T>
   void addWarning(std::size_t Line, diag::DiagnosticKind Kind, T &&...Args) {
     addDiagnostic(WarningDiagnostics, Line, Kind, std::forward<T>(Args)...);
+  }
+
+  void printErrors(std::string_view Source) {
+    for (const auto &[Line, Error] : ErrorDiagnostics) {
+      std::fprintf(stderr, "error: %s\n", Error.c_str());
+      std::fprintf(stderr, "%lu | %s\n", Line,
+                   getSourceLine(Source, Line).c_str());
+    }
+  }
+
+  std::string getSourceLine(std::string_view Source, std::size_t Line) {
+    auto Begin = Source.find_last_of('\n', Line);
+    auto End = Source.find('\n', Line);
+    if (End == std::string::npos)
+      End = Source.size();
+    return std::string(Source.data() + Begin, End - Begin);
   }
 };
 } // namespace cawk
