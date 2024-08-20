@@ -1,4 +1,5 @@
 #include "Sema/Sema.h"
+#include "AST/ASTPrinter.h"
 #include "Sema/SemaControlFlow.h"
 #include "Sema/SemaLValue.h"
 #include "Sema/SemaType.h"
@@ -13,6 +14,8 @@ bool Sema::check(TranslationUnitDecl *T) {
   SemaLValue LValueSema(Diags);
   SemaControlFlow ControlFlowSema(Diags);
   SymbolResolver Resolver(Diags);
+  ASTPrinter Printer;
+  Printer.traverse(T);
 
   std::printf("SymbolResolver: %s\n", Resolver.check(T) ? "pass" : "fail");
   std::printf("SemaType: %s\n", TypeSema.check(T) ? "pass" : "fail");

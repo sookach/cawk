@@ -75,8 +75,13 @@ bool SemaType::visit(WhileStmt *W) {
 }
 
 bool SemaType::visit(ArraySubscriptExpr *A) {
-  if (!areTypesConvertible(A->getLHS()->getType(), type::array))
+  if (!areTypesConvertible(A->getLHS()->getType(), type::array)) {
+    Diags.addError(getLineNumber(A), diag::sema_primitive_subscript,
+                   toString(A->getLHS()->getType()));
     return false;
+  }
+
+  A->getLHS()->setType(type::array);
 
   for (Expr *E : A->getRHS())
     if (!areTypesConvertible(E->getType(), type::primitive))

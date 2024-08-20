@@ -70,6 +70,10 @@ public:
     addDiagnostic(WarningDiagnostics, Line, Kind, std::forward<T>(Args)...);
   }
 
+  void clearErrors() { ErrorDiagnostics.clear(); }
+
+  void clearWarnings() { WarningDiagnostics.clear(); }
+
   void printErrors(std::string_view Source) {
     for (const auto &[Line, Error] : ErrorDiagnostics) {
       std::fprintf(stderr, "error: %s\n", Error.c_str());

@@ -730,4 +730,25 @@ public:
   }
 };
 
+static std::size_t getLineNumber(Expr *E) {
+  switch (E->getKind()) {
+  case Expr::EK_ArraySubscript:
+    return getLineNumber(static_cast<ArraySubscriptExpr *>(E)->getLHS());
+  case Expr::EK_BinaryOperator:
+    return getLineNumber(static_cast<BinaryOperator *>(E)->getLHS());
+  case Expr::EK_Call:
+    return getLineNumber(static_cast<CallExpr *>(E)->getCallee());
+  case Expr::EK_DeclRef:
+    return static_cast<DeclRefExpr *>(E)->getIdentifier().getLine();
+  case Expr::EK_FloatingLiteral:
+    return static_cast<FloatingLiteral *>(E)->getLiteral().getLine();
+  case Expr::EK_RegexLiteral:
+    return static_cast<RegexLiteral *>(E)->getLiteral().getLine();
+  case Expr::EK_StringLiteral:
+    return static_cast<StringLiteral *>(E)->getLiteral().getLine();
+  case Expr::EK_UnaryOperator:
+    return static_cast<UnaryOperator *>(E)->getOpcode().getLine();
+  }
+}
+
 } // namespace cawk

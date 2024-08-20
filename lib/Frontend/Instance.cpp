@@ -11,8 +11,11 @@ using namespace cawk;
 int Instance::execute() {
   Lexer Lex(Source);
   Parser Parse(Lex);
-  auto TLU = Parse.parse();
   ASTPrinter Printer;
-  Sema(Diags).check(TLU);
+  auto TLU = Parse.parse();
+  Sema Semantic(Diags);
+  Semantic.check(TLU);
+  Printer.traverse(TLU);
+  Diags.printErrors(Source);
   return EXIT_SUCCESS;
 }
