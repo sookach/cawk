@@ -3,6 +3,7 @@
 #endif
 
 DIAG(error, lex_unterminated_string, "unterminated string")
+DIAG(error, parse_unexpected_token, "unexpected token: expected '%', got '%'")
 DIAG(error, sema_invalid_operand_type, "invalid operand type for '%': '%'")
 DIAG(error, sema_invalid_operand_types,
      "invalid operand types for '%': '%' and '%'")

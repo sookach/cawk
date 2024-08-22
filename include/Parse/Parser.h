@@ -1,6 +1,7 @@
 #pragma once
 
 #include "AST/AST.h"
+#include "Basic/Diagnostic.h"
 #include "Basic/OperatorPrecedence.h"
 #include "Basic/TokenKinds.h"
 #include "Lexer/Lexer.h"
@@ -8,19 +9,36 @@
 #include <bitset>
 #include <cstdlib>
 #include <initializer_list>
+#include <utility>
 
 namespace cawk {
+template <typename T> struct ParseResult : private std::pair<T *, bool> {
+  ParseResult(bool Invalid = false) : std::pair<T *, bool>(nullptr, Invalid) {}
+  ParseResult(T *Ptr) : std::pair<T *, bool>(Ptr, true) {}
+  T *get() { return this->first; }
+  template <typename Ty> Ty *getAs() { return static_cast<Ty *>(get()); }
+  bool isValid() { return this->second; }
+  ParseResult &operator=(T *RHS) { this->first = RHS; }
+};
+
+using DeclResult = ParseResult<Decl>;
+using StmtResult = ParseResult<Stmt>;
+using ExprResult = ParseResult<Expr>;
+
 class Parser {
+public:
   Lexer &Lex;
   Token Tok;
-  bool HasError;
+  bool HasError = false;
+  bool PanicMode = false;
+  Diagnostic &Diags;
 
 public:
-  Parser(Lexer &Lex) : Lex(Lex), HasError(false) {
+  Parser(Lexer &Lex, Diagnostic &Diags) : Lex(Lex), Diags(Diags) {
     Lex.next<false, false>(Tok);
   }
 
-  TranslationUnitDecl *parse() { return parseTranslationUnit(); }
+  DeclResult parse() { return parseTranslationUnit(); }
 
 private:
   template <bool LexNewline = false, bool LexRegex = false> Token advance();
@@ -52,12 +70,19 @@ private:
   }
 
   template <bool NL = false, bool RE = false, typename... Ts>
-  void expect(tok::TokenKind K, Ts... Ks) {
-    if (!consume<NL, RE>(K))
-      exit(EXIT_FAILURE); // TODO: error handling
+  bool expect(tok::TokenKind K, Ts... Ks) {
+    if (!consume<NL, RE>(K)) {
+      if (!std::exchange(PanicMode, true)) {
+        Diags.addError(Tok.getLine(), diag::parse_unexpected_token,
+                       tok::getTokenName(K), tok::getTokenName(Tok.getKind()));
+      }
+      return false;
+    }
 
     if constexpr (sizeof...(Ks) != 0)
-      expect<NL, RE>(Ks...);
+      return expect<NL, RE>(Ks...);
+
+    return true;
   }
 
   template <bool NL = false, bool RE = false, typename... Ts>
@@ -80,24 +105,24 @@ private:
       ;
   }
 
-  TranslationUnitDecl *parseTranslationUnit();
+  DeclResult parseTranslationUnit();
 
-  Decl *parseDecl();
-  FunctionDecl *parseFunctionDecl();
-  RuleDecl *parseRuleDecl();
+  DeclResult parseDecl();
+  DeclResult parseFunctionDecl();
+  DeclResult parseRuleDecl();
 
-  Stmt *parseStmt();
-  BreakStmt *parseBreakStmt();
-  CompoundStmt *parseCompoundStmt();
-  DoStmt *parseDoStmt();
-  Stmt *parseForStmt();
-  IfStmt *parseIfStmt();
-  PrintStmt *parsePrintStmt();
-  ReturnStmt *parseReturnStmt();
-  Stmt *parseSimpleStmt();
-  ValueStmt *parseValueStmt();
-  WhileStmt *parseWhileStmt();
+  StmtResult parseStmt();
+  StmtResult parseBreakStmt();
+  StmtResult parseCompoundStmt();
+  StmtResult parseDoStmt();
+  StmtResult parseForStmt();
+  StmtResult parseIfStmt();
+  StmtResult parsePrintStmt();
+  StmtResult parseReturnStmt();
+  StmtResult parseSimpleStmt();
+  StmtResult parseValueStmt();
+  StmtResult parseWhileStmt();
 
-  Expr *parseExpr(prec::Level MinPrec = prec::Unknown);
+  Expr parseExpr(prec::Level MinPrec = prec::Unknown);
 };
 } // namespace cawk

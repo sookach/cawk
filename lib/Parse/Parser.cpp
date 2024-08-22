@@ -30,25 +30,30 @@ template Token Parser::peek<false, true>(std::size_t N) const;
 template Token Parser::peek<true, false>(std::size_t N) const;
 template Token Parser::peek<true, true>(std::size_t N) const;
 
-TranslationUnitDecl *Parser::parseTranslationUnit() {
+DeclResult Parser::parseTranslationUnit() {
   std::vector<Decl *> Decls;
   for (; (skip<tok::newline, tok::semi>(), !consume(tok::eof));) {
-    Decls.push_back(parseDecl());
+    DeclResult Res = parseDecl();
+    if (!HasError)
+      Decls.push_back(Res.get());
   }
-  return TranslationUnitDecl::Create(Decls);
+  if (!HasError)
+    return TranslationUnitDecl::Create(Decls);
+  return false;
 }
 
-Decl *Parser::parseDecl() {
+DeclResult Parser::parseDecl() {
   if (Tok.is(tok::kw_function))
     return parseFunctionDecl();
   return parseRuleDecl();
 }
 
-FunctionDecl *Parser::parseFunctionDecl() {
-  expect(tok::kw_function);
+DeclResult Parser::parseFunctionDecl() {
+  if (!consume(tok::kw_function))
+    return false;
   auto Identifier = Tok;
-  expect(tok::identifier);
-  expect(tok::l_paren);
+  if (!consume(tok::identifier, tok::l_paren))
+    return false;
   auto Params = [this] {
     std::vector<ParamVarDecl *> Params;
 
@@ -62,13 +67,16 @@ FunctionDecl *Parser::parseFunctionDecl() {
 
     return Params;
   }();
-  expect(tok::r_paren);
+  if (!consume(tok::r_paren))
+    return false;
   auto Body = parseCompoundStmt();
-  return FunctionDecl::Create(Identifier, Params, Body);
+  if (Body.isValid())
+    return FunctionDecl::Create(Identifier, Params, Body.get());
+  return false;
 }
 
-RuleDecl *Parser::parseRuleDecl() {
-  auto Pattern = [this] -> Expr * {
+DeclResult Parser::parseRuleDecl() {
+  auto Pattern = [this] -> ExprResult {
     switch (Tok.getKind()) {
     default:
       return parseExpr();
@@ -78,16 +86,24 @@ RuleDecl *Parser::parseRuleDecl() {
     }
   }();
 
+  if (!Pattern.isValid())
+    return false;
+
   auto Action =
       consumeOneOf(tok::semi, tok::newline) ? nullptr : parseCompoundStmt();
 
-  return RuleDecl::Create(Pattern, Action);
+  if (!Action.isValid())
+    return false;
+
+  return RuleDecl::Create(Pattern.get(), Action.getAs<CompoundStmt>());
 }
 
-Stmt *Parser::parseStmt() {
+StmtResult Parser::parseStmt() {
   switch (Tok.getKind()) {
   default: {
     auto S = parseSimpleStmt();
+    if (!S.isValid())
+      return false;
     skip<tok::semi, tok::newline>();
     return S;
   }
@@ -108,32 +124,48 @@ Stmt *Parser::parseStmt() {
   }
 }
 
-BreakStmt *Parser::parseBreakStmt() {
-  expect(tok::kw_break);
+StmtResult Parser::parseBreakStmt() {
+  if (!consume(tok::kw_break))
+    return false;
   return BreakStmt::Create();
 }
 
-CompoundStmt *Parser::parseCompoundStmt() {
-  expect(tok::l_brace);
-  std::vector<Stmt *> Stmts;
-  for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));)
-    Stmts.push_back(parseStmt());
+StmtResult Parser::parseCompoundStmt() {
+  if (!consume(tok::l_brace))
+    return false;
 
-  expect(tok::r_brace);
+  std::vector<Stmt *> Stmts;
+  for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));) {
+    StmtResult S = parseStmt();
+    if (!S.isValid())
+      return false;
+  }
+
+  if (!consume(tok::r_brace))
+    return false;
+
   return CompoundStmt::Create(Stmts);
 }
 
-DoStmt *Parser::parseDoStmt() {
-  expect(tok::kw_do);
+StmtResult Parser::parseDoStmt() {
+  if (!consume(tok::kw_do))
+    return false;
+
   auto Body = parseCompoundStmt();
-  expect(tok::kw_while);
-  expect(tok::l_paren);
+  if (!Body.isValid())
+    return false;
+
+  if (!consume(tok::kw_while, tok::l_paren))
+    return false;
+
   auto Cond = parseExpr();
+  if (!Cond.isValid())
+    return false;
   expect(tok::r_paren);
   return DoStmt::Create(Cond, Body);
 }
 
-Stmt *Parser::parseForStmt() {
+StmtResult Parser::parseForStmt() {
   expect(tok::kw_for);
   expect(tok::l_paren);
 
@@ -154,7 +186,7 @@ Stmt *Parser::parseForStmt() {
   return ForStmt::Create(Init, Cond, Inc, parseStmt());
 }
 
-IfStmt *Parser::parseIfStmt() {
+StmtResult Parser::parseIfStmt() {
   expect(tok::kw_if);
   expect(tok::l_paren);
   Expr *Cond = parseExpr();
@@ -164,7 +196,7 @@ IfStmt *Parser::parseIfStmt() {
   return IfStmt::Create(Cond, Then, Else);
 }
 
-PrintStmt *Parser::parsePrintStmt() {
+StmtResult Parser::parsePrintStmt() {
   Token Iden = Tok;
   expectOneOf<true>(tok::kw_print, tok::kw_printf);
 
@@ -198,7 +230,7 @@ PrintStmt *Parser::parsePrintStmt() {
   return PrintStmt::Create(Iden, Args, OpCode, Output);
 }
 
-ReturnStmt *Parser::parseReturnStmt() {
+StmtResult Parser::parseReturnStmt() {
   expect(tok::kw_return);
   return ReturnStmt::Create(parseExpr());
 }

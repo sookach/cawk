@@ -47,4 +47,9 @@ inline OutputFile &outs() {
   return Out;
 }
 
+inline OutputFile &errs() {
+  static OutputFile Err(stderr);
+  return Err;
+}
+
 } // namespace cawk

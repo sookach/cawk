@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Exec/IO.h"
+
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -76,9 +78,8 @@ public:
 
   void printErrors(std::string_view Source) {
     for (const auto &[Line, Error] : ErrorDiagnostics) {
-      std::fprintf(stderr, "error: %s\n", Error.c_str());
-      std::fprintf(stderr, "  %lu | %s\n", Line,
-                   getSourceLine(Source, Line).c_str());
+      errs().printf("error: %s\n", Error.c_str());
+      errs().printf("  %lu | %s\n", Line, getSourceLine(Source, Line).c_str());
     }
   }
 

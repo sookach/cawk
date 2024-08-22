@@ -10,7 +10,7 @@ using namespace cawk;
 
 int Instance::execute() {
   Lexer Lex(Source);
-  Parser Parse(Lex);
+  Parser Parse(Lex, Diags);
   ASTPrinter Printer;
   auto TLU = Parse.parse();
   Sema Semantic(Diags);
