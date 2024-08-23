@@ -12,9 +12,13 @@ int Instance::execute() {
   Lexer Lex(Source);
   Parser Parse(Lex, Diags);
   ASTPrinter Printer;
-  auto TLU = Parse.parse();
+  auto ParseResult = Parse.parse();
+  if (!ParseResult.isValid()) {
+    Diags.printErrors(Source);
+    return EXIT_FAILURE;
+  }
   Sema Semantic(Diags);
-  Semantic.check(TLU);
+  Semantic.check(ParseResult.getAs<TranslationUnitDecl>());
   //   Printer.traverse(TLU);
   Diags.printErrors(Source);
   return EXIT_SUCCESS;
