@@ -35,6 +35,7 @@ public:
   Token Tok;
   bool HasError = false;
   bool PanicMode = false;
+  std::string ExpectedTypes = "one of";
   Diagnostic &Diags;
 
 public:
@@ -76,10 +77,9 @@ private:
   template <bool NL = false, bool RE = false, typename... Ts>
   bool expect(tok::TokenKind K, Ts... Ks) {
     if (!consume<NL, RE>(K)) {
-      if (!std::exchange(PanicMode, true)) {
+      if (!std::exchange(PanicMode, true))
         Diags.addError(Tok.getLine(), diag::parse_unexpected_token,
                        tok::getTokenName(K), tok::getTokenName(Tok.getKind()));
-      }
       return false;
     }
 
@@ -91,13 +91,23 @@ private:
 
   template <bool NL = false, bool RE = false, typename... Ts>
   void expectOneOf(tok::TokenKind K, Ts... Ks) {
-    if (consume<NL, RE>(K))
+    if (consume<NL, RE>(K)) {
+      ExpectedTypes = "one of";
       return;
+    }
 
-    if constexpr (sizeof...(Ks) == 0)
-      exit(EXIT_FAILURE); // TODO: error handling
-    else
+    ExpectedTypes += " '";
+    ExpectedTypes.append_range(tok::getTokenName(K));
+    ExpectedTypes.push_back('\'');
+
+    if constexpr (sizeof...(Ks) == 0) {
+      if (!std::exchange(PanicMode, true))
+        Diags.addError(Tok.getLine(), diag::parse_unexpected_token,
+                       ExpectedTypes.c_str(), tok::getTokenName(Tok.getKind()));
+      ExpectedTypes = "one of";
+    } else {
       expectOneOf<NL, RE>(Ks...);
+    }
   }
 
   template <tok::TokenKind... Ks> void skip() {

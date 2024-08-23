@@ -105,6 +105,11 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     for (; End != BufferEnd && *End != '"'; ++End)
       if (*End == '\\')
         ++End;
+    if (End == BufferEnd) {
+      Diags.addError(Line, diag::lex_unterminated_string);
+      formToken(T, End, tok::unknown);
+      return;
+    }
     formToken(T, End + 1, tok::string_literal);
     return;
   }
@@ -114,6 +119,11 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     for (; End != BufferEnd && *End != '\''; ++End)
       if (*End == '\\')
         ++End;
+    if (End == BufferEnd) {
+      Diags.addError(Line, diag::lex_unterminated_string);
+      formToken(T, End, tok::unknown);
+      return;
+    }
     formToken(T, End + 1, tok::string_literal);
     return;
   }
@@ -124,6 +134,11 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
       for (; End != BufferEnd && *End != '/'; ++End)
         if (*End == '\\')
           ++End;
+      if (End == BufferEnd) {
+        Diags.addError(Line, diag::lex_unterminated_regex);
+        formToken(T, End, tok::unknown);
+        return;
+      }
       formToken(T, End + 1, tok::regex_literal);
       return;
     }
@@ -232,9 +247,6 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     break;
   case '\n':
     formToken(T, BufferPtr + 1, tok::newline);
-    // condense successive newlines
-    for (; BufferPtr != BufferEnd && *BufferPtr == '\n'; ++BufferPtr)
-      ;
     break;
   default:
     formToken(T, BufferPtr + 1, tok::unknown);

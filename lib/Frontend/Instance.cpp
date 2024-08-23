@@ -9,7 +9,7 @@
 using namespace cawk;
 
 int Instance::execute() {
-  Lexer Lex(Source);
+  Lexer Lex(Source, Diags);
   Parser Parse(Lex, Diags);
   ASTPrinter Printer;
   auto ParseResult = Parse.parse();

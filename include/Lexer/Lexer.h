@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Basic/Diagnostic.h"
 #include "Basic/TokenKinds.h"
 #include "Exec/IO.h"
 #include "Token.h"
@@ -9,6 +10,7 @@
 
 namespace cawk {
 class Lexer {
+  Diagnostic &Diags;
   std::string_view::const_iterator BufferStart;
   std::string_view::const_iterator BufferEnd;
   std::string_view::const_iterator BufferPtr;
@@ -19,9 +21,9 @@ class Lexer {
   std::size_t Line = 1;
 
 public:
-  Lexer(std::string_view Buffer)
-      : BufferStart(std::cbegin(Buffer)), BufferEnd(std::cend(Buffer)),
-        BufferPtr(BufferStart) {
+  Lexer(std::string_view Buffer, Diagnostic &Diags)
+      : Diags(Diags), BufferStart(std::cbegin(Buffer)),
+        BufferEnd(std::cend(Buffer)), BufferPtr(BufferStart) {
 #define KEYWORD(ID, KEY) Keywords.emplace(#ID, tok::kw_##ID);
 #include "Basic/TokenKinds.def"
 #undef KEYWORD
