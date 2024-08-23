@@ -18,7 +18,11 @@ template <typename T> struct ParseResult : private std::pair<T *, bool> {
   T *get() { return this->first; }
   template <typename Ty> Ty *getAs() { return static_cast<Ty *>(get()); }
   bool isValid() { return this->second; }
-  ParseResult &operator=(T *RHS) { this->first = RHS; }
+  ParseResult &operator=(T *RHS) {
+    this->first = RHS;
+    this->second = true;
+    return *this;
+  }
 };
 
 using DeclResult = ParseResult<Decl>;
@@ -123,6 +127,6 @@ private:
   StmtResult parseValueStmt();
   StmtResult parseWhileStmt();
 
-  Expr parseExpr(prec::Level MinPrec = prec::Unknown);
+  ExprResult parseExpr(prec::Level MinPrec = prec::Unknown);
 };
 } // namespace cawk
