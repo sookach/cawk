@@ -119,6 +119,15 @@ private:
       ;
   }
 
+  template <tok::TokenKind... Ks> void skipUntil() {
+    std::bitset<tok::NUM_TOKENS> Filter(
+        (std::bitset<tok::NUM_TOKENS>() | ... |
+         std::bitset<tok::NUM_TOKENS>().set(Ks)));
+
+    for (; !Filter.test(Tok.getKind()); advance<false, false>())
+      ;
+  }
+
   DeclResult parseTranslationUnit();
 
   DeclResult parseDecl();
@@ -138,5 +147,7 @@ private:
   StmtResult parseWhileStmt();
 
   ExprResult parseExpr(prec::Level MinPrec = prec::Unknown);
+
+  void recover() { skipUntil<tok::newline, tok::semi, tok::eof>(); }
 };
 } // namespace cawk

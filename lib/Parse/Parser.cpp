@@ -137,8 +137,10 @@ StmtResult Parser::parseCompoundStmt() {
   std::vector<Stmt *> Stmts;
   for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));) {
     StmtResult S = parseStmt();
-    if (!S.isValid())
+    if (!S.isValid()) {
+      recover();
       return false;
+    }
   }
 
   if (!consume(tok::r_brace))
