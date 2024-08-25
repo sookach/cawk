@@ -1,7 +1,16 @@
+//===--- Parser.h - CAWK Language Parser ------------------------*- C++ -*-===//
+//
+//  This file implements the Parser interface.
+//
+//===----------------------------------------------------------------------===//
 #include "Parse/Parser.h"
 
 using namespace cawk;
 
+/// \brief Consumes the current lookahead token and advances to the next one.
+/// \tparam LexNewline - should the lexer lex newlines?
+/// \tparam LexRegex - are we attempting to lex a regex?
+/// \return The current lookahead token.
 template <bool LexNewline, bool LexRegex> Token Parser::advance() {
   auto Prev = Tok;
   Lex.next<LexNewline, LexRegex>(Tok);
@@ -13,6 +22,11 @@ template Token Parser::advance<false, true>();
 template Token Parser::advance<true, false>();
 template Token Parser::advance<true, true>();
 
+/// \brief Peeks N tokens ahead.
+/// \tparam LexNewLine - should the lexer lex newlines?
+/// \tparam LexRegex - are we attempting to lex a regex?
+/// \param N - the number of tokens to peek.
+/// \return The Nth token ahead.
 template <bool LexNewLine, bool LexRegex>
 Token Parser::peek(std::size_t N) const {
   Token T;
@@ -30,6 +44,8 @@ template Token Parser::peek<false, true>(std::size_t N) const;
 template Token Parser::peek<true, false>(std::size_t N) const;
 template Token Parser::peek<true, true>(std::size_t N) const;
 
+/// \brief Parses a translation unit.
+/// \return The parsed translation unit.
 DeclResult Parser::parseTranslationUnit() {
   std::vector<Decl *> Decls;
   for (; (skip<tok::newline, tok::semi>(), !consume(tok::eof));) {
@@ -42,19 +58,28 @@ DeclResult Parser::parseTranslationUnit() {
   return false;
 }
 
+/// \brief Parses a rule declaration or function definition.
 DeclResult Parser::parseDecl() {
   if (Tok.is(tok::kw_function))
     return parseFunctionDecl();
   return parseRuleDecl();
 }
 
+/// \brief Parses a function declaration.
 DeclResult Parser::parseFunctionDecl() {
-  if (!consume(tok::kw_function))
+  // This test should never be fail, but it's here as a sanity check.
+  if (!expect(tok::kw_function))
     return false;
   auto Identifier = Tok;
-  if (!consume(tok::identifier, tok::l_paren))
+  if (!expect(tok::identifier, tok::l_paren)) {
+    skipUntil<tok::l_brace, tok::r_brace, tok::eof>();
+    if (Tok.is(tok::eof))
+      return false;
+    PanicMode = false;
+    parseCompoundStmt();
     return false;
-  auto Params = [this] {
+  }
+  auto [Valid, Params] = [this] {
     std::vector<ParamVarDecl *> Params;
 
     if (Tok.is(tok::identifier))
@@ -62,11 +87,14 @@ DeclResult Parser::parseFunctionDecl() {
 
     for (; consume(tok::comma);) {
       Params.push_back(ParamVarDecl::Create(Tok));
-      expect(tok::identifier);
+      if (!expect(tok::identifier))
+        return pair(false, Params);
     }
 
-    return Params;
+    return std::pair(true, Params);
   }();
+  if (!Valid)
+    return false;
   if (!consume(tok::r_paren))
     return false;
   auto Body = parseCompoundStmt();

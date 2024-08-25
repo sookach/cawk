@@ -1,3 +1,9 @@
+//===--- Parser.h - CAWK Language Parser ------------------------*- C++ -*-===//
+//
+//  This file defines the Parser interface.
+//
+//===----------------------------------------------------------------------===//
+
 #pragma once
 
 #include "AST/AST.h"
@@ -12,6 +18,9 @@
 #include <utility>
 
 namespace cawk {
+
+/// @brief Represents the result of a parse operation.
+/// @tparam T The type of the result (Decl, Stmt, Expr).
 template <typename T> struct ParseResult : private std::pair<T *, bool> {
   ParseResult(bool Invalid = false) : std::pair<T *, bool>(nullptr, Invalid) {}
   ParseResult(T *Ptr) : std::pair<T *, bool>(Ptr, true) {}
@@ -29,13 +38,23 @@ using DeclResult = ParseResult<Decl>;
 using StmtResult = ParseResult<Stmt>;
 using ExprResult = ParseResult<Expr>;
 
+/// @brief The Parser class is responsible for parsing the input source code.
 class Parser {
 public:
+  /// @brief Lex - The lexer instance.
   Lexer &Lex;
+
+  /// @brief Tok - The current lookahead token.
   Token Tok;
+
+  /// @brief Indicates whether an error occurred during parsing.
   bool HasError = false;
+
+  /// @brief Indicates whether the parser is in panic mode.
   bool PanicMode = false;
   std::string ExpectedTypes = "one of";
+
+  /// @brief Diags - The diagnostic engine.
   Diagnostic &Diags;
 
 public:
@@ -90,10 +109,10 @@ private:
   }
 
   template <bool NL = false, bool RE = false, typename... Ts>
-  void expectOneOf(tok::TokenKind K, Ts... Ks) {
+  bool expectOneOf(tok::TokenKind K, Ts... Ks) {
     if (consume<NL, RE>(K)) {
       ExpectedTypes = "one of";
-      return;
+      return true;
     }
 
     ExpectedTypes += " '";
@@ -105,8 +124,9 @@ private:
         Diags.addError(Tok.getLine(), diag::parse_unexpected_token,
                        ExpectedTypes.c_str(), tok::getTokenName(Tok.getKind()));
       ExpectedTypes = "one of";
+      return false;
     } else {
-      expectOneOf<NL, RE>(Ks...);
+      return expectOneOf<NL, RE>(Ks...);
     }
   }
 
