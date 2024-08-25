@@ -9,6 +9,47 @@
 
 using namespace cawk;
 
+template <bool FirstVisit> bool Sema::check(FunctionDecl *F) {
+  return ControlFlowSema.check<FirstVisit>(F);
+}
+
+template bool Sema::check<true>(FunctionDecl *);
+template bool Sema::check<false>(FunctionDecl *);
+
+bool Sema::check(BreakStmt *S) { return ControlFlowSema.check(S); }
+
+bool Sema::check(ContinueStmt *S) { return ControlFlowSema.check(S); }
+
+template <bool FirstVisit> bool Sema::check(DoStmt *S) {
+  return ControlFlowSema.check<FirstVisit>(S);
+}
+
+template bool Sema::check<true>(DoStmt *);
+template bool Sema::check<false>(DoStmt *);
+
+template <bool FirstVisit> bool Sema::check(ForStmt *S) {
+  return ControlFlowSema.check<FirstVisit>(S);
+}
+
+template bool Sema::check<true>(ForStmt *);
+template bool Sema::check<false>(ForStmt *);
+
+template <bool FirstVisit> bool Sema::check(ForRangeStmt *S) {
+  return ControlFlowSema.check<FirstVisit>(S);
+}
+
+template bool Sema::check<true>(ForRangeStmt *);
+template bool Sema::check<false>(ForRangeStmt *);
+
+bool Sema::check(ReturnStmt *S) { return ControlFlowSema.check(S); }
+
+template <bool FirstVisit> bool Sema::check(WhileStmt *S) {
+  return ControlFlowSema.check<FirstVisit>(S);
+}
+
+template bool Sema::check<true>(WhileStmt *);
+template bool Sema::check<false>(WhileStmt *);
+
 bool Sema::check(TranslationUnitDecl *T) {
   SemaType TypeSema(Diags);
   SemaLValue LValueSema(Diags);
@@ -25,9 +66,6 @@ bool Sema::check(TranslationUnitDecl *T) {
 
   Result = LValueSema.check(T);
   //   std::printf("SemaLValue: %s\n", Result ? "pass" : "fail");
-
-  Result = ControlFlowSema.check(T);
-  //   std::printf("SemaControlFlow: %s\n", Result ? "pass" : "fail");
 
   return true;
 }

@@ -4,42 +4,19 @@
 
 using namespace cawk;
 
-template <bool FirstVisit> bool SemaControlFlow::visit(FunctionDecl *F) {
-  if constexpr (FirstVisit)
-    InFunction = true;
-  else
-    InFunction = false;
+template <bool FirstVisit> bool SemaControlFlow::check(FunctionDecl *F) {
+  InFunction = FirstVisit;
   return true;
 }
 
-template <bool> bool SemaControlFlow::visit(ParamVarDecl *P) { return true; }
+template bool SemaControlFlow::check<true>(FunctionDecl *);
+template bool SemaControlFlow::check<false>(FunctionDecl *);
 
-template <bool> bool SemaControlFlow::visit(RuleDecl *R) { return true; }
+bool SemaControlFlow::check(BreakStmt *B) { return isInLoop(); }
 
-template <bool> bool SemaControlFlow::visit(TranslationUnitDecl *T) {
-  return true;
-}
+bool SemaControlFlow::check(ContinueStmt *C) { return isInLoop(); }
 
-template <bool> bool SemaControlFlow::visit(VarDecl *V) { return true; }
-
-template <bool> bool SemaControlFlow::visit(BreakStmt *B) { return isInLoop(); }
-
-template <bool> bool SemaControlFlow::visit(CompoundStmt *C) { return true; }
-
-template <bool> bool SemaControlFlow::visit(ContinueStmt *C) {
-  return isInLoop();
-}
-
-template <bool> bool SemaControlFlow::visit(DeleteStmt *D) { return true; }
-
-template <bool FirstVisit> bool SemaControlFlow::visit(DoStmt *D) {
-  enterLoop();
-  return true;
-}
-
-template <bool> bool SemaControlFlow::visit(ExitStmt *E) { return true; }
-
-template <bool FirstVisit> bool SemaControlFlow::visit(ForStmt *F) {
+template <bool FirstVisit> bool SemaControlFlow::check(DoStmt *D) {
   if constexpr (FirstVisit)
     enterLoop();
   else
@@ -47,7 +24,10 @@ template <bool FirstVisit> bool SemaControlFlow::visit(ForStmt *F) {
   return true;
 }
 
-template <bool FirstVisit> bool SemaControlFlow::visit(ForRangeStmt *F) {
+template bool SemaControlFlow::check<true>(DoStmt *);
+template bool SemaControlFlow::check<false>(DoStmt *);
+
+template <bool FirstVisit> bool SemaControlFlow::check(ForStmt *F) {
   if constexpr (FirstVisit)
     enterLoop();
   else
@@ -55,21 +35,10 @@ template <bool FirstVisit> bool SemaControlFlow::visit(ForRangeStmt *F) {
   return true;
 }
 
-template <bool> bool SemaControlFlow::visit(IfStmt *I) { return true; }
+template bool SemaControlFlow::check<true>(ForStmt *);
+template bool SemaControlFlow::check<false>(ForStmt *);
 
-template <bool> bool SemaControlFlow::visit(NextStmt *N) { return true; }
-
-template <bool> bool SemaControlFlow::visit(NextfileStmt *N) { return true; }
-
-template <bool> bool SemaControlFlow::visit(PrintStmt *P) { return true; }
-
-template <bool> bool SemaControlFlow::visit(ReturnStmt *R) {
-  return InFunction;
-}
-
-template <bool> bool SemaControlFlow::visit(ValueStmt *V) { return true; }
-
-template <bool FirstVisit> bool SemaControlFlow::visit(WhileStmt *W) {
+template <bool FirstVisit> bool SemaControlFlow::check(ForRangeStmt *F) {
   if constexpr (FirstVisit)
     enterLoop();
   else
@@ -77,22 +46,18 @@ template <bool FirstVisit> bool SemaControlFlow::visit(WhileStmt *W) {
   return true;
 }
 
-template <bool> bool SemaControlFlow::visit(ArraySubscriptExpr *A) {
+template bool SemaControlFlow::check<true>(ForRangeStmt *);
+template bool SemaControlFlow::check<false>(ForRangeStmt *);
+
+bool SemaControlFlow::check(ReturnStmt *R) { return InFunction; }
+
+template <bool FirstVisit> bool SemaControlFlow::check(WhileStmt *W) {
+  if constexpr (FirstVisit)
+    enterLoop();
+  else
+    exitLoop();
   return true;
 }
 
-template <bool> bool SemaControlFlow::visit(BinaryOperator *B) { return true; }
-
-template <bool> bool SemaControlFlow::visit(CallExpr *C) { return true; }
-
-template <bool> bool SemaControlFlow::visit(DeclRefExpr *D) { return true; }
-
-template <bool> bool SemaControlFlow::visit(FloatingLiteral *F) { return true; }
-
-template <bool> bool SemaControlFlow::visit(RegexLiteral *R) { return true; }
-
-template <bool> bool SemaControlFlow::visit(StringLiteral *S) { return true; }
-
-template <bool> bool SemaControlFlow::visit(UnaryOperator *U) { return true; }
-
-bool SemaControlFlow::check(TranslationUnitDecl *T) { return traverse(T); }
+template bool SemaControlFlow::check<true>(WhileStmt *);
+template bool SemaControlFlow::check<false>(WhileStmt *);

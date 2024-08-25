@@ -67,7 +67,9 @@ DeclResult Parser::parseDecl() {
 
 /// \brief Parses a function declaration.
 DeclResult Parser::parseFunctionDecl() {
-  // This test should never be fail, but it's here as a sanity check.
+  // These two tests should never be fail, but they're here as sanity checks.
+  if (!Semantics.check<true>(static_cast<FunctionDecl *>(nullptr)))
+    return false;
   if (!expect(tok::kw_function))
     return false;
   auto Identifier = Tok;
@@ -88,7 +90,7 @@ DeclResult Parser::parseFunctionDecl() {
     for (; consume(tok::comma);) {
       Params.push_back(ParamVarDecl::Create(Tok));
       if (!expect(tok::identifier))
-        return pair(false, Params);
+        return std::pair(false, Params);
     }
 
     return std::pair(true, Params);
@@ -100,6 +102,9 @@ DeclResult Parser::parseFunctionDecl() {
   auto Body = parseCompoundStmt();
   if (Body.isValid())
     return FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>());
+
+  if (Semantics.check<false>(static_cast<FunctionDecl *>(nullptr)))
+    return false;
   return false;
 }
 

@@ -11,6 +11,7 @@
 #include "Basic/OperatorPrecedence.h"
 #include "Basic/TokenKinds.h"
 #include "Lexer/Lexer.h"
+#include <Sema/Sema.h>
 
 #include <bitset>
 #include <cstdlib>
@@ -44,6 +45,9 @@ public:
   /// @brief Lex - The lexer instance.
   Lexer &Lex;
 
+  /// @brief Semantics - The semantic analysis instance.
+  Sema Semantics;
+
   /// @brief Tok - The current lookahead token.
   Token Tok;
 
@@ -58,7 +62,8 @@ public:
   Diagnostic &Diags;
 
 public:
-  Parser(Lexer &Lex, Diagnostic &Diags) : Lex(Lex), Diags(Diags) {
+  Parser(Lexer &Lex, Diagnostic &Diags)
+      : Lex(Lex), Semantics(Diags), Diags(Diags) {
     Lex.next<false, false>(Tok);
   }
 
