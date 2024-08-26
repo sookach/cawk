@@ -10,5 +10,8 @@ DIAG(error, sema_invalid_operand_types,
      "invalid operand types for '%': '%' and '%'")
 DIAG(error, sema_primitive_subscript,
      "cannot use subscript operator on primitive '%'")
+DIAG(error, sema_break_outside_loop, "break statement outside loop")
+DIAG(error, sema_continue_outside_loop, "continue statement outside loop")
+DIAG(error, sema_return_outside_function, "return statement outside function")
 
 #undef DIAG

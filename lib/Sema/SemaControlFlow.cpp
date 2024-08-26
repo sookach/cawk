@@ -1,5 +1,5 @@
 #include "Sema/SemaControlFlow.h"
-
+#include "Basic/Diagnostic.h"
 #include "Support/Support.h"
 
 using namespace cawk;
@@ -12,7 +12,10 @@ template <bool FirstVisit> bool SemaControlFlow::check(FunctionDecl *F) {
 template bool SemaControlFlow::check<true>(FunctionDecl *);
 template bool SemaControlFlow::check<false>(FunctionDecl *);
 
-bool SemaControlFlow::check(BreakStmt *B) { return isInLoop(); }
+bool SemaControlFlow::check(BreakStmt *B) {
+  if (isInLoop())
+    return true;
+}
 
 bool SemaControlFlow::check(ContinueStmt *C) { return isInLoop(); }
 
