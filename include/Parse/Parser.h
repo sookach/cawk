@@ -159,23 +159,23 @@ private:
 
   DeclResult parseTranslationUnit();
 
-  DeclResult parseDecl();
-  DeclResult parseFunctionDecl();
-  DeclResult parseRuleDecl();
+  DeclResult parseDeclaration();
+  DeclResult parseFunctionDeclaration();
+  DeclResult parseRuleDeclaration();
 
-  StmtResult parseStmt();
-  StmtResult parseBreakStmt();
-  StmtResult parseCompoundStmt();
-  StmtResult parseDoStmt();
-  StmtResult parseForStmt();
-  StmtResult parseIfStmt();
-  StmtResult parsePrintStmt();
-  StmtResult parseReturnStmt();
-  StmtResult parseSimpleStmt();
-  StmtResult parseValueStmt();
-  StmtResult parseWhileStmt();
+  StmtResult parseStatement();
+  StmtResult parseBreakStatement();
+  StmtResult parseCompoundStatement();
+  StmtResult parseDoStatement();
+  StmtResult parseForStatement();
+  StmtResult parseIfStatement();
+  StmtResult parsePrintStatement();
+  StmtResult parseReturnStatement();
+  StmtResult parseSimpleStatement();
+  StmtResult parseValueStatement();
+  StmtResult parseWhileStatement();
 
-  ExprResult parseExpr(prec::Level MinPrec = prec::Unknown);
+  ExprResult parseExpression(prec::Level MinPrec = prec::Unknown);
 
   void recover() { skipUntil<tok::newline, tok::semi, tok::eof>(); }
 };
