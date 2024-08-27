@@ -1,4 +1,4 @@
-//===--- Parser.h - CAWK Language Parser ------------------------*- C++ -*-===//
+//===--- Parser.cpp - CAWK Language Parser ----------------------*- C++ -*-===//
 //
 //  This file implements the Parser interface.
 //
@@ -44,8 +44,13 @@ template Token Parser::peek<false, true>(std::size_t N) const;
 template Token Parser::peek<true, false>(std::size_t N) const;
 template Token Parser::peek<true, true>(std::size_t N) const;
 
-/// \brief Parses a translation unit.
-/// \return The parsed translation unit.
+/// parseTranslationUnit
+///     translation-unit:
+///	        declaration-seq
+///
+///     declaration-seq:
+///	        declaration
+///         declaration-seq declaration
 DeclResult Parser::parseTranslationUnit() {
   std::vector<Decl *> Decls;
   for (; (skip<tok::newline, tok::semi>(), !consume(tok::eof));) {
@@ -58,14 +63,23 @@ DeclResult Parser::parseTranslationUnit() {
   return false;
 }
 
-/// \brief Parses a rule declaration or function definition.
+/// parseDeclaration
+///     declaration:
+///	        rule-declaration
+///	        function-declaration
 DeclResult Parser::parseDeclaration() {
   if (Tok.is(tok::kw_function))
     return parseFunctionDeclaration();
   return parseRuleDeclaration();
 }
 
-/// \brief Parses a function declaration.
+/// parseFunctionDeclaration
+///     function-declaration
+///         'function' identifier '(' param-list? ')' compound-statement
+///
+///     param-list:
+///         identifier
+///         param-list ',' identifier
 DeclResult Parser::parseFunctionDeclaration() {
   auto BeginLoc = Lex.getBufferPtr();
   // These two tests should never be fail, but they're here as sanity checks.
@@ -118,6 +132,10 @@ DeclResult Parser::parseFunctionDeclaration() {
                               SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseRuleDeclaration
+///     rule-declaration:
+///         expression compound-statement?
+///         compound-statement
 DeclResult Parser::parseRuleDeclaration() {
   auto BeginLoc = Lex.getBufferPtr();
   auto Pattern = [this] -> ExprResult {
@@ -148,6 +166,10 @@ DeclResult Parser::parseRuleDeclaration() {
                           SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// statement:
+///	    block-statement
+///	    basic-statement
+///	    ';'
 StmtResult Parser::parseStatement() {
   switch (Tok.getKind()) {
   default: {
@@ -181,6 +203,13 @@ StmtResult Parser::parseBreakStatement() {
   return BreakStmt::Create(SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseCompoundStatement
+///     compound-statement:
+///         '{' statement-sequence '}'
+///
+///     statement-sequence:
+///         statement
+///         statement-sequence (block-statement | simple-statement eol)
 StmtResult Parser::parseCompoundStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::l_brace))
@@ -201,6 +230,9 @@ StmtResult Parser::parseCompoundStatement() {
   return CompoundStmt::Create(Stmts, SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseDoStatement
+///     do-statement:
+///         'do' statement 'while' '(' expression ')'
 StmtResult Parser::parseDoStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_do))
@@ -224,6 +256,11 @@ StmtResult Parser::parseDoStatement() {
                         SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseForStatement
+///     for-statement:
+///	        'for' '(' identifier 'in' identifier ')' statement
+///	        'for' '(' (print-statement | expression)? ';' expression? ';'
+///             (print-statement | expression)? ')' statement
 StmtResult Parser::parseForStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_for, tok::l_paren))
@@ -272,6 +309,9 @@ StmtResult Parser::parseForStatement() {
                          SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseIfStatement
+///     if-statement:
+///	        'if' '(' expression ')' statement ('else' statement)?
 StmtResult Parser::parseIfStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_if, tok::l_paren))
@@ -291,6 +331,10 @@ StmtResult Parser::parseIfStatement() {
                         SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parsePrintStatement
+///     print-statement:
+///	        'print' expression-list?
+///	        'printf' expression-list?
 StmtResult Parser::parsePrintStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   Token Iden = Tok;
@@ -339,6 +383,8 @@ StmtResult Parser::parsePrintStatement() {
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseReturnStatement
+///     'return' expression?
 StmtResult Parser::parseReturnStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_return))
@@ -351,6 +397,9 @@ StmtResult Parser::parseReturnStatement() {
   return ReturnStmt::Create(E.get(), SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseSimpleStatement
+///     expression
+///     print-statement
 StmtResult Parser::parseSimpleStatement() {
   switch (Tok.getKind()) {
   default:
@@ -361,6 +410,8 @@ StmtResult Parser::parseSimpleStatement() {
   }
 }
 
+/// parseValueStatement
+///     expression
 StmtResult Parser::parseValueStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   ExprResult Value = parseExpression();
@@ -370,6 +421,9 @@ StmtResult Parser::parseValueStatement() {
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+/// parseWhileStatement
+///     while-statement:
+///            'while' '(' expression ')' statement
 StmtResult Parser::parseWhileStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!Semantics.check<true>(static_cast<WhileStmt *>(nullptr)))
@@ -399,7 +453,6 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto NUD = [this] -> ExprResult {
     switch (Tok.getKind()) {
     default:
-      // TODO: handle error
       return false;
     case tok::kw_gsub:
     case tok::kw_index:
