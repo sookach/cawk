@@ -101,12 +101,13 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
   }
 
   if (*BufferPtr == '"') {
+    auto BeginLoc = BufferPtr;
     auto End = BufferPtr + 1;
     for (; End != BufferEnd && *End != '"'; ++End)
       if (*End == '\\')
         ++End;
     if (End == BufferEnd) {
-      Diags.addError(Line, diag::lex_unterminated_string);
+      Diags.addError(SourceRange(BeginLoc, End), diag::lex_unterminated_string);
       formToken(T, End, tok::unknown);
       return;
     }
@@ -115,12 +116,14 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
   }
 
   if (*BufferPtr == '\'') {
+    auto BeginLoc = BufferPtr;
     auto End = BufferPtr + 1;
     for (; End != BufferEnd && *End != '\''; ++End)
       if (*End == '\\')
         ++End;
     if (End == BufferEnd) {
-      Diags.addError(Line, diag::lex_unterminated_string);
+      Diags.addError(SourceRange(BeginLoc, BufferEnd - 1),
+                     diag::lex_unterminated_string);
       formToken(T, End, tok::unknown);
       return;
     }
@@ -130,12 +133,14 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
 
   if constexpr (Regex) {
     if (*BufferPtr == '/') {
+      auto BeginLoc = BufferPtr;
       auto End = BufferPtr + 1;
       for (; End != BufferEnd && *End != '/'; ++End)
         if (*End == '\\')
           ++End;
       if (End == BufferEnd) {
-        Diags.addError(Line, diag::lex_unterminated_regex);
+        Diags.addError(SourceRange(BeginLoc, End),
+                       diag::lex_unterminated_regex);
         formToken(T, End, tok::unknown);
         return;
       }

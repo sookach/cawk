@@ -76,7 +76,7 @@ bool SemaType::visit(WhileStmt *W) {
 
 bool SemaType::visit(ArraySubscriptExpr *A) {
   if (!areTypesConvertible(A->getLHS()->getType(), type::array)) {
-    Diags.addError(getLineNumber(A), diag::sema_primitive_subscript,
+    Diags.addError(A->getSourceRange(), diag::sema_primitive_subscript,
                    toString(A->getLHS()->getType()));
     return false;
   }
@@ -93,8 +93,8 @@ bool SemaType::visit(ArraySubscriptExpr *A) {
 bool SemaType::visit(BinaryOperator *B) {
   if (!isConvertibleTo(B->getLHS(), type::primitive) ||
       !isConvertibleTo(B->getRHS(), type::primitive)) {
-    Diags.addError(B->getOpcode().getLine(), diag::sema_invalid_operand_types,
-                   "+", toString(B->getLHS()->getType()),
+    Diags.addError(B->getSourceRange(), diag::sema_invalid_operand_types, "+",
+                   toString(B->getLHS()->getType()),
                    toString(B->getRHS()->getType()));
     return false;
   }
@@ -135,7 +135,7 @@ bool SemaType::visit(UnaryOperator *U) {
   case tok::minusminus:
     if (areTypesConvertible(U->getSubExpr()->getType(), type::primitive))
       return true;
-    Diags.addError(U->getOpcode().getLine(), diag::sema_invalid_operand_type,
+    Diags.addError(U->getSourceRange(), diag::sema_invalid_operand_type,
                    U->getOpcode().getLiteralData(),
                    toString(U->getSubExpr()->getType()));
     return false;

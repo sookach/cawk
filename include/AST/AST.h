@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Basic/SourceLocation.h"
 #include "Exec/Value.h"
 #include "Lexer/Lexer.h"
 #include "Sema/Type.h"
@@ -54,12 +55,15 @@ public:
 
 private:
   const DeclKind Kind;
+  SourceRange SrcRange;
 
 protected:
   Decl(DeclKind K) : Kind(K) {}
+  Decl(DeclKind K, SourceRange SrcRange) : Kind(K), SrcRange(SrcRange) {}
 
 public:
   DeclKind getKind() const { return Kind; }
+  SourceRange getSourceRange() const { return SrcRange; }
 };
 
 class TranslationUnitDecl : public Decl {
@@ -92,8 +96,9 @@ protected:
   FunctionDecl() : Decl(DK_Function) {}
 
   FunctionDecl(Token Identifier, std::vector<ParamVarDecl *> Params,
-               CompoundStmt *Body)
-      : Decl(DK_Function), Identifier(Identifier), Params(Params), Body(Body) {}
+               CompoundStmt *Body, SourceRange SrcRange)
+      : Decl(DK_Function, SrcRange), Identifier(Identifier), Params(Params),
+        Body(Body) {}
 
 public:
   static bool classof(const Decl *D) { return D->getKind() == DK_Function; }
@@ -110,8 +115,8 @@ public:
 
   static FunctionDecl *Create(Token Identifier,
                               std::vector<ParamVarDecl *> Params,
-                              CompoundStmt *Body) {
-    return new FunctionDecl(Identifier, Params, Body);
+                              CompoundStmt *Body, SourceRange SrcRange) {
+    return new FunctionDecl(Identifier, Params, Body, SrcRange);
   }
 
   static FunctionDecl *CreateEmpty() { return new FunctionDecl; }
@@ -124,8 +129,8 @@ class RuleDecl : public Decl {
 protected:
   RuleDecl() : Decl(DK_Rule) {}
 
-  RuleDecl(Expr *Pattern, CompoundStmt *Action)
-      : Decl(DK_Rule), Pattern(Pattern), Action(Action) {}
+  RuleDecl(Expr *Pattern, CompoundStmt *Action, SourceRange SrcRange)
+      : Decl(DK_Rule, SrcRange), Pattern(Pattern), Action(Action) {}
 
 public:
   static bool classof(const Decl *D) { return D->getKind() == DK_Rule; }
@@ -136,8 +141,9 @@ public:
 
   void setPattern(Expr *E) { Pattern = E; }
 
-  static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action) {
-    return new RuleDecl(Pattern, Action);
+  static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action,
+                          SourceRange SrcRange) {
+    return new RuleDecl(Pattern, Action, SrcRange);
   }
 };
 
@@ -148,8 +154,8 @@ protected:
   type::TypeKind Type;
   DeclRefExpr *E;
 
-  VarDecl(DeclKind Kind, Token Identifier)
-      : Decl(Kind), Identifier(Identifier) {}
+  VarDecl(DeclKind Kind, Token Identifier, SourceRange SrcRange)
+      : Decl(Kind, SrcRange), Identifier(Identifier) {}
 
 public:
   static bool classof(const Decl *D) {
@@ -170,20 +176,21 @@ public:
 
   void setExpr(DeclRefExpr *D) { E = D; }
 
-  static VarDecl *Create(Token Identifier) {
-    return new VarDecl(DK_Var, Identifier);
+  static VarDecl *Create(Token Identifier, SourceRange SrcRange) {
+    return new VarDecl(DK_Var, Identifier, SrcRange);
   }
 };
 
 class ParamVarDecl : public VarDecl {
 protected:
-  ParamVarDecl(Token Identifier) : VarDecl(DK_ParamVar, Identifier) {}
+  ParamVarDecl(Token Identifier, SourceRange SrcRange)
+      : VarDecl(DK_ParamVar, Identifier, SrcRange) {}
 
 public:
   static bool classof(const Decl *D) { return D->getKind() == DK_ParamVar; }
 
-  static ParamVarDecl *Create(Token Identifier) {
-    return new ParamVarDecl(Identifier);
+  static ParamVarDecl *Create(Token Identifier, SourceRange SrcRange) {
+    return new ParamVarDecl(Identifier, SrcRange);
   }
 };
 
@@ -209,12 +216,15 @@ public:
 
 private:
   const StmtKind Kind;
+  SourceRange SrcRange;
 
 protected:
   Stmt(StmtKind Kind) : Kind(Kind) {}
+  Stmt(StmtKind Kind, SourceRange SrcRange) : Kind(Kind), SrcRange(SrcRange) {}
 
 public:
   StmtKind getKind() const { return Kind; }
+  SourceRange getSourceRange() const { return SrcRange; }
 };
 
 class CompoundStmt : public Stmt {
@@ -223,15 +233,16 @@ class CompoundStmt : public Stmt {
 protected:
   CompoundStmt() : Stmt(SK_Compound) {}
 
-  CompoundStmt(std::vector<Stmt *> Body) : Stmt(SK_Compound), Body(Body) {}
+  CompoundStmt(std::vector<Stmt *> Body, SourceRange SrcRange)
+      : Stmt(SK_Compound, SrcRange), Body(Body) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Compound; }
 
   std::vector<Stmt *> getBody() { return Body; }
 
-  static CompoundStmt *Create(std::vector<Stmt *> Body) {
-    return new CompoundStmt(Body);
+  static CompoundStmt *Create(std::vector<Stmt *> Body, SourceRange SrcRange) {
+    return new CompoundStmt(Body, SrcRange);
   }
 
   static CompoundStmt *CreateEmpty() { return new CompoundStmt; }
@@ -247,8 +258,8 @@ class IfStmt : public Stmt {
 protected:
   IfStmt() : Stmt(SK_If) {}
 
-  IfStmt(Expr *Cond, Stmt *Then, Stmt *Else)
-      : Stmt(SK_If), Cond(Cond), Then(Then), Else(Else) {}
+  IfStmt(Expr *Cond, Stmt *Then, Stmt *Else, SourceRange SrcRange)
+      : Stmt(SK_If, SrcRange), Cond(Cond), Then(Then), Else(Else) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_If; }
@@ -261,8 +272,9 @@ public:
 
   void setCond(Expr *E) { Cond = E; }
 
-  static IfStmt *Create(Expr *Cond, Stmt *Then, Stmt *Else) {
-    return new IfStmt(Cond, Then, Else);
+  static IfStmt *Create(Expr *Cond, Stmt *Then, Stmt *Else,
+                        SourceRange SrcRange) {
+    return new IfStmt(Cond, Then, Else, SrcRange);
   }
 };
 
@@ -275,8 +287,8 @@ class ForStmt : public Stmt {
 protected:
   ForStmt() : Stmt(SK_For) {}
 
-  ForStmt(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body)
-      : Stmt(SK_For), Init(Init), Cond(Cond), Inc(Inc), Body(Body) {}
+  ForStmt(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body, SourceRange SrcRange)
+      : Stmt(SK_For, SrcRange), Init(Init), Cond(Cond), Inc(Inc), Body(Body) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_For; }
@@ -291,8 +303,9 @@ public:
 
   void setCond(Expr *E) { Cond = E; }
 
-  static ForStmt *Create(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body) {
-    return new ForStmt(Init, Cond, Inc, Body);
+  static ForStmt *Create(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body,
+                         SourceRange SrcRange) {
+    return new ForStmt(Init, Cond, Inc, Body, SrcRange);
   }
 };
 
@@ -302,8 +315,10 @@ class ForRangeStmt : public Stmt {
   Stmt *Body;
 
 protected:
-  ForRangeStmt(DeclRefExpr *LoopVar, DeclRefExpr *Range, Stmt *Body)
-      : Stmt(SK_ForRange), LoopVar(LoopVar), Range(Range), Body(Body) {}
+  ForRangeStmt(DeclRefExpr *LoopVar, DeclRefExpr *Range, Stmt *Body,
+               SourceRange SrcRange)
+      : Stmt(SK_ForRange, SrcRange), LoopVar(LoopVar), Range(Range),
+        Body(Body) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_ForRange; }
@@ -319,34 +334,39 @@ public:
   Stmt *getBody() { return Body; }
 
   static ForRangeStmt *Create(DeclRefExpr *LoopVar, DeclRefExpr *Range,
-                              Stmt *Body) {
-    return new ForRangeStmt(LoopVar, Range, Body);
+                              Stmt *Body, SourceRange SrcRange) {
+    return new ForRangeStmt(LoopVar, Range, Body, SrcRange);
   }
 };
 
 class BreakStmt : public Stmt {
 protected:
-  BreakStmt() : Stmt(SK_Break) {}
+  BreakStmt(SourceRange SrcRange) : Stmt(SK_Break, SrcRange) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Break; }
 
-  static BreakStmt *Create() { return new BreakStmt; }
+  static BreakStmt *Create(SourceRange SrcRange) {
+    return new BreakStmt(SrcRange);
+  }
 };
 
 class ContinueStmt : public Stmt {
 protected:
-  ContinueStmt() : Stmt(SK_Continue) {}
+  ContinueStmt(SourceRange SrcRange) : Stmt(SK_Continue, SrcRange) {}
 
 public:
-  static ContinueStmt *Create() { return new ContinueStmt; }
+  static ContinueStmt *Create(SourceRange SrcRange) {
+    return new ContinueStmt(SrcRange);
+  }
 };
 
 class ExitStmt : public Stmt {
   Expr *Value;
 
 protected:
-  ExitStmt(Expr *Value) : Stmt(SK_Exit), Value(Value) {}
+  ExitStmt(Expr *Value, SourceRange SrcRange)
+      : Stmt(SK_Exit, SrcRange), Value(Value) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Exit; }
@@ -355,7 +375,9 @@ public:
 
   void setValue(Expr *E) { Value = E; }
 
-  static ExitStmt *Create(Expr *Value) { return new ExitStmt(Value); }
+  static ExitStmt *Create(Expr *Value, SourceRange SrcRange) {
+    return new ExitStmt(Value, SrcRange);
+  }
 };
 
 class NextStmt : public Stmt {
@@ -370,12 +392,14 @@ public:
 
 class NextfileStmt : public Stmt {
 protected:
-  NextfileStmt() : Stmt(SK_Nextfile) {}
+  NextfileStmt(SourceRange SrcRange) : Stmt(SK_Nextfile, SrcRange) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Nextfile; }
 
-  static NextfileStmt *Create() { return new NextfileStmt; }
+  static NextfileStmt *Create(SourceRange SrcRange) {
+    return new NextfileStmt(SrcRange);
+  }
 };
 
 class WhileStmt : public Stmt {
@@ -383,7 +407,8 @@ class WhileStmt : public Stmt {
   Stmt *Body;
 
 protected:
-  WhileStmt(Expr *Cond, Stmt *Body) : Stmt(SK_While), Cond(Cond), Body(Body) {}
+  WhileStmt(Expr *Cond, Stmt *Body, SourceRange SrcRange)
+      : Stmt(SK_While, SrcRange), Cond(Cond), Body(Body) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_While; }
@@ -394,8 +419,8 @@ public:
 
   void setCond(Expr *E) { Cond = E; }
 
-  static WhileStmt *Create(Expr *Cond, Stmt *Body) {
-    return new WhileStmt(Cond, Body);
+  static WhileStmt *Create(Expr *Cond, Stmt *Body, SourceRange SrcRange) {
+    return new WhileStmt(Cond, Body, SrcRange);
   }
 };
 
@@ -403,7 +428,8 @@ class DeleteStmt : public Stmt {
   Expr *Argument;
 
 protected:
-  DeleteStmt(Expr *Argument) : Stmt(SK_Delete), Argument(Argument) {}
+  DeleteStmt(Expr *Argument, SourceRange SrcRange)
+      : Stmt(SK_Delete, SrcRange), Argument(Argument) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Delete; }
@@ -412,7 +438,9 @@ public:
 
   void setArgument(Expr *E) { Argument = E; }
 
-  static DeleteStmt *Create(Expr *Argument) { return new DeleteStmt(Argument); }
+  static DeleteStmt *Create(Expr *Argument, SourceRange SrcRange) {
+    return new DeleteStmt(Argument, SrcRange);
+  }
 };
 
 class DoStmt : public Stmt {
@@ -420,7 +448,8 @@ class DoStmt : public Stmt {
   Stmt *Body;
 
 protected:
-  DoStmt(Expr *Cond, Stmt *Body) : Stmt(SK_Do), Cond(Cond), Body(Body) {}
+  DoStmt(Expr *Cond, Stmt *Body, SourceRange SrcRange)
+      : Stmt(SK_Do, SrcRange), Cond(Cond), Body(Body) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Do; }
@@ -429,8 +458,8 @@ public:
 
   Stmt *getBody() { return Body; }
 
-  static DoStmt *Create(Expr *Cond, Stmt *Body) {
-    return new DoStmt(Cond, Body);
+  static DoStmt *Create(Expr *Cond, Stmt *Body, SourceRange SrcRange) {
+    return new DoStmt(Cond, Body, SrcRange);
   }
 };
 
@@ -441,10 +470,10 @@ class PrintStmt : public Stmt {
   Expr *Output;
 
 protected:
-  PrintStmt(Token Iden, std::vector<Expr *> Args, Token Opcode = {},
-            Expr *Output = nullptr)
-      : Stmt(SK_Print), Iden(Iden), Args(Args), Opcode(Opcode), Output(Output) {
-  }
+  PrintStmt(Token Iden, std::vector<Expr *> Args, Token Opcode, Expr *Output,
+            SourceRange SrcRange)
+      : Stmt(SK_Print, SrcRange), Iden(Iden), Args(Args), Opcode(Opcode),
+        Output(Output) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Print; }
@@ -462,9 +491,9 @@ public:
     Args[I] = E;
   }
 
-  static PrintStmt *Create(Token Iden, std::vector<Expr *> Args,
-                           Token Opcode = {}, Expr *Output = nullptr) {
-    return new PrintStmt(Iden, Args, Opcode, Output);
+  static PrintStmt *Create(Token Iden, std::vector<Expr *> Args, Token Opcode,
+                           Expr *Output, SourceRange SrcRange) {
+    return new PrintStmt(Iden, Args, Opcode, Output, SrcRange);
   }
 };
 
@@ -472,7 +501,8 @@ class ReturnStmt : public Stmt {
   Expr *Value;
 
 protected:
-  ReturnStmt(Expr *Value) : Stmt(SK_Return), Value(Value) {}
+  ReturnStmt(Expr *Value, SourceRange SrcRange)
+      : Stmt(SK_Return, SrcRange), Value(Value) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Return; }
@@ -481,14 +511,17 @@ public:
 
   void setValue(Expr *E) { Value = E; }
 
-  static ReturnStmt *Create(Expr *Value) { return new ReturnStmt(Value); }
+  static ReturnStmt *Create(Expr *Value, SourceRange SrcRange) {
+    return new ReturnStmt(Value, SrcRange);
+  }
 };
 
 class ValueStmt : public Stmt {
   Expr *Value;
 
 protected:
-  ValueStmt(Expr *Value) : Stmt(SK_Value), Value(Value) {}
+  ValueStmt(Expr *Value, SourceRange SrcRange)
+      : Stmt(SK_Value, SrcRange), Value(Value) {}
 
 public:
   static bool classof(const Stmt *S) { return S->getKind() == SK_Value; }
@@ -497,7 +530,9 @@ public:
 
   void setValue(Expr *E) { Value = E; }
 
-  static ValueStmt *Create(Expr *Value) { return new ValueStmt(Value); }
+  static ValueStmt *Create(Expr *Value, SourceRange SrcRange) {
+    return new ValueStmt(Value, SrcRange);
+  }
 };
 
 class Expr {
@@ -515,15 +550,19 @@ public:
 
 protected:
   Expr(ExprKind Kind) : Kind(Kind) {}
+  Expr(ExprKind Kind, SourceRange SrcRange) : Kind(Kind), SrcRange(SrcRange) {}
 
 private:
   const ExprKind Kind;
+  SourceRange SrcRange;
   bool IsLValue = false;
   Value *Val;
   type::TypeKind Type = type::null;
 
 public:
   ExprKind getKind() const { return Kind; }
+
+  SourceRange getSourceRange() const { return SrcRange; }
 
   bool isLValue() const { return IsLValue; }
 
@@ -550,8 +589,8 @@ class ArraySubscriptExpr : public Expr {
   std::vector<Expr *> RHS;
 
 protected:
-  ArraySubscriptExpr(Expr *LHS, std::vector<Expr *> RHS)
-      : Expr(EK_ArraySubscript), LHS(LHS), RHS(RHS) {}
+  ArraySubscriptExpr(Expr *LHS, std::vector<Expr *> RHS, SourceRange SrcRange)
+      : Expr(EK_ArraySubscript, SrcRange), LHS(LHS), RHS(RHS) {}
 
 public:
   static bool classof(const Expr *E) {
@@ -571,8 +610,9 @@ public:
 
   void setRHS(std::vector<Expr *> E) { RHS = E; }
 
-  static ArraySubscriptExpr *Create(Expr *LHS, std::vector<Expr *> RHS) {
-    return new ArraySubscriptExpr(LHS, RHS);
+  static ArraySubscriptExpr *Create(Expr *LHS, std::vector<Expr *> RHS,
+                                    SourceRange SrcRange) {
+    return new ArraySubscriptExpr(LHS, RHS, SrcRange);
   }
 };
 
@@ -582,8 +622,8 @@ class BinaryOperator : public Expr {
   Token Opcode;
 
 protected:
-  BinaryOperator(Expr *LHS, Expr *RHS, Token Opcode)
-      : Expr(EK_BinaryOperator), LHS(LHS), RHS(RHS), Opcode(Opcode) {}
+  BinaryOperator(Expr *LHS, Expr *RHS, Token Opcode, SourceRange SrcRange)
+      : Expr(EK_BinaryOperator, SrcRange), LHS(LHS), RHS(RHS), Opcode(Opcode) {}
 
 public:
   static bool classof(const Expr *E) {
@@ -600,8 +640,9 @@ public:
 
   Token getOpcode() { return Opcode; }
 
-  static BinaryOperator *Create(Expr *LHS, Expr *RHS, Token Opcode) {
-    return new BinaryOperator(LHS, RHS, Opcode);
+  static BinaryOperator *Create(Expr *LHS, Expr *RHS, Token Opcode,
+                                SourceRange SrcRange) {
+    return new BinaryOperator(LHS, RHS, Opcode, SrcRange);
   }
 };
 
@@ -611,8 +652,8 @@ class CallExpr : public Expr {
   FunctionDecl *TheFunction;
 
 protected:
-  CallExpr(Expr *Callee, std::vector<Expr *> Args)
-      : Expr(EK_Call), Callee(Callee), Args(Args) {}
+  CallExpr(Expr *Callee, std::vector<Expr *> Args, SourceRange SrcRange)
+      : Expr(EK_Call, SrcRange), Callee(Callee), Args(Args) {}
 
 public:
   static bool classof(const Expr *E) { return E->getKind() == EK_Call; }
@@ -630,8 +671,9 @@ public:
 
   void setFunction(FunctionDecl *F) { TheFunction = F; }
 
-  static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args) {
-    return new CallExpr(Callee, Args);
+  static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args,
+                          SourceRange SrcRange) {
+    return new CallExpr(Callee, Args, SrcRange);
   }
 };
 
@@ -639,7 +681,8 @@ class DeclRefExpr : public Expr {
   Token Identifier;
 
 protected:
-  DeclRefExpr(Token Identifier) : Expr(EK_DeclRef), Identifier(Identifier) {}
+  DeclRefExpr(Token Identifier, SourceRange SrcRange)
+      : Expr(EK_DeclRef, SrcRange), Identifier(Identifier) {}
 
 public:
   static bool classof(const Expr *E) { return E->getKind() == EK_DeclRef; }
@@ -648,8 +691,8 @@ public:
 
   std::string_view getName() const { return getIdentifier().getRawData(); }
 
-  static DeclRefExpr *Create(Token Identifier) {
-    return new DeclRefExpr(Identifier);
+  static DeclRefExpr *Create(Token Identifier, SourceRange SrcRange) {
+    return new DeclRefExpr(Identifier, SrcRange);
   }
 };
 
@@ -657,7 +700,8 @@ class FloatingLiteral : public Expr {
   Token Literal;
 
 protected:
-  FloatingLiteral(Token Literal) : Expr(EK_FloatingLiteral), Literal(Literal) {}
+  FloatingLiteral(Token Literal, SourceRange SrcRange)
+      : Expr(EK_FloatingLiteral), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) {
@@ -666,8 +710,8 @@ public:
 
   Token getLiteral() { return Literal; }
 
-  static FloatingLiteral *Create(Token Literal) {
-    return new FloatingLiteral(Literal);
+  static FloatingLiteral *Create(Token Literal, SourceRange SrcRange) {
+    return new FloatingLiteral(Literal, SrcRange);
   }
 };
 
@@ -675,15 +719,16 @@ class RegexLiteral : public Expr {
   Token Literal;
 
 protected:
-  RegexLiteral(Token Literal) : Expr(EK_RegexLiteral), Literal(Literal) {}
+  RegexLiteral(Token Literal, SourceRange SrcRange)
+      : Expr(EK_RegexLiteral), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) { return E->getKind() == EK_RegexLiteral; }
 
   Token getLiteral() { return Literal; }
 
-  static RegexLiteral *Create(Token Literal) {
-    return new RegexLiteral(Literal);
+  static RegexLiteral *Create(Token Literal, SourceRange SrcRange) {
+    return new RegexLiteral(Literal, SrcRange);
   }
 };
 
@@ -691,7 +736,8 @@ class StringLiteral : public Expr {
   Token Literal;
 
 protected:
-  StringLiteral(Token Literal) : Expr(EK_StringLiteral), Literal(Literal) {}
+  StringLiteral(Token Literal, SourceRange SrcRange)
+      : Expr(EK_StringLiteral, SrcRange), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) {
@@ -700,7 +746,9 @@ public:
 
   Token getLiteral() { return Literal; }
 
-  static StringLiteral *Create(Token Value) { return new StringLiteral(Value); }
+  static StringLiteral *Create(Token Value, SourceRange SrcRange) {
+    return new StringLiteral(Value, SrcRange);
+  }
 };
 
 class UnaryOperator : public Expr {
@@ -713,8 +761,9 @@ private:
   FixKind Fix;
 
 protected:
-  UnaryOperator(Token Opcode, Expr *SubExpr, FixKind Fix)
-      : Expr(EK_UnaryOperator), Opcode(Opcode), SubExpr(SubExpr), Fix(Fix) {}
+  UnaryOperator(Token Opcode, Expr *SubExpr, FixKind Fix, SourceRange SrcRange)
+      : Expr(EK_UnaryOperator, SrcRange), Opcode(Opcode), SubExpr(SubExpr),
+        Fix(Fix) {}
 
 public:
   Token getOpcode() { return Opcode; }
@@ -725,30 +774,10 @@ public:
 
   FixKind getFix() { return Fix; }
 
-  static UnaryOperator *Create(Token Opcode, Expr *SubExpr, FixKind Fix) {
-    return new UnaryOperator(Opcode, SubExpr, Fix);
+  static UnaryOperator *Create(Token Opcode, Expr *SubExpr, FixKind Fix,
+                               SourceRange SrcRange) {
+    return new UnaryOperator(Opcode, SubExpr, Fix, SrcRange);
   }
 };
-
-static std::size_t getLineNumber(Expr *E) {
-  switch (E->getKind()) {
-  case Expr::EK_ArraySubscript:
-    return getLineNumber(static_cast<ArraySubscriptExpr *>(E)->getLHS());
-  case Expr::EK_BinaryOperator:
-    return getLineNumber(static_cast<BinaryOperator *>(E)->getLHS());
-  case Expr::EK_Call:
-    return getLineNumber(static_cast<CallExpr *>(E)->getCallee());
-  case Expr::EK_DeclRef:
-    return static_cast<DeclRefExpr *>(E)->getIdentifier().getLine();
-  case Expr::EK_FloatingLiteral:
-    return static_cast<FloatingLiteral *>(E)->getLiteral().getLine();
-  case Expr::EK_RegexLiteral:
-    return static_cast<RegexLiteral *>(E)->getLiteral().getLine();
-  case Expr::EK_StringLiteral:
-    return static_cast<StringLiteral *>(E)->getLiteral().getLine();
-  case Expr::EK_UnaryOperator:
-    return static_cast<UnaryOperator *>(E)->getOpcode().getLine();
-  }
-}
 
 } // namespace cawk

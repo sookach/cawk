@@ -102,8 +102,10 @@ private:
   bool expect(tok::TokenKind K, Ts... Ks) {
     if (!consume<NL, RE>(K)) {
       if (!std::exchange(PanicMode, true))
-        Diags.addError(Tok.getLine(), diag::parse_unexpected_token,
-                       tok::getTokenName(K), tok::getTokenName(Tok.getKind()));
+        Diags.addError(SourceRange(std::cbegin(Tok.getRawData()),
+                                   std::cend(Tok.getRawData())),
+                       diag::parse_unexpected_token, tok::getTokenName(K),
+                       tok::getTokenName(Tok.getKind()));
       return false;
     }
 
@@ -126,8 +128,10 @@ private:
 
     if constexpr (sizeof...(Ks) == 0) {
       if (!std::exchange(PanicMode, true))
-        Diags.addError(Tok.getLine(), diag::parse_unexpected_token,
-                       ExpectedTypes.c_str(), tok::getTokenName(Tok.getKind()));
+        Diags.addError(SourceRange(std::cbegin(Tok.getRawData()),
+                                   std::cend(Tok.getRawData())),
+                       diag::parse_unexpected_token, ExpectedTypes.c_str(),
+                       tok::getTokenName(Tok.getKind()));
       ExpectedTypes = "one of";
       return false;
     } else {

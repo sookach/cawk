@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Basic/SourceLocation.h"
 #include "Exec/IO.h"
 
 #include <algorithm>
@@ -20,7 +21,7 @@ std::string_view getDiagnosticText(diag::DiagnosticKind Kind);
 } // namespace diag
 
 class Diagnostic {
-  using DiagVector = std::vector<std::pair<std::size_t, std::string>>;
+  using DiagVector = std::vector<std::pair<SourceRange, std::string>>;
   DiagVector ErrorDiagnostics;
   DiagVector WarningDiagnostics;
 
@@ -55,21 +56,22 @@ class Diagnostic {
   }
 
   template <typename... T>
-  void addDiagnostic(DiagVector &Diagnostics, std::size_t Line,
+  void addDiagnostic(DiagVector &Diagnostics, SourceRange SrcRange,
                      diag::DiagnosticKind Kind, T &&...Args) {
-    Diagnostics.emplace_back(Line,
+    Diagnostics.emplace_back(SrcRange,
                              formatDiagnostic(Kind, std::forward<T>(Args)...));
   }
 
 public:
   template <typename... T>
-  void addError(std::size_t Line, diag::DiagnosticKind Kind, T &&...Args) {
-    addDiagnostic(ErrorDiagnostics, Line, Kind, std::forward<T>(Args)...);
+  void addError(SourceRange SrcRange, diag::DiagnosticKind Kind, T &&...Args) {
+    addDiagnostic(ErrorDiagnostics, SrcRange, Kind, std::forward<T>(Args)...);
   }
 
   template <typename... T>
-  void addWarning(std::size_t Line, diag::DiagnosticKind Kind, T &&...Args) {
-    addDiagnostic(WarningDiagnostics, Line, Kind, std::forward<T>(Args)...);
+  void addWarning(SourceRange SrcRange, diag::DiagnosticKind Kind,
+                  T &&...Args) {
+    addDiagnostic(WarningDiagnostics, SrcRange, Kind, std::forward<T>(Args)...);
   }
 
   void clearErrors() { ErrorDiagnostics.clear(); }
@@ -77,18 +79,18 @@ public:
   void clearWarnings() { WarningDiagnostics.clear(); }
 
   void printErrors(std::string_view Source) {
-    for (const auto &[Line, Error] : ErrorDiagnostics) {
+    for (const auto &[SrcRange, Error] : ErrorDiagnostics) {
       errs().printf("error: %s\n", Error.c_str());
-      errs().printf("  %lu | %s\n", Line, getSourceLine(Source, Line).c_str());
+      auto LineNumber =
+          std::count(std::cbegin(Source), SrcRange.getBegin(), '\n') + 1;
+      std::string SourceLines("   " + std::to_string(LineNumber) + " | ");
+      for (auto It = SrcRange.getBegin(); It != SrcRange.getEnd(); ++It) {
+        SourceLines.push_back(*It);
+        if (*It == '\n' && It != SrcRange.getEnd() - 1)
+          SourceLines += "   " + std::to_string(++LineNumber) + " | ";
+      }
+      errs().printf("%s\n", SourceLines.c_str());
     }
-  }
-
-  std::string getSourceLine(std::string_view Source, std::size_t Line) {
-    auto Begin = std::cbegin(Source);
-    for (std::size_t I = 1; I != Line; ++I)
-      Begin = std::find(Begin, std::cend(Source), '\n') + 1;
-    auto End = std::find(Begin, std::cend(Source), '\n');
-    return std::string(Begin, End == std::cend(Source) ? End - 1 : End);
   }
 };
 } // namespace cawk

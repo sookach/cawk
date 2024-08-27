@@ -67,6 +67,7 @@ DeclResult Parser::parseDecl() {
 
 /// \brief Parses a function declaration.
 DeclResult Parser::parseFunctionDecl() {
+  auto BeginLoc = Lex.getBufferPtr();
   // These two tests should never be fail, but they're here as sanity checks.
   if (!Semantics.check<true>(static_cast<FunctionDecl *>(nullptr)))
     return false;
@@ -84,11 +85,19 @@ DeclResult Parser::parseFunctionDecl() {
   auto [Valid, Params] = [this] {
     std::vector<ParamVarDecl *> Params;
 
-    if (Tok.is(tok::identifier))
-      Params.push_back(ParamVarDecl::Create(advance()));
+    if (Tok.is(tok::identifier)) {
+      auto BeginLoc = Lex.getBufferPtr();
+      auto Iden = advance();
+      auto EndLoc = Lex.getBufferPtr();
+      Params.push_back(
+          ParamVarDecl::Create(Iden, SourceRange(BeginLoc, EndLoc)));
+    }
 
     for (; consume(tok::comma);) {
-      Params.push_back(ParamVarDecl::Create(Tok));
+      auto BeginLoc = Lex.getBufferPtr();
+      auto EndLoc = BeginLoc + Tok.getLength();
+      Params.push_back(
+          ParamVarDecl::Create(Tok, SourceRange(BeginLoc, EndLoc)));
       if (!expect(tok::identifier))
         return std::pair(false, Params);
     }
@@ -100,22 +109,28 @@ DeclResult Parser::parseFunctionDecl() {
   if (!consume(tok::r_paren))
     return false;
   auto Body = parseCompoundStmt();
-  if (Body.isValid())
-    return FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>());
+  if (!Body.isValid())
+    return false;
 
   if (Semantics.check<false>(static_cast<FunctionDecl *>(nullptr)))
     return false;
-  return false;
+  return FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>(),
+                              SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 DeclResult Parser::parseRuleDecl() {
+  auto BeginLoc = Lex.getBufferPtr();
   auto Pattern = [this] -> ExprResult {
     switch (Tok.getKind()) {
     default:
       return parseExpr();
     case tok::kw_BEGIN:
-    case tok::kw_END:
-      return DeclRefExpr::Create(advance<false>());
+    case tok::kw_END: {
+      auto BeginLoc = Lex.getBufferPtr();
+      auto Identifier = advance<false>();
+      auto EndLoc = Lex.getBufferPtr();
+      return DeclRefExpr::Create(Identifier, SourceRange(BeginLoc, EndLoc));
+    }
     }
   }();
 
@@ -128,7 +143,8 @@ DeclResult Parser::parseRuleDecl() {
   if (!Action.isValid())
     return false;
 
-  return RuleDecl::Create(Pattern.get(), Action.getAs<CompoundStmt>());
+  return RuleDecl::Create(Pattern.get(), Action.getAs<CompoundStmt>(),
+                          SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseStmt() {
@@ -158,12 +174,14 @@ StmtResult Parser::parseStmt() {
 }
 
 StmtResult Parser::parseBreakStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_break))
     return false;
-  return BreakStmt::Create();
+  return BreakStmt::Create(SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseCompoundStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::l_brace))
     return false;
 
@@ -179,10 +197,11 @@ StmtResult Parser::parseCompoundStmt() {
   if (!consume(tok::r_brace))
     return false;
 
-  return CompoundStmt::Create(Stmts);
+  return CompoundStmt::Create(Stmts, SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseDoStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_do))
     return false;
 
@@ -200,26 +219,34 @@ StmtResult Parser::parseDoStmt() {
   if (!consume(tok::r_paren))
     return false;
 
-  return DoStmt::Create(Cond.get(), Body.get());
+  return DoStmt::Create(Cond.get(), Body.get(),
+                        SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseForStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_for, tok::l_paren))
     return false;
 
   if (peek(1).is(tok::kw_in)) {
     if (!consume(tok::identifier))
       return false;
-    DeclRefExpr *LoopVar = DeclRefExpr::Create(advance());
+    auto BeginLoc = Lex.getBufferPtr();
+    auto LoopVarIden = Tok;
+    DeclRefExpr *LoopVar = DeclRefExpr::Create(
+        LoopVarIden, SourceRange(BeginLoc, Lex.getBufferPtr()));
     if (!consume(tok::kw_in, tok::identifier))
       return false;
-    DeclRefExpr *Range = DeclRefExpr::Create(advance());
+    BeginLoc = Lex.getBufferPtr();
+    DeclRefExpr *Range =
+        DeclRefExpr::Create(Tok, SourceRange(BeginLoc, Lex.getBufferPtr()));
     if (!consume(tok::r_paren))
       return false;
     StmtResult Body = parseStmt();
     if (!Body.isValid())
       return false;
-    return ForRangeStmt::Create(LoopVar, Range, Body.get());
+    return ForRangeStmt::Create(LoopVar, Range, Body.get(),
+                                SourceRange(BeginLoc, Lex.getBufferPtr()));
   }
 
   StmtResult Init = Tok.is(tok::semi) ? true : parseSimpleStmt();
@@ -240,10 +267,12 @@ StmtResult Parser::parseForStmt() {
   StmtResult Body = parseStmt();
   if (!Body.isValid())
     return false;
-  return ForStmt::Create(Init.get(), Cond.get(), Inc.get(), Body.get());
+  return ForStmt::Create(Init.get(), Cond.get(), Inc.get(), Body.get(),
+                         SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseIfStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_if, tok::l_paren))
     return false;
   ExprResult Cond = parseExpr();
@@ -257,10 +286,12 @@ StmtResult Parser::parseIfStmt() {
   StmtResult Else = consume(tok::kw_else) ? parseStmt() : true;
   if (!Else.isValid())
     return false;
-  return IfStmt::Create(Cond.get(), Then.get(), Else.get());
+  return IfStmt::Create(Cond.get(), Then.get(), Else.get(),
+                        SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parsePrintStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   Token Iden = Tok;
   if (!consumeOneOf<true>(tok::kw_print, tok::kw_printf))
     return false;
@@ -303,16 +334,20 @@ StmtResult Parser::parsePrintStmt() {
     return {Tok, parseExpr()};
   }();
 
-  return PrintStmt::Create(Iden, Args, OpCode, Output.get());
+  return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
+                           SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseReturnStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_return))
     return false;
   ExprResult E = parseExpr();
   if (!E.isValid())
     return false;
-  return ReturnStmt::Create(E.get());
+  if (!Semantics.check(static_cast<ReturnStmt *>(nullptr)))
+    return false;
+  return ReturnStmt::Create(E.get(), SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseSimpleStmt() {
@@ -326,13 +361,18 @@ StmtResult Parser::parseSimpleStmt() {
 }
 
 StmtResult Parser::parseValueStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
   ExprResult Value = parseExpr();
   if (!Value.isValid())
     return false;
-  return ValueStmt::Create(Value.get());
+  return ValueStmt::Create(Value.get(),
+                           SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 StmtResult Parser::parseWhileStmt() {
+  auto BeginLoc = Lex.getBufferPtr();
+  if (!Semantics.check<true>(static_cast<WhileStmt *>(nullptr)))
+    return false;
   if (!consume(tok::kw_while, tok::l_paren))
     return false;
 
@@ -347,10 +387,14 @@ StmtResult Parser::parseWhileStmt() {
   if (!Body.isValid())
     return false;
 
-  return WhileStmt::Create(Cond.get(), Body.get());
+  if (!Semantics.check<false>(static_cast<WhileStmt *>(nullptr)))
+    return false;
+  return WhileStmt::Create(Cond.get(), Body.get(),
+                           SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 ExprResult Parser::parseExpr(prec::Level MinPrec) {
+  auto BeginLoc = Lex.getBufferPtr();
   auto NUD = [this] -> ExprResult {
     switch (Tok.getKind()) {
     default:
@@ -363,24 +407,34 @@ ExprResult Parser::parseExpr(prec::Level MinPrec) {
     case tok::kw_sprintf:
     case tok::kw_sub:
     case tok::kw_substr:
-    case tok::identifier:
-      return DeclRefExpr::Create(advance<true>());
-    case tok::numeric_constant:
-      return FloatingLiteral::Create(advance<true>());
-    case tok::string_literal:
-      return StringLiteral::Create(advance<true>());
+    case tok::identifier: {
+      auto BeginLoc = Lex.getBufferPtr();
+      return DeclRefExpr::Create(advance<true>(),
+                                 SourceRange(BeginLoc, Lex.getBufferPtr()));
+    }
+    case tok::numeric_constant: {
+      auto BeginLoc = Lex.getBufferPtr();
+      return FloatingLiteral::Create(advance<true>(),
+                                     SourceRange(BeginLoc, Lex.getBufferPtr()));
+    }
+    case tok::string_literal: {
+      auto BeginLoc = Lex.getBufferPtr();
+      return StringLiteral::Create(advance<true>(),
+                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
+    }
     case tok::plusplus:
     case tok::minusminus:
     case tok::exclaim:
     case tok::plus:
     case tok::minus:
     case tok::dollar: {
+      auto BeginLoc = Lex.getBufferPtr();
       Token OpCode = advance();
       ExprResult SubExpr = parseExpr(prec::Maximum);
       if (!SubExpr.isValid())
         return false;
-      return UnaryOperator::Create(OpCode, SubExpr.get(),
-                                   UnaryOperator::Prefix);
+      return UnaryOperator::Create(OpCode, SubExpr.get(), UnaryOperator::Prefix,
+                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
     }
     }
   };
@@ -395,10 +449,13 @@ ExprResult Parser::parseExpr(prec::Level MinPrec) {
         return LHS;
       case tok::plusplus:
       case tok::minusminus: {
+        auto BeginLoc = Lex.getBufferPtr();
         auto OpCode = advance();
-        return UnaryOperator::Create(OpCode, LHS.get(), UnaryOperator::Prefix);
+        return UnaryOperator::Create(OpCode, LHS.get(), UnaryOperator::Prefix,
+                                     SourceRange(BeginLoc, Lex.getBufferPtr()));
       }
       case tok::l_paren: {
+        auto BeginLoc = Lex.getBufferPtr();
         expect(tok::l_paren);
         std::vector<Expr *> Args;
 
@@ -419,10 +476,12 @@ ExprResult Parser::parseExpr(prec::Level MinPrec) {
         if (!consume(tok::r_paren))
           return false;
 
-        LHS = CallExpr::Create(LHS.get(), Args);
+        LHS = CallExpr::Create(LHS.get(), Args,
+                               SourceRange(BeginLoc, Lex.getBufferPtr()));
         break;
       }
       case tok::l_square: {
+        auto BeginLoc = Lex.getBufferPtr();
         expect(tok::l_square);
 
         ExprResult Arg = parseExpr();
@@ -440,7 +499,8 @@ ExprResult Parser::parseExpr(prec::Level MinPrec) {
         if (!consume(tok::r_square))
           return false;
 
-        LHS = ArraySubscriptExpr::Create(LHS.get(), Args);
+        LHS = ArraySubscriptExpr::Create(
+            LHS.get(), Args, SourceRange(BeginLoc, Lex.getBufferPtr()));
       }
       }
     }
@@ -476,7 +536,8 @@ ExprResult Parser::parseExpr(prec::Level MinPrec) {
       ExprResult RHS = parseExpr(getBinOpPrecedence(OpCode.getKind()));
       if (!RHS.isValid())
         return false;
-      LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode);
+      LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode,
+                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
       break;
     }
     case tok::equal:
@@ -488,7 +549,8 @@ ExprResult Parser::parseExpr(prec::Level MinPrec) {
     case tok::starstarequal: {
       ExprResult RHS =
           parseExpr(prec::Level(getBinOpPrecedence(OpCode.getKind()) - 1));
-      LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode);
+      LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode,
+                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
     }
     }
   }
