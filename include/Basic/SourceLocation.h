@@ -15,6 +15,11 @@ public:
       : std::pair<std::string_view::const_iterator,
                   std::string_view::const_iterator>(Begin, End),
         Valid(true) {}
+  SourceRange(std::string_view Source)
+      : std::pair<std::string_view::const_iterator,
+                  std::string_view::const_iterator>(std::cbegin(Source),
+                                                    std::cend(Source)),
+        Valid(true) {}
 
   std::string_view::const_iterator getBegin() const { return this->first; }
   std::string_view::const_iterator getEnd() const { return this->second; }

@@ -53,7 +53,7 @@ template Token Parser::peek<true, true>(std::size_t N) const;
 ///         declaration-seq declaration
 DeclResult Parser::parseTranslationUnit() {
   std::vector<Decl *> Decls;
-  for (; (skip<tok::newline, tok::semi>(), !consume(tok::eof));) {
+  for (; (skip(tok::newline, tok::semi), !consume(tok::eof));) {
     DeclResult Res = parseDeclaration();
     if (!HasError)
       Decls.push_back(Res.get());
@@ -89,7 +89,7 @@ DeclResult Parser::parseFunctionDeclaration() {
     return false;
   auto Identifier = Tok;
   if (!expect(tok::identifier, tok::l_paren)) {
-    skipUntil<tok::l_brace, tok::r_brace, tok::eof>();
+    skipUntil(tok::l_brace, tok::r_brace, tok::eof);
     if (Tok.is(tok::eof))
       return false;
     PanicMode = false;
@@ -176,7 +176,7 @@ StmtResult Parser::parseStatement() {
     auto S = parseSimpleStatement();
     if (!S.isValid())
       return false;
-    skip<tok::semi, tok::newline>();
+    skip(tok::semi, tok::newline);
     return S;
   }
   case tok::l_brace:
@@ -216,7 +216,7 @@ StmtResult Parser::parseCompoundStatement() {
     return false;
 
   std::vector<Stmt *> Stmts;
-  for (; (skip<tok::newline, tok::semi>(), !Tok.is(tok::r_brace, tok::eof));) {
+  for (; (skip(tok::newline, tok::semi), !Tok.is(tok::r_brace, tok::eof));) {
     StmtResult S = parseStatement();
     if (!S.isValid()) {
       recover();
@@ -267,18 +267,13 @@ StmtResult Parser::parseForStatement() {
     return false;
 
   if (peek(1).is(tok::kw_in)) {
-    if (!consume(tok::identifier))
+    DeclRefExpr *LoopVar =
+        DeclRefExpr::Create(Tok, SourceRange(Tok.getIdentifier()));
+    if (!expect(tok::identifier, tok::kw_in))
       return false;
-    auto BeginLoc = Lex.getBufferPtr();
-    auto LoopVarIden = Tok;
-    DeclRefExpr *LoopVar = DeclRefExpr::Create(
-        LoopVarIden, SourceRange(BeginLoc, Lex.getBufferPtr()));
-    if (!consume(tok::kw_in, tok::identifier))
-      return false;
-    BeginLoc = Lex.getBufferPtr();
     DeclRefExpr *Range =
-        DeclRefExpr::Create(Tok, SourceRange(BeginLoc, Lex.getBufferPtr()));
-    if (!consume(tok::r_paren))
+        DeclRefExpr::Create(Tok, SourceRange(Tok.getIdentifier()));
+    if (!expect(tok::identifier, tok::r_paren))
       return false;
     StmtResult Body = parseStatement();
     if (!Body.isValid())
@@ -290,17 +285,17 @@ StmtResult Parser::parseForStatement() {
   StmtResult Init = Tok.is(tok::semi) ? true : parseSimpleStatement();
   if (!Init.isValid())
     return false;
-  if (!consume(tok::semi))
+  if (!expect(tok::semi))
     return false;
   ExprResult Cond = Tok.is(tok::semi) ? true : parseExpression();
   if (!Cond.isValid())
     return false;
-  if (!consume(tok::semi))
+  if (!expect(tok::semi))
     return false;
   StmtResult Inc = Tok.is(tok::r_paren) ? true : parseSimpleStatement();
   if (!Inc.isValid())
     return false;
-  if (!consume(tok::r_paren))
+  if (!expect(tok::r_paren))
     return false;
   StmtResult Body = parseStatement();
   if (!Body.isValid())
@@ -314,12 +309,12 @@ StmtResult Parser::parseForStatement() {
 ///	        'if' '(' expression ')' statement ('else' statement)?
 StmtResult Parser::parseIfStatement() {
   auto BeginLoc = Lex.getBufferPtr();
-  if (!consume(tok::kw_if, tok::l_paren))
+  if (!expect(tok::kw_if, tok::l_paren))
     return false;
   ExprResult Cond = parseExpression();
   if (!Cond.isValid())
     return false;
-  if (!consume(tok::r_paren))
+  if (!expect(tok::r_paren))
     return false;
   StmtResult Then = parseStatement();
   if (!Then.isValid())
@@ -573,7 +568,7 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     if (Prec <= MinPrec)
       break;
 
-    skip<tok::newline>();
+    skip(tok::newline);
 
     auto OpCode = [this, Prec] {
       if (Prec == prec::StringConcat) {

@@ -139,19 +139,19 @@ private:
     }
   }
 
-  template <tok::TokenKind... Ks> void skip() {
+  void skip(auto... Kinds) {
     std::bitset<tok::NUM_TOKENS> Filter(
         (std::bitset<tok::NUM_TOKENS>() | ... |
-         std::bitset<tok::NUM_TOKENS>().set(Ks)));
+         std::bitset<tok::NUM_TOKENS>().set(Kinds)));
 
     for (; Filter.test(Tok.getKind()); advance<false, false>())
       ;
   }
 
-  template <tok::TokenKind... Ks> void skipUntil() {
+  void skipUntil(auto... Kinds) {
     std::bitset<tok::NUM_TOKENS> Filter(
         (std::bitset<tok::NUM_TOKENS>() | ... |
-         std::bitset<tok::NUM_TOKENS>().set(Ks)));
+         std::bitset<tok::NUM_TOKENS>().set(Kinds)));
 
     for (; !Filter.test(Tok.getKind()); advance<false, false>())
       ;
@@ -177,6 +177,6 @@ private:
 
   ExprResult parseExpression(prec::Level MinPrec = prec::Unknown);
 
-  void recover() { skipUntil<tok::newline, tok::semi, tok::eof>(); }
+  void recover() { skipUntil(tok::newline, tok::semi, tok::eof); }
 };
 } // namespace cawk
