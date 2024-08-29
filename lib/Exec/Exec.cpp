@@ -336,7 +336,7 @@ bool Exec::visit(StringLiteral *S) {
   String = std::regex_replace(String, std::regex(R"(\\r)"), "\r");
   String = std::regex_replace(String, std::regex(R"(\\t)"), "\t");
   String = std::regex_replace(String, std::regex(R"(\\v)"), "\v");
-  S->setValue((String));
+  S->setValue(new Value(String));
   return true;
 }
 

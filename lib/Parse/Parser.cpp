@@ -225,6 +225,7 @@ StmtResult Parser::parseCompoundStatement() {
       recover();
       return false;
     }
+    Stmts.push_back(S.get());
   }
 
   if (!consume(tok::r_brace))
