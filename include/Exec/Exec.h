@@ -28,8 +28,6 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   CallExpr *ParentFunction;
   std::uint32_t NestedLevel = 0;
   std::uint32_t CallLevel = 0;
-  bool IsBegin = true;
-  bool IsEnd = false;
   bool ShouldBreak = false;
   bool ShouldContinue = false;
   bool ShouldReturn = false;

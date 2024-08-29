@@ -539,9 +539,11 @@ class Expr {
 public:
   enum ExprKind {
     EK_ArraySubscript,
+    EK_Begin,
     EK_BinaryOperator,
     EK_Call,
     EK_DeclRef,
+    EK_End,
     EK_FloatingLiteral,
     EK_RegexLiteral,
     EK_StringLiteral,
@@ -573,6 +575,8 @@ public:
   void setValue(Value::Scalar S) { Val->setValue(S); }
 
   void setValue(Value V) { *Val = V; }
+
+  void setValue(Value *V) { Val = V; }
 
   type::TypeKind getType() { return Type; }
 
@@ -613,6 +617,21 @@ public:
   static ArraySubscriptExpr *Create(Expr *LHS, std::vector<Expr *> RHS,
                                     SourceRange SrcRange) {
     return new ArraySubscriptExpr(LHS, RHS, SrcRange);
+  }
+};
+
+class BeginKeyword : public Expr {
+protected:
+  BeginKeyword(SourceRange SrcRange) : Expr(EK_Begin, SrcRange) {}
+
+public:
+  static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
+
+  static BeginKeyword *Create(SourceRange SrcRange) {
+    static Value *TheValue = new Value;
+    BeginKeyword *Raw = new BeginKeyword(SrcRange);
+    Raw->setValue(TheValue);
+    return Raw;
   }
 };
 
@@ -693,6 +712,21 @@ public:
 
   static DeclRefExpr *Create(Token Identifier, SourceRange SrcRange) {
     return new DeclRefExpr(Identifier, SrcRange);
+  }
+};
+
+class EndKeyword : public Expr {
+protected:
+  EndKeyword(SourceRange SrcRange) : Expr(EK_End, SrcRange) {}
+
+public:
+  static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
+
+  static EndKeyword *Create(SourceRange SrcRange) {
+    static Value *TheValue = new Value;
+    EndKeyword *Raw = new EndKeyword(SrcRange);
+    Raw->setValue(TheValue);
+    return Raw;
   }
 };
 

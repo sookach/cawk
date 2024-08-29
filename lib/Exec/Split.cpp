@@ -12,7 +12,7 @@ Value cawk::split(Value String, Value &Array, Value FieldSep) {
   std::sregex_token_iterator It(std::cbegin(S), std::cend(S), Re, -1), End;
 
   for (; It != End; ++It)
-    Array[std::to_string(++I)]->setValue(Value(It->str()));
+    *Array[std::to_string(++I)] = Value::Scalar(It->str());
 
   return Value(I);
 }

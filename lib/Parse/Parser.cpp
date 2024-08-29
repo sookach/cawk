@@ -138,16 +138,19 @@ DeclResult Parser::parseFunctionDeclaration() {
 ///         compound-statement
 DeclResult Parser::parseRuleDeclaration() {
   auto BeginLoc = Lex.getBufferPtr();
-  auto Pattern = [this] -> ExprResult {
+  auto Pattern = [this, BeginLoc] -> ExprResult {
     switch (Tok.getKind()) {
     default:
       return parseExpression();
-    case tok::kw_BEGIN:
-    case tok::kw_END: {
-      auto BeginLoc = Lex.getBufferPtr();
-      auto Identifier = advance<false>();
+    case tok::kw_BEGIN: {
+      advance<false>();
       auto EndLoc = Lex.getBufferPtr();
-      return DeclRefExpr::Create(Identifier, SourceRange(BeginLoc, EndLoc));
+      return BeginKeyword::Create(SourceRange(BeginLoc, EndLoc));
+    }
+    case tok::kw_END: {
+      advance<false>();
+      auto EndLoc = Lex.getBufferPtr();
+      return EndKeyword::Create(SourceRange(BeginLoc, EndLoc));
     }
     }
   }();

@@ -32,12 +32,16 @@ void Exec::exec() { Process->operator()(); }
 void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
 
 void Exec::operator()() {
+  BeginKeyword::Create({})->setValue(Value(1));
+  EndKeyword::Create({})->setValue(Value(0));
+
   visit(AST);
 
   if (std::empty(Inputs))
     return;
 
-  IsBegin = false;
+  BeginKeyword::Create({})->setValue(Value(0));
+
   for (auto &Input : Inputs) {
     SkipToNextfile = false;
     for (; !Input.isEOF() && !SkipToNextfile;) {
@@ -60,7 +64,8 @@ void Exec::operator()() {
     }
   }
 
-  IsEnd = true;
+  EndKeyword::Create({})->setValue(Value(1));
+
   visit(AST);
 }
 
@@ -236,13 +241,13 @@ bool Exec::visit(WhileStmt *W) {
 
 bool Exec::visit(ArraySubscriptExpr *A) {
   traverse(A->getLHS());
-  //   Value::Scalar *S = &A->operator[](std::ranges::fold_left(
-  //       A->getRHS(), std::string(), [this](std::string S, Expr * E) {
-  //         traverse(E);
-  //         return S + E->getValue()->getAs<StringTy>();
-  //       }));
+  Value::Scalar *S = A->getValue()->operator[](std::ranges::fold_left(
+      A->getRHS(), std::string(), [this](std::string S, Expr * E) {
+        traverse(E);
+        return S + E->getValue()->getAs<StringTy>();
+      }));
 
-  //   return *V;
+  A->setValue(*S);
   return true;
 }
 

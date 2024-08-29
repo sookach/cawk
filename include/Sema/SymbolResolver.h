@@ -2,6 +2,7 @@
 #include "AST/ASTVisitor.h"
 #include "Basic/Diagnostic.h"
 
+#include <iostream>
 #include <string>
 #include <string_view>
 #include <unordered_map>

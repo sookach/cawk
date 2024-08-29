@@ -5,6 +5,7 @@
 #include "Lexer/Lexer.h"
 #include "Parse/Parser.h"
 #include "Sema/Sema.h"
+#include "Sema/SymbolResolver.h"
 
 using namespace cawk;
 
@@ -18,8 +19,12 @@ int Instance::execute() {
     return EXIT_FAILURE;
   }
   Sema Semantic(Diags);
+  Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   Semantic.check(ParseResult.getAs<TranslationUnitDecl>());
-  //   Printer.traverse(TLU);
   Diags.printErrors(Source);
+  SymbolResolver Resolver(Diags);
+  Resolver.check(ParseResult.getAs<TranslationUnitDecl>());
+  Exec::load(ParseResult.getAs<TranslationUnitDecl>(), {});
+  Exec::exec();
   return EXIT_SUCCESS;
 }

@@ -814,8 +814,10 @@ protected:
     return visit(static_cast<CLASS *>(E));
       CASE(ArraySubscript, ArraySubscriptExpr);
       CASE(BinaryOperator, BinaryOperator);
+      CASE(Begin, BeginKeyword);
       CASE(Call, CallExpr);
       CASE(DeclRef, DeclRefExpr);
+      CASE(End, EndKeyword);
       CASE(FloatingLiteral, FloatingLiteral);
       CASE(RegexLiteral, RegexLiteral);
       CASE(StringLiteral, StringLiteral);
@@ -876,6 +878,21 @@ protected:
         return static_cast<Derived *>(this)->template visit<false>(A);
     }
 
+    return true;
+  }
+
+  bool visit(BeginKeyword *B) {
+    if constexpr (CheckNull)
+      if (B == nullptr)
+        return true;
+
+    if constexpr (RequireImpl || hasVisit<BeginKeyword>()) {
+      if constexpr (Traversal == trav::RecursiveDescent)
+        return static_cast<Derived *>(this)->template visit<true>(B) &&
+               static_cast<Derived *>(this)->template visit<false>(B);
+      else
+        return static_cast<Derived *>(this)->visit(B);
+    }
     return true;
   }
 
@@ -1007,6 +1024,21 @@ protected:
                static_cast<Derived *>(this)->template visit<false>(F);
       else
         return static_cast<Derived *>(this)->visit(F);
+    }
+    return true;
+  }
+
+  bool visit(EndKeyword *E) {
+    if constexpr (CheckNull)
+      if (E == nullptr)
+        return true;
+
+    if constexpr (RequireImpl || hasVisit<BeginKeyword>()) {
+      if constexpr (Traversal == trav::RecursiveDescent)
+        return static_cast<Derived *>(this)->template visit<true>(E) &&
+               static_cast<Derived *>(this)->template visit<false>(E);
+      else
+        return static_cast<Derived *>(this)->visit(E);
     }
     return true;
   }
