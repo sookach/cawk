@@ -126,7 +126,7 @@ DeclResult Parser::parseFunctionDeclaration() {
   if (!Body.isValid())
     return false;
 
-  if (Semantics.check<false>(static_cast<FunctionDecl *>(nullptr)))
+  if (!Semantics.check<false>(static_cast<FunctionDecl *>(nullptr)))
     return false;
   return FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>(),
                               SourceRange(BeginLoc, Lex.getBufferPtr()));

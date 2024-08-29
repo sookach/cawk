@@ -24,6 +24,7 @@ int Instance::execute() {
   Diags.printErrors(Source);
   SymbolResolver Resolver(Diags);
   Resolver.check(ParseResult.getAs<TranslationUnitDecl>());
+  //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   Exec::load(ParseResult.getAs<TranslationUnitDecl>(), {});
   Exec::exec();
   return EXIT_SUCCESS;
