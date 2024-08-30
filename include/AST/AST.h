@@ -558,7 +558,7 @@ private:
   const ExprKind Kind;
   SourceRange SrcRange;
   bool IsLValue = false;
-  Value *Val;
+  Value *Val = new Value;
   type::TypeKind Type = type::null;
 
 public:
