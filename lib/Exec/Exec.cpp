@@ -346,11 +346,11 @@ bool Exec::visit(UnaryOperator *U) {
   case tok::plus:
     traverse(U->getSubExpr());
     U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
-    return true;
+    break;
   case tok::minus:
     traverse(U->getSubExpr());
     U->setValue(-U->getSubExpr()->getValueAs<NumberTy>());
-    return true;
+    break;
   case tok::plusplus:
     traverse(U->getSubExpr());
     if (U->getFix() == UnaryOperator::Prefix)
@@ -358,7 +358,7 @@ bool Exec::visit(UnaryOperator *U) {
     else
       U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
     U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() + 1);
-    return true;
+    break;
   case tok::minusminus:
     traverse(U->getSubExpr());
     if (U->getFix() == UnaryOperator::Prefix)
@@ -366,7 +366,19 @@ bool Exec::visit(UnaryOperator *U) {
     else
       U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
     U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() - 1);
-    return true;
+    break;
+  case tok::exclaim:
+    traverse(U->getSubExpr());
+    switch (U->getSubExpr()->getValue()->getKind()) {
+    case NumberTy:
+      U->setValue(!U->getSubExpr()->getValueAs<NumberTy>());
+      break;
+    case StringTy:
+      U->setValue(!std::empty(U->getSubExpr()->getValueAs<StringTy>()));
+      break;
+    case NullTy:
+      U->setValue(true);
+    }
   }
   return true;
 }
