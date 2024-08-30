@@ -344,9 +344,29 @@ bool Exec::visit(UnaryOperator *U) {
   switch (U->getOpcode().getKind()) {
   default:
   case tok::plus:
+    traverse(U->getSubExpr());
+    U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
+    return true;
   case tok::minus:
+    traverse(U->getSubExpr());
+    U->setValue(-U->getSubExpr()->getValueAs<NumberTy>());
+    return true;
   case tok::plusplus:
+    traverse(U->getSubExpr());
+    if (U->getFix() == UnaryOperator::Prefix)
+      U->setValue(U->getSubExpr()->getValueAs<NumberTy>() + 1);
+    else
+      U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
+    U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() + 1);
+    return true;
   case tok::minusminus:
+    traverse(U->getSubExpr());
+    if (U->getFix() == UnaryOperator::Prefix)
+      U->setValue(U->getSubExpr()->getValueAs<NumberTy>() - 1);
+    else
+      U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
+    U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() - 1);
+    return true;
   }
   return true;
 }

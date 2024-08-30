@@ -572,6 +572,8 @@ public:
 
   Value *getValue() { return Val; }
 
+  template <TypeKind T> auto getValueAs() { return Val->getAs<T>(); }
+
   void setValue(Value::Scalar S) { Val->setValue(S); }
 
   void setValue(Value V) { *Val = V; }
