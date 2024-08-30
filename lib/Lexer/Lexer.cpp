@@ -65,6 +65,55 @@ void Lexer::formToken(Token &T, std::string_view::const_iterator End,
   BufferPtr = End;
 }
 
+void Lexer::lexIdentifier(Token &T) {
+  auto End = BufferPtr + 1;
+  for (; charinfo::isLetter(*End); ++End)
+    ;
+  std::string_view Name(BufferPtr, End);
+  tok::TokenKind Kind =
+      Keywords.contains(Name) ? Keywords.at(Name) : tok::identifier;
+  formToken(T, End, Kind);
+}
+
+void Lexer::lexNumericConstant(Token &T) {
+  auto End = BufferPtr + 1;
+  for (; charinfo::isDigit(*End); ++End)
+    ;
+  if (*BufferPtr == '.')
+    for (++BufferPtr; charinfo::isDigit(*BufferPtr); ++BufferPtr)
+      ;
+  formToken(T, End, tok::numeric_constant);
+  return;
+}
+
+void Lexer::lexStringLiteral(Token &T) {
+  auto BeginLoc = BufferPtr;
+  auto End = BufferPtr + 1;
+  for (; End != BufferEnd && *End != *BeginLoc; ++End)
+    if (*End == '\\')
+      ++End;
+  if (End == BufferEnd) {
+    Diags.addError(SourceRange(BeginLoc, End), diag::lex_unterminated_string);
+    formToken(T, End, tok::unknown);
+    return;
+  }
+  formToken(T, End + 1, tok::string_literal);
+}
+
+void Lexer::lexRegexLiteral(Token &T) {
+  auto BeginLoc = BufferPtr;
+  auto End = BufferPtr + 1;
+  for (; End != BufferEnd && *End != '/'; ++End)
+    if (*End == '\\')
+      ++End;
+  if (End == BufferEnd) {
+    Diags.addError(SourceRange(BeginLoc, End), diag::lex_unterminated_regex);
+    formToken(T, End, tok::unknown);
+    return;
+  }
+  formToken(T, End + 1, tok::regex_literal);
+}
+
 template <bool Newline, bool Regex> void Lexer::next(Token &T) {
   BufferPrev = BufferPtr;
 
@@ -76,77 +125,6 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
   if (BufferPtr == BufferEnd || *BufferPtr == EOF) {
     T.Kind = tok::eof;
     return;
-  }
-
-  if (charinfo::isLetter(*BufferPtr)) {
-    auto End = BufferPtr + 1;
-    for (; charinfo::isLetter(*End); ++End)
-      ;
-    std::string_view Name(BufferPtr, End);
-    tok::TokenKind Kind =
-        Keywords.contains(Name) ? Keywords.at(Name) : tok::identifier;
-    formToken(T, End, Kind);
-    return;
-  }
-
-  if (charinfo::isDigit(*BufferPtr)) {
-    auto End = BufferPtr + 1;
-    for (; charinfo::isDigit(*End); ++End)
-      ;
-    if (*BufferPtr == '.')
-      for (++BufferPtr; charinfo::isDigit(*BufferPtr); ++BufferPtr)
-        ;
-    formToken(T, End, tok::numeric_constant);
-    return;
-  }
-
-  if (*BufferPtr == '"') {
-    auto BeginLoc = BufferPtr;
-    auto End = BufferPtr + 1;
-    for (; End != BufferEnd && *End != '"'; ++End)
-      if (*End == '\\')
-        ++End;
-    if (End == BufferEnd) {
-      Diags.addError(SourceRange(BeginLoc, End), diag::lex_unterminated_string);
-      formToken(T, End, tok::unknown);
-      return;
-    }
-    formToken(T, End + 1, tok::string_literal);
-    return;
-  }
-
-  if (*BufferPtr == '\'') {
-    auto BeginLoc = BufferPtr;
-    auto End = BufferPtr + 1;
-    for (; End != BufferEnd && *End != '\''; ++End)
-      if (*End == '\\')
-        ++End;
-    if (End == BufferEnd) {
-      Diags.addError(SourceRange(BeginLoc, BufferEnd - 1),
-                     diag::lex_unterminated_string);
-      formToken(T, End, tok::unknown);
-      return;
-    }
-    formToken(T, End + 1, tok::string_literal);
-    return;
-  }
-
-  if constexpr (Regex) {
-    if (*BufferPtr == '/') {
-      auto BeginLoc = BufferPtr;
-      auto End = BufferPtr + 1;
-      for (; End != BufferEnd && *End != '/'; ++End)
-        if (*End == '\\')
-          ++End;
-      if (End == BufferEnd) {
-        Diags.addError(SourceRange(BeginLoc, End),
-                       diag::lex_unterminated_regex);
-        formToken(T, End, tok::unknown);
-        return;
-      }
-      formToken(T, End + 1, tok::regex_literal);
-      return;
-    }
   }
 
   switch (*BufferPtr) {
@@ -165,9 +143,20 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     CASE(';', tok::semi);
     CASE(',', tok::comma);
     CASE('$', tok::dollar);
-    CASE('/', tok::slash);
     CASE('~', tok::tilde);
 #undef CASE
+  case '0' ... '9':
+    lexNumericConstant(T);
+    break;
+  case '"':
+  case '\'':
+    lexStringLiteral(T);
+    break;
+  case 'A' ... 'Z':
+  case 'a' ... 'z':
+  case '_':
+    lexIdentifier(T);
+    break;
   case '&':
     if (*(BufferPtr + 1) == '&')
       formToken(T, BufferPtr + 2, tok::ampamp);
@@ -253,6 +242,12 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
   case '\n':
     formToken(T, BufferPtr + 1, tok::newline);
     break;
+  case '/':
+    if constexpr (Regex) {
+      lexRegexLiteral(T);
+    } else {
+      return formToken(T, BufferPtr + 1, tok::slash);
+    }
   default:
     formToken(T, BufferPtr + 1, tok::unknown);
   }

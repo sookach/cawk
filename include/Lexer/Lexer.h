@@ -43,6 +43,10 @@ public:
 private:
   void formToken(Token &T, std::string_view::const_iterator End,
                  tok::TokenKind Kind);
+  void lexIdentifier(Token &T);
+  void lexNumericConstant(Token &T);
+  void lexStringLiteral(Token &T);
+  void lexRegexLiteral(Token &T);
 
   std::size_t getLine() const { return Line; }
 };

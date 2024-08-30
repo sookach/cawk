@@ -369,7 +369,9 @@ bool Exec::visit(UnaryOperator *U) {
     break;
   case tok::exclaim:
     traverse(U->getSubExpr());
-    switch (U->getSubExpr()->getValue()->getKind()) {
+    switch (U->getSubExpr()->getValue()->getType()) {
+    case ArrayTy:
+      return false;
     case NumberTy:
       U->setValue(!U->getSubExpr()->getValueAs<NumberTy>());
       break;
