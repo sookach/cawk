@@ -260,26 +260,44 @@ bool Exec::visit(BinaryOperator *B) {
   case TOK:                                                                    \
     traverse(B->getLHS());                                                     \
     traverse(B->getRHS());                                                     \
-    return B->getLHS()                                                         \
-        ->getValue()                                                           \
-        ->getAs<NumberTy>() OP B->getRHS()                                     \
-        ->getValue()                                                           \
-        ->getAs<NumberTy>();
+    B->setValue(B->getLHS()                                                    \
+                    ->getValueAs<NumberTy>() OP B->getRHS()                    \
+                    ->getValueAs<NumberTy>());                                 \
+    break
     CASE(tok::plus, +);
     CASE(tok::minus, -);
     CASE(tok::star, *);
     CASE(tok::slash, /);
     CASE(tok::equalequal, ==);
     CASE(tok::exclaimequal, !=);
-  case tok::equal:
-    assert((isa<DeclRefExpr>(B->getLHS()) ||
-            isa<ArraySubscriptExpr>(B->getLHS())) &&
-           "Cannot assign to non-lvalue.");
+#undef CASE
+#define CASE(TOK, OP)                                                          \
+  traverse(B->getLHS());                                                       \
+  traverse(B->getRHS());                                                       \
+  B->getLHS()->setValue(B->getLHS()                                            \
+                            ->getValueAs<NumberTy>() OP B->getRHS()            \
+                            ->getValueAs<NumberTy>());                         \
+  B->setValue(B->getValueAs<NumberTy>());                                      \
+  break
+    CASE(tok::plusequal, +);
+    CASE(tok::minusequal, -);
+    CASE(tok::starequal, *);
+    CASE(tok::slashequal, /);
+#undef CASE
+  case tok::caretequal:
+  case tok::starstarequal:
     traverse(B->getLHS());
     traverse(B->getRHS());
-    B->getLHS()->setValue(*B->getRHS()->getValue());
-
-#undef CASE
+    B->getLHS()->setValue(std::pow(B->getLHS()->getValueAs<NumberTy>(),
+                                   B->getRHS()->getValueAs<NumberTy>()));
+    B->setValue(B->getLHS()->getValueAs<NumberTy>());
+    break;
+  case tok::space:
+    traverse(B->getLHS());
+    traverse(B->getRHS());
+    B->setValue(B->getLHS()->getValueAs<StringTy>() +
+                B->getRHS()->getValueAs<StringTy>());
+    break;
   }
   return true;
 }
@@ -304,10 +322,10 @@ bool Exec::visit(CallExpr *C) {
   auto Args = C->getArgs();
 
   for (int I = 0; I != std::size(Args); ++I) {
-    // if (Args[I]->getValue()->is<ArrayTy>())
-    //   Params[I]->setExpr(new (Params[I]->getExpr()) Array(Args[I]));
-    // else
-    //   Params[I]->setExpr(new (Params[I]->getExpr()) Scalar(Args[I]));
+    if (isa<DeclRefExpr>(Args[I]) && Args[I]->getValue()->is<ArrayTy>())
+      Params[I]->setExpr(static_cast<DeclRefExpr *>(Args[I]));
+    else
+      Params[I]->getExpr()->setValue(*Args[I]->getValue());
   }
 
   visit(const_cast<CompoundStmt *>(Function->getBody()));
