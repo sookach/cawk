@@ -25,7 +25,7 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   std::vector<InputFile> Inputs;
   std::unordered_map<std::string, Value *> BuiltinVariables;
   Value NullValue;
-  CallExpr *ParentFunction;
+  std::vector<CallExpr *> CallStack;
   std::uint32_t NestedLevel = 0;
   std::uint32_t CallLevel = 0;
   bool ShouldBreak = false;

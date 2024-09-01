@@ -212,9 +212,8 @@ bool Exec::visit(PrintStmt *P) {
 }
 
 bool Exec::visit(ReturnStmt *R) {
-  assert(CallLevel > 0 && "cannot return from non-function");
   traverse(R->getValue());
-  ParentFunction->setValue(*R->getValue()->getValue());
+  CallStack.back()->setValue(*R->getValue()->getValue());
   ShouldReturn = true;
   return true;
 }
@@ -225,8 +224,6 @@ bool Exec::visit(ValueStmt *V) {
 }
 
 bool Exec::visit(WhileStmt *W) {
-  assert(W->getCond() != nullptr && "while loop must have condition");
-
   ++NestedLevel;
   for (;;) {
     traverse(W->getCond());
@@ -328,6 +325,7 @@ bool Exec::visit(CallExpr *C) {
       Params[I]->getExpr()->setValue(*Args[I]->getValue());
   }
 
+  CallStack.push_back(C);
   visit(const_cast<CompoundStmt *>(Function->getBody()));
   return true;
 }
