@@ -197,10 +197,10 @@ bool Exec::visit(PrintStmt *P) {
   } else {
     if (!std::empty(P->getArgs())) {
       auto Args = std::ranges::fold_left(
-          P->getArgs() | std::views::drop(1), std::vector<Value>(),
-          [this](std::vector<Value> Args, Expr *E) {
+          P->getArgs() | std::views::drop(1), std::vector<Value *>(),
+          [this](std::vector<Value *> Args, Expr *E) {
             traverse(E);
-            Args.push_back(*E->getValue());
+            Args.push_back(E->getValue());
             return Args;
           });
       traverse(P->getArgs().front());
@@ -310,7 +310,12 @@ bool Exec::visit(CallExpr *C) {
                                  Args.push_back(E->getValue());
                                  return Args;
                                });
-    // execBuiltin(IdenKind, Args);
+    CallStack.push_back(C);
+    if (!execBuiltin(IdenKind, Args)) {
+      CallStack.pop_back();
+      return false;
+    }
+    CallStack.pop_back();
     return true;
   }
 
@@ -327,6 +332,7 @@ bool Exec::visit(CallExpr *C) {
 
   CallStack.push_back(C);
   visit(const_cast<CompoundStmt *>(Function->getBody()));
+  CallStack.pop_back();
   return true;
 }
 
@@ -416,26 +422,27 @@ bool Exec::isBuiltin(tok::TokenKind Kind) {
   }
 }
 
-Value Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value> Args) {
-  //   switch (Kind) {
-  //   default:
-  //     return false;
-  //   case tok::kw_gsub:
-  //   case tok::kw_index:
-  //     assert(std::size(Args) == 2 && "invalid call to index");
-  //     return Value(index(Args.front().toString(), Args.back().toString()));
-  //   case tok::kw_match:
-  //   case tok::kw_split:
-  //   case tok::kw_sprintf:
-  //     assert(!std::empty(Args) && "invalid call to sprintf");
-  //     return Value(sprintf(Args.front().toString(),
-  //                          std::vector(std::cbegin(Args) + 1,
-  //                          std::cend(Args))));
-  //   case tok::kw_sub:
-  //   case tok::kw_substr:
-  //     return true;
-  //   }
-  return Value();
+bool Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args) {
+  switch (Kind) {
+  default:
+    return false;
+  case tok::kw_gsub:
+  case tok::kw_index:
+    assert(std::size(Args) == 2 && "invalid call to index");
+    CallStack.back()->setValue(
+        index(Args.front()->getAs<StringTy>(), Args.back()->getAs<StringTy>()));
+  case tok::kw_match:
+  case tok::kw_split:
+  case tok::kw_sprintf:
+    assert(!std::empty(Args) && "invalid call to sprintf");
+    CallStack.back()->setValue(
+        sprintf(Args.front()->getAs<StringTy>(),
+                std::vector(std::cbegin(Args) + 1, std::cend(Args))));
+  case tok::kw_sub:
+  case tok::kw_substr:
+    return true;
+  }
+  return false;
 }
 
 bool Exec::isEarlyExit() {

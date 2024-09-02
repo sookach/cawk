@@ -77,7 +77,7 @@ private:
   Value &getField(std::size_t I);
 
   static bool isBuiltin(tok::TokenKind Kind);
-  static Value execBuiltin(tok::TokenKind Kind, std::vector<Value> Args);
+  bool execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args);
 
   bool isEarlyExit();
 };

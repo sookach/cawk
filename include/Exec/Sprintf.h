@@ -6,5 +6,5 @@
 #include <vector>
 
 namespace cawk {
-  std::string sprintf(std::string FormatString, std::vector<Value> Args);
+std::string sprintf(std::string FormatString, std::vector<Value *> Args);
 }
