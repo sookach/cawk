@@ -23,6 +23,7 @@ class SymbolResolver : ASTVisitor<SymbolResolver, trav::Preorder, true> {
 public:
   SymbolResolver(Diagnostic &Diags) : Diags(Diags) {}
   bool check(TranslationUnitDecl *T);
+  auto &getGlobals() { return GlobalResolutions; }
 
 private:
   bool visit(FunctionDecl *F);

@@ -17,34 +17,28 @@
 namespace cawk {
 class Exec : public ASTVisitor<Exec, trav::None, true> {
   friend class ASTVisitor<Exec, trav::None, true>;
-
-  static std::unique_ptr<Exec> Process;
-
+  Diagnostic &Diags;
   TranslationUnitDecl *AST;
-  std::vector<Value> Fields;
+  std::vector<Value *> Fields;
   std::vector<InputFile> Inputs;
-  std::unordered_map<std::string, Value *> BuiltinVariables;
-  Value NullValue;
+  std::unordered_map<std::string, DeclRefExpr *> BuiltinVariables;
   std::vector<CallExpr *> CallStack;
-  std::uint32_t NestedLevel = 0;
-  std::uint32_t CallLevel = 0;
   bool ShouldBreak = false;
   bool ShouldContinue = false;
   bool ShouldReturn = false;
   bool SkipToNext = false;
   bool SkipToNextfile = false;
 
-private:
-  Exec() = default;
-
 public:
-  static void load(TranslationUnitDecl *T, std::vector<std::string> Filepaths);
-  static void exec();
+  Exec(Diagnostic &Diags, TranslationUnitDecl *AST,
+       std::vector<InputFile> Inputs,
+       std::unordered_map<std::string, DeclRefExpr *> BuiltinVariables)
+      : Diags(Diags), AST(AST), Inputs(Inputs),
+        BuiltinVariables(BuiltinVariables) {}
+  void operator()();
 
 private:
   void addInput(std::string Filepath);
-
-  void operator()();
 
   bool visit(TranslationUnitDecl *T);
   bool visit(RuleDecl *R);
@@ -74,11 +68,8 @@ private:
   bool visit(StringLiteral *S);
   bool visit(UnaryOperator *U);
 
-  Value &getField(std::size_t I);
-
   static bool isBuiltin(tok::TokenKind Kind);
   bool execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args);
-
   bool isEarlyExit();
 };
 

@@ -16,19 +16,6 @@
 
 using namespace cawk;
 
-std::unique_ptr<Exec> Exec::Process = nullptr;
-
-void Exec::load(TranslationUnitDecl *T, std::vector<std::string> Filepaths) {
-  Process = std::unique_ptr<Exec>(new Exec);
-
-  Process->AST = T;
-
-  for (const auto &Filepath : Filepaths)
-    Process->addInput(Filepath);
-}
-
-void Exec::exec() { Process->operator()(); }
-
 void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
 
 void Exec::operator()() {
@@ -45,16 +32,16 @@ void Exec::operator()() {
   for (auto &Input : Inputs) {
     SkipToNextfile = false;
     for (; !Input.isEOF() && !SkipToNextfile;) {
-      auto Fields =
-          split(Input.getLine(), BuiltinVariables["FS"]->get<StringTy>());
+      auto Fields = split(Input.getLine(),
+                          BuiltinVariables["FS"]->getValueAs<StringTy>());
       if (!std::empty(Fields))
         continue;
       for (int I = 1; auto Field : Fields)
         BuiltinVariables["$" + std::to_string(I++)]->setValue(Field);
 
       BuiltinVariables["NF"]->setValue(Value(std::size(Fields)));
-      BuiltinVariables["NF"]->setValue(BuiltinVariables["NF"]->get<NumberTy>() +
-                                       1);
+      BuiltinVariables["NF"]->setValue(
+          BuiltinVariables["NF"]->getValueAs<NumberTy>() + 1);
 
       SkipToNext = false;
       visit(AST);
@@ -116,7 +103,6 @@ bool Exec::visit(DoStmt *D) {
       break;
   }
   ShouldBreak = ShouldContinue = false;
-  --NestedLevel;
   return true;
 }
 
@@ -224,7 +210,6 @@ bool Exec::visit(ValueStmt *V) {
 }
 
 bool Exec::visit(WhileStmt *W) {
-  ++NestedLevel;
   for (;;) {
     traverse(W->getCond());
     traverse(W->getBody());
@@ -232,7 +217,6 @@ bool Exec::visit(WhileStmt *W) {
       break;
   }
   ShouldBreak = ShouldContinue = false;
-  --NestedLevel;
   return true;
 }
 
