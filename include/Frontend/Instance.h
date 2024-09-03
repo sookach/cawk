@@ -1,16 +1,17 @@
 #pragma once
 
 #include "Basic/Diagnostic.h"
+#include "Frontend/CommandLine.h"
 
 #include <string_view>
 
 namespace cawk {
 class Instance {
   Diagnostic Diags;
-  std::string_view Source;
+  CommandLine CmdLine;
 
 public:
-  Instance(std::string_view Source) : Source(Source) {}
+  Instance(int Argc, char **Argv) : CmdLine(Argc, Argv, Diags) {}
 
   int execute();
 };

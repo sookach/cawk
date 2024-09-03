@@ -10,6 +10,20 @@
 using namespace cawk;
 
 int Instance::execute() {
+  if (!CmdLine.parse())
+    return EXIT_FAILURE;
+  auto Source = [this] {
+    if (CmdLine.getSourceArg() == -1) {
+      std::string Source;
+      for (std::string Progfile : CmdLine.getProfFiles()) {
+        InputFile File(Progfile);
+        Source += File.toString();
+      }
+      return Source;
+    }
+    return std::string(CmdLine.getArgv()[CmdLine.getSourceArg()],
+                       CmdLine.getArgv()[CmdLine.getSourceArg() + 1]);
+  }();
   Lexer Lex(Source, Diags);
   Parser Parse(Lex, Diags);
   ASTPrinter Printer;
