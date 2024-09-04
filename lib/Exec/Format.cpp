@@ -10,7 +10,7 @@
 using namespace cawk;
 
 std::string cawk::format(std::string FormatString, std::vector<Value *> Args) {
-  static constexpr std::string::size_type MaxSize = 10;
+  static constexpr std::string::size_type MaxSize = 4096;
   std::array<char, MaxSize> Buffer;
 
   auto It = std::begin(FormatString);
@@ -289,13 +289,15 @@ std::string cawk::format(std::string FormatString, std::vector<Value *> Args) {
   }
 
   auto Next = std::find(It, End, '%');
-  std::move(It, Next, BufferIt);
-  BufferIt += Next - It;
+  for (; Next != End; Next = std::find(Next + 2, End, '%')) {
+    if (Next != End && (Next == End - 1 || *(Next + 1) != '%')) {
+      cawk_unreachable("Invalid format string.");
+      exit(EXIT_FAILURE);
+    }
+  }
 
-  // if (Next != End) {
-  //   cawk_unreachable("Invalid format string.");
-  //   exit(EXIT_FAILURE);
-  // }
+  std::copy(It, End, BufferIt);
+  BufferIt += End - It;
 
   return {std::begin(Buffer), BufferIt};
 }

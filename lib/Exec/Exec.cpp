@@ -404,31 +404,31 @@ bool Exec::visit(StringLiteral *S) {
         String.push_back('\\');
         ++It;
         break;
-      case '\a':
+      case 'a':
         String.push_back('\a');
         ++It;
         break;
-      case '\b':
+      case 'b':
         String.push_back('\b');
         ++It;
         break;
-      case '\f':
+      case 'f':
         String.push_back('\f');
         ++It;
         break;
-      case '\n':
+      case 'n':
         String.push_back('\n');
         ++It;
         break;
-      case '\r':
+      case 'r':
         String.push_back('\r');
         ++It;
         break;
-      case '\t':
+      case 't':
         String.push_back('\t');
         ++It;
         break;
-      case '\v':
+      case 'v':
         String.push_back('\v');
         ++It;
         break;
