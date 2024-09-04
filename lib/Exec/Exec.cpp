@@ -332,7 +332,59 @@ bool Exec::visit(FloatingLiteral *F) {
   return true;
 }
 
-bool Exec::visit(RegexLiteral *R) { return true; }
+bool Exec::visit(RegexLiteral *R) {
+  std::string String;
+  auto Data = R->getLiteral().getLiteralData();
+  auto It = std::cbegin(Data) + 1, End = std::cend(Data) - 1;
+  for (; It != End;) {
+    switch (*It) {
+    default:
+      String.push_back(*(It++));
+      break;
+    case '\\':
+      switch (*(++It)) {
+      default:
+        String.push_back(*(It++));
+        break;
+      case '\\':
+        String.push_back('\\');
+        ++It;
+        break;
+      case '\a':
+        String.push_back('\a');
+        ++It;
+        break;
+      case '\b':
+        String.push_back('\b');
+        ++It;
+        break;
+      case '\f':
+        String.push_back('\f');
+        ++It;
+        break;
+      case '\n':
+        String.push_back('\n');
+        ++It;
+        break;
+      case '\r':
+        String.push_back('\r');
+        ++It;
+        break;
+      case '\t':
+        String.push_back('\t');
+        ++It;
+        break;
+      case '\v':
+        String.push_back('\v');
+        ++It;
+        break;
+      }
+    }
+  }
+  
+  R->setValue(Value(String));
+  return true;
+}
 
 bool Exec::visit(StringLiteral *S) {
   std::string String;
