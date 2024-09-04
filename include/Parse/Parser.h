@@ -70,9 +70,8 @@ public:
   DeclResult parse() { return parseTranslationUnit(); }
 
 private:
-  template <bool LexNewline = false, bool LexRegex = false> Token advance();
-  template <bool LexNewline = false, bool LexRegex = false>
-  Token peek(std::size_t) const;
+  template <bool NL = false, bool RE = false> Token advance();
+  template <bool NL = false, bool RE = false> Token peek(std::size_t) const;
 
   template <bool NL = false, bool RE = false, typename... Ts>
   bool consume(tok::TokenKind K, Ts... Ks) {

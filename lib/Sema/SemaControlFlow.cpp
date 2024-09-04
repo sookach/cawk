@@ -15,6 +15,7 @@ template bool SemaControlFlow::check<false>(FunctionDecl *);
 bool SemaControlFlow::check(BreakStmt *B) {
   if (isInLoop())
     return true;
+  return false;
 }
 
 bool SemaControlFlow::check(ContinueStmt *C) { return isInLoop(); }

@@ -4,7 +4,7 @@
 #include <algorithm>
 
 namespace charinfo {
-template <bool Newline = false> inline bool isWhitespace(char c) {
+template <bool NL> inline bool isWhitespace(char c) {
   switch (c) {
   default:
     return false;
@@ -14,10 +14,8 @@ template <bool Newline = false> inline bool isWhitespace(char c) {
   case '\v':
   case '\r':
     return true;
-  case '\n': // Newline has syntactic importance in AWK
-    if constexpr (Newline)
-      return false;
-    return true;
+  case '\n': // NL has syntactic importance in AWK
+    return NL;
   }
 }
 
@@ -114,12 +112,12 @@ void Lexer::lexRegexLiteral(Token &T) {
   formToken(T, End + 1, tok::regex_literal);
 }
 
-template <bool Newline, bool Regex> void Lexer::next(Token &T) {
+template <bool NL, bool RE> void Lexer::next(Token &T) {
   BufferPrev = BufferPtr;
 
   BufferPtr = std::find_if_not(BufferPtr, BufferEnd, [this](char C) {
     Line += static_cast<std::size_t>(C == '\n');
-    return charinfo::isWhitespace<Newline>(C);
+    return charinfo::isWhitespace<NL>(C);
   });
 
   if (BufferPtr == BufferEnd || *BufferPtr == EOF) {
@@ -242,7 +240,7 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     formToken(T, BufferPtr + 1, tok::newline);
     break;
   case '/':
-    if constexpr (Regex) {
+    if constexpr (RE) {
       lexRegexLiteral(T);
     } else {
       return formToken(T, BufferPtr + 1, tok::slash);

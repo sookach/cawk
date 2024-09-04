@@ -31,7 +31,7 @@ public:
 
   std::string_view::const_iterator getBufferPtr() const;
   void setBufferPtr(std::string_view::const_iterator Ptr);
-  template <bool, bool> void next(Token &T);
+  template <bool NL, bool RE> void next(Token &T);
   void undo();
 
   void formSpaceToken(Token &T, std::string_view::const_iterator It) {

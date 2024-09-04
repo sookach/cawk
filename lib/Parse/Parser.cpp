@@ -8,12 +8,12 @@
 using namespace cawk;
 
 /// \brief Consumes the current lookahead token and advances to the next one.
-/// \tparam LexNewline - should the lexer lex newlines?
-/// \tparam LexRegex - are we attempting to lex a regex?
+/// \tparam NL - should the lexer lex newlines?
+/// \tparam RE - are we attempting to lex a regex?
 /// \return The current lookahead token.
-template <bool LexNewline, bool LexRegex> Token Parser::advance() {
+template <bool NL, bool RE> Token Parser::advance() {
   auto Prev = Tok;
-  Lex.next<LexNewline, LexRegex>(Tok);
+  Lex.next<NL, RE>(Tok);
   return Prev;
 }
 
@@ -23,17 +23,16 @@ template Token Parser::advance<true, false>();
 template Token Parser::advance<true, true>();
 
 /// \brief Peeks N tokens ahead.
-/// \tparam LexNewLine - should the lexer lex newlines?
-/// \tparam LexRegex - are we attempting to lex a regex?
+/// \tparam NL - should the lexer lex newlines?
+/// \tparam RE - are we attempting to lex a regex?
 /// \param N - the number of tokens to peek.
 /// \return The Nth token ahead.
-template <bool LexNewLine, bool LexRegex>
-Token Parser::peek(std::size_t N) const {
+template <bool NL, bool RE> Token Parser::peek(std::size_t N) const {
   Token T;
   auto BufferPtr = Lex.getBufferPtr();
 
   for (; N != 0; --N)
-    Lex.next<LexNewLine, LexRegex>(T);
+    Lex.next<NL, RE>(T);
 
   Lex.setBufferPtr(BufferPtr);
   return T;
@@ -143,12 +142,12 @@ DeclResult Parser::parseRuleDeclaration() {
     default:
       return parseExpression();
     case tok::kw_BEGIN: {
-      advance<false>();
+      advance();
       auto EndLoc = Lex.getBufferPtr();
       return BeginKeyword::Create(SourceRange(BeginLoc, EndLoc));
     }
     case tok::kw_END: {
-      advance<false>();
+      advance();
       auto EndLoc = Lex.getBufferPtr();
       return EndKeyword::Create(SourceRange(BeginLoc, EndLoc));
     }
@@ -472,17 +471,17 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     case tok::kw_substr:
     case tok::identifier: {
       auto BeginLoc = Lex.getBufferPtr();
-      return DeclRefExpr::Create(advance<true>(),
+      return DeclRefExpr::Create(advance(),
                                  SourceRange(BeginLoc, Lex.getBufferPtr()));
     }
     case tok::numeric_constant: {
       auto BeginLoc = Lex.getBufferPtr();
-      return FloatingLiteral::Create(advance<true>(),
+      return FloatingLiteral::Create(advance(),
                                      SourceRange(BeginLoc, Lex.getBufferPtr()));
     }
     case tok::string_literal: {
       auto BeginLoc = Lex.getBufferPtr();
-      return StringLiteral::Create(advance<true>(),
+      return StringLiteral::Create(advance(),
                                    SourceRange(BeginLoc, Lex.getBufferPtr()));
     }
     case tok::plusplus:
