@@ -89,7 +89,7 @@ void Lexer::lexNumericConstant(Token &T) {
 void Lexer::lexStringLiteral(Token &T) {
   auto BeginLoc = BufferPtr;
   auto End = BufferPtr + 1;
-  for (; End != BufferEnd && *End != '\''; ++End)
+  for (; End != BufferEnd && *End != '"'; ++End)
     if (*End == '\\')
       ++End;
   if (End == BufferEnd) {

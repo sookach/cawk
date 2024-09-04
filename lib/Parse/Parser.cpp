@@ -453,6 +453,16 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     switch (Tok.getKind()) {
     default:
       return false;
+    case tok::l_paren: {
+      auto BeginLoc = Lex.getBufferPtr();
+      expect(tok::l_paren);
+      ExprResult SubExpr = parseExpression();
+      if (!SubExpr.isValid())
+        return false;
+      if (!expect(tok::r_paren))
+        return false;
+      return SubExpr;
+    }
     case tok::kw_gsub:
     case tok::kw_index:
     case tok::kw_match:
