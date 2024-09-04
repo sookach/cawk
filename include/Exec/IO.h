@@ -33,7 +33,10 @@ public:
   void flush();
   void close();
   template <typename... Args> void printf(const char *Format, Args &&...A) {
-    std::fprintf(FilePtr, Format, std::forward<Args>(A)...);
+    if constexpr (sizeof...(A) == 0)
+      std::fprintf(FilePtr, "%s", Format);
+    else
+      std::fprintf(FilePtr, Format, std::forward<Args>(A)...);
   }
   template <typename T, typename... Args>
   void print(T &&First, Args &&...Rest) {

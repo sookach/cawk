@@ -7,6 +7,8 @@
 #include "Sema/Sema.h"
 #include "Sema/SymbolResolver.h"
 
+#include <exception>
+
 using namespace cawk;
 
 int Instance::execute() {
@@ -21,8 +23,7 @@ int Instance::execute() {
       }
       return Source;
     }
-    return std::string(CmdLine.getArgv()[CmdLine.getSourceArg()],
-                       CmdLine.getArgv()[CmdLine.getSourceArg() + 1]);
+    return std::string(CmdLine.getArgv()[CmdLine.getSourceArg()]);
   }();
   Lexer Lex(Source, Diags);
   Parser Parse(Lex, Diags);
@@ -39,6 +40,11 @@ int Instance::execute() {
   SymbolResolver Resolver(Diags);
   Resolver.check(ParseResult.getAs<TranslationUnitDecl>());
   //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
+  auto Globals = Resolver.getGlobals();
+  //   Globals["ARGC"]->setValue(Value(std::size(CmdLine.getARGV())));
+  //   for (int I = 0; auto &Arg : CmdLine.getARGV()) {
+  // Globals["ARGV"]->getValue()->operator[](Value(I++))->setValue(Value(Arg));
+  //   }
   Exec Executor(Diags, ParseResult.getAs<TranslationUnitDecl>(), {},
                 Resolver.getGlobals());
   Executor();

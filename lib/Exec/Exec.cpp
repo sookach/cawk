@@ -222,13 +222,13 @@ bool Exec::visit(WhileStmt *W) {
 
 bool Exec::visit(ArraySubscriptExpr *A) {
   traverse(A->getLHS());
-  Value::Scalar *S = A->getValue()->operator[](std::ranges::fold_left(
+  Value *S = A->getLHS()->getValue()->operator[](Value(std::ranges::fold_left(
       A->getRHS(), std::string(), [this](std::string S, Expr * E) {
         traverse(E);
         return S + E->getValue()->getAs<StringTy>();
-      }));
+      })));
 
-  A->setValue(*S);
+  A->setValue(S);
   return true;
 }
 
@@ -252,6 +252,11 @@ bool Exec::visit(BinaryOperator *B) {
     CASE(tok::equalequal, ==);
     CASE(tok::exclaimequal, !=);
 #undef CASE
+  case tok::equal:
+    traverse(B->getLHS());
+    traverse(B->getRHS());
+    B->getLHS()->setValue(*B->getRHS()->getValue());
+    break;
 #define CASE(TOK, OP)                                                          \
   traverse(B->getLHS());                                                       \
   traverse(B->getRHS());                                                       \

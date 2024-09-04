@@ -29,7 +29,7 @@ public:
       Raw = S;
     }
   };
-  using Array = std::unordered_map<std::string, Scalar *>;
+  using Array = std::unordered_map<std::string, Value *>;
 
 private:
   TypeKind Type;
@@ -105,9 +105,15 @@ public:
     return std::get<Scalar>(Raw);
   }
 
-  Scalar *operator[](std::string Key) {
+  Value *operator[](Value Key) {
+    if (Type == NullTy) {
+      Raw = Array();
+      Type = ArrayTy;
+    }
     assert(Type == ArrayTy);
-    return std::get<Array>(Raw)[Key];
+    if (!std::get<Array>(Raw).contains(Key.getAs<StringTy>()))
+      std::get<Array>(Raw)[Key.getAs<StringTy>()] = new Value();
+    return std::get<Array>(Raw)[Key.getAs<StringTy>()];
   }
 };
 } // namespace cawk
