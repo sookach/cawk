@@ -339,6 +339,8 @@ StmtResult Parser::parsePrintStatement() {
   if (!consumeOneOf<true>(tok::kw_print, tok::kw_printf))
     return false;
 
+  bool Paren = consume(tok::l_paren);
+
   auto [Args, Valid] = [this] -> std::pair<std::vector<Expr *>, bool> {
     if (consumeOneOf(tok::newline, tok::semi))
       return {{}, true};
@@ -376,6 +378,9 @@ StmtResult Parser::parsePrintStatement() {
       return {{}, false};
     return {Tok, parseExpression()};
   }();
+
+  if (Paren && !expect(tok::r_paren))
+    return false;
 
   return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
