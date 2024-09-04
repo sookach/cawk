@@ -89,7 +89,7 @@ void Lexer::lexNumericConstant(Token &T) {
 void Lexer::lexStringLiteral(Token &T) {
   auto BeginLoc = BufferPtr;
   auto End = BufferPtr + 1;
-  for (; End != BufferEnd && *End != *BeginLoc; ++End)
+  for (; End != BufferEnd && *End != '\''; ++End)
     if (*End == '\\')
       ++End;
   if (End == BufferEnd) {
@@ -149,7 +149,6 @@ template <bool Newline, bool Regex> void Lexer::next(Token &T) {
     lexNumericConstant(T);
     break;
   case '"':
-  case '\'':
     lexStringLiteral(T);
     break;
   case 'A' ... 'Z':
