@@ -70,8 +70,15 @@ public:
     }
 
     if constexpr (T == StringTy) {
-      if (Type == NumberTy)
-        return std::to_string(std::get<double>(std::get<Scalar>(Raw).Raw));
+      if (Type == NumberTy) {
+        auto S = std::to_string(std::get<double>(std::get<Scalar>(Raw).Raw));
+        if (std::ranges::contains(S, '.')) {
+          S.erase(S.find_last_not_of('0') + 1, std::string::npos);
+          if (S.back() == '.')
+            S.pop_back();
+        }
+        return S;
+      }
 
       if (Type == StringTy)
         return std::get<std::string>(std::get<Scalar>(Raw).Raw);
@@ -95,7 +102,7 @@ public:
       assert(S.Type == NullTy);
       Type = NullTy;
     }
-    Raw = std::variant<Scalar, Array>(S);
+    Raw = S;
   }
 
   void setValue(Value V) { setValue(V.getValue()); }
