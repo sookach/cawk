@@ -252,6 +252,12 @@ bool Exec::visit(BinaryOperator *B) {
     CASE(tok::equalequal, ==);
     CASE(tok::exclaimequal, !=);
 #undef CASE
+  case tok::space:
+    traverse(B->getLHS());
+    traverse(B->getRHS());
+    B->setValue(B->getLHS()->getValueAs<StringTy>() +
+                B->getRHS()->getValueAs<StringTy>());
+    break;
   case tok::equal:
     traverse(B->getLHS());
     traverse(B->getRHS());
@@ -277,12 +283,6 @@ bool Exec::visit(BinaryOperator *B) {
     B->getLHS()->setValue(std::pow(B->getLHS()->getValueAs<NumberTy>(),
                                    B->getRHS()->getValueAs<NumberTy>()));
     B->setValue(B->getLHS()->getValueAs<NumberTy>());
-    break;
-  case tok::space:
-    traverse(B->getLHS());
-    traverse(B->getRHS());
-    B->setValue(B->getLHS()->getValueAs<StringTy>() +
-                B->getRHS()->getValueAs<StringTy>());
     break;
   }
   return true;
@@ -381,7 +381,7 @@ bool Exec::visit(RegexLiteral *R) {
       }
     }
   }
-  
+
   R->setValue(Value(String));
   return true;
 }

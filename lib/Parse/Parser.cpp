@@ -4,6 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "Parse/Parser.h"
+#include "Support/Support.h"
 
 using namespace cawk;
 
@@ -331,32 +332,36 @@ StmtResult Parser::parseIfStatement() {
 
 /// parsePrintStatement
 ///     print-statement:
-///	        'print' expression-list?
-///	        'printf' expression-list?
+///	        'print' expression-list
+///	        'printf' expression-list
+///         'print' '(' expression-list ')'
+///         'printf' '(' expression-list ')'
 StmtResult Parser::parsePrintStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   Token Iden = Tok;
   if (!consumeOneOf<true>(tok::kw_print, tok::kw_printf))
     return false;
 
-  bool Paren = consume(tok::l_paren);
-
   auto [Args, Valid] = [this] -> std::pair<std::vector<Expr *>, bool> {
     if (consumeOneOf(tok::newline, tok::semi))
       return {{}, true};
 
-    ExprResult Arg = parseExpression();
+    ExprResult Arg = parseExpression<true>();
+
     if (!Arg.isValid())
       return {{}, false};
-    std::vector Args = {Arg.get()};
 
-    for (; consume(tok::comma);) {
-      Arg = parseExpression();
-      if (!Arg.isValid())
-        return {{}, false};
-      Args.push_back(Arg.get());
-    }
-
+    /// We need to convert the nested comma operators into a flat list of Exprs.
+    std::vector<Expr *> Args;
+    recursive([&Args](auto &&This, Expr *E) -> void {
+      if (isa<BinaryOperator>(E) &&
+          ptr_cast<BinaryOperator>(E)->getOpcode().is(tok::comma)) {
+        This(ptr_cast<BinaryOperator>(E)->getLHS());
+        This(ptr_cast<BinaryOperator>(E)->getRHS());
+      } else {
+        Args.push_back(E);
+      }
+    })(Arg.get());
     return {Args, true};
   }();
 
@@ -378,9 +383,6 @@ StmtResult Parser::parsePrintStatement() {
       return {{}, false};
     return {Tok, parseExpression()};
   }();
-
-  if (Paren && !expect(tok::r_paren))
-    return false;
 
   return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
@@ -451,6 +453,7 @@ StmtResult Parser::parseWhileStatement() {
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
+template <bool CommaOp>
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto BeginLoc = Lex.getBufferPtr();
   auto NUD = [this] -> ExprResult {
@@ -522,6 +525,8 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
                                      SourceRange(BeginLoc, Lex.getBufferPtr()));
       }
       case tok::l_paren: {
+        if (!LHS.isValid() || !isa<DeclRefExpr>(LHS.get()))
+          return LHS;
         auto BeginLoc = Lex.getBufferPtr();
         expect(tok::l_paren);
         std::vector<Expr *> Args;
@@ -575,24 +580,27 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
 
   for (;;) {
     auto Prec = [this] {
-      if (!Tok.is(tok::newline))
-        return getBinOpPrecedence(Tok.getKind());
-      auto Peek = peek(1);
-      if (Peek.is(tok::identifier, tok::string_literal, tok::numeric_constant))
-        return prec::Unknown;
-      return getBinOpPrecedence(Peek.getKind());
+      if (Tok.is(tok::identifier, tok::numeric_constant, tok::string_literal,
+                 tok::plusplus, tok::minusminus, tok::exclaim, tok::l_paren))
+        return prec::StringConcat;
+      return getBinOpPrecedence(Tok.getKind());
     }();
 
-    if (Prec <= MinPrec)
-      break;
+    if (Prec <= MinPrec) {
+      if constexpr (CommaOp) {
+        if (!Tok.is(tok::comma))
+          break;
+      } else {
+        break;
+      }
+    }
 
     skip(tok::newline);
 
     auto OpCode = [this, Prec] {
       if (Prec == prec::StringConcat) {
         auto SpaceTok = Tok;
-        Lex.formSpaceToken(SpaceTok,
-                           std::cbegin(SpaceTok.getLiteralData()) - 1);
+        Lex.formSpaceToken(SpaceTok, std::cbegin(SpaceTok.getRawData()) - 1);
         return SpaceTok;
       }
       return advance();
@@ -600,7 +608,7 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
 
     switch (OpCode.getKind()) {
     default: {
-      ExprResult RHS = parseExpression(getBinOpPrecedence(OpCode.getKind()));
+      ExprResult RHS = parseExpression(Prec);
       if (!RHS.isValid())
         return false;
       LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode,

@@ -70,10 +70,10 @@ public:
   DeclResult parse() { return parseTranslationUnit(); }
 
 private:
-  template <bool NL = false, bool RE = false> Token advance();
-  template <bool NL = false, bool RE = false> Token peek(std::size_t) const;
+  template <bool NL = true, bool RE = false> Token advance();
+  template <bool NL = true, bool RE = false> Token peek(std::size_t) const;
 
-  template <bool NL = false, bool RE = false, typename... Ts>
+  template <bool NL = true, bool RE = false, typename... Ts>
   bool consume(tok::TokenKind K, Ts... Ks) {
     if (Tok.is(K)) {
       Lex.next<NL, RE>(Tok);
@@ -86,7 +86,7 @@ private:
     return false;
   }
 
-  template <bool NL = false, bool RE = false, typename... Ts>
+  template <bool NL = true, bool RE = false, typename... Ts>
   bool consumeOneOf(tok::TokenKind K, Ts... Ks) {
     if (consume<NL, RE>(K))
       return true;
@@ -97,7 +97,7 @@ private:
     return false;
   }
 
-  template <bool NL = false, bool RE = false, typename... Ts>
+  template <bool NL = true, bool RE = false, typename... Ts>
   bool expect(tok::TokenKind K, Ts... Ks) {
     if (!consume<NL, RE>(K)) {
       if (!std::exchange(PanicMode, true))
@@ -114,7 +114,7 @@ private:
     return true;
   }
 
-  template <bool NL = false, bool RE = false, typename... Ts>
+  template <bool NL = true, bool RE = false, typename... Ts>
   bool expectOneOf(tok::TokenKind K, Ts... Ks) {
     if (consume<NL, RE>(K)) {
       ExpectedTypes = "one of";
@@ -174,6 +174,7 @@ private:
   StmtResult parseValueStatement();
   StmtResult parseWhileStatement();
 
+  template <bool CommaOp = false>
   ExprResult parseExpression(prec::Level MinPrec = prec::Unknown);
 
   void recover() { skipUntil(tok::newline, tok::semi, tok::eof); }
