@@ -1,0 +1,79 @@
+translation-unit:
+	declaration-seq
+
+declaration-seq:
+	declaration
+	declaration-seq declaration
+
+declaration:
+	rule-declaration
+	function-declaration
+
+rule-declaration:
+	expression compound-statement?
+	(BEGIN | END) compound-statement
+	compound-statement
+
+function-declaration
+	'function' identifier '(' param-list? ')' compound-statement
+
+param-list:
+	identifier
+	param-list ',' identifier
+
+statement:
+	block-statement
+	basic-statement
+	';'
+
+basic-statement:
+	'break'
+	'continue'
+	expression
+	'exit' expression?
+	'next'
+	'nextfile'
+	'return' expression?
+	do-statement
+	print-statement
+
+block-statement:
+	compound-statement
+	for-statement
+	if-statement
+	while-statement
+
+compound-statement:
+	'{' statement-sequence '}'
+
+for-statement:
+	'for' '(' identifier 'in' identifier ')' statement
+	'for' '(' (print-statement | expression)? ';' expression? ';' (print-statement | expression)? ')' statement
+
+if-statement:
+	'if' '(' expression ')' statement ('else' statement)?
+
+while-statement:
+	'while' '(' expression ')' statement
+
+statement-sequence:
+	statement
+	statement-sequence (block-statement | simple-statement eol)
+
+eol:
+	'\n' | ';'
+	eol ('\n' | ';')
+
+do-statement:
+	'do' statement 'while' '(' expression ')'
+
+print-statement:
+	'print' expression-list?
+	'print' '(' expression-list? ')'
+	'printf' expression-list?
+	'printf' '(' expression-list? ')'
+
+expression:
+	
+	
+
