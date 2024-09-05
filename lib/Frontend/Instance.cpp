@@ -34,7 +34,7 @@ int Instance::execute() {
     return EXIT_FAILURE;
   }
   Sema Semantic(Diags);
-  Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
+  // Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   Semantic.check(ParseResult.getAs<TranslationUnitDecl>());
   Diags.printErrors(Source);
   SymbolResolver Resolver(Diags);

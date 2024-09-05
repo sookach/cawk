@@ -12,6 +12,7 @@
 #include <cstdint>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace cawk {
@@ -19,7 +20,7 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   friend class ASTVisitor<Exec, trav::None, true>;
   Diagnostic &Diags;
   TranslationUnitDecl *AST;
-  std::vector<Value *> Fields;
+  std::vector<Value *> FieldTable;
   std::vector<InputFile> Inputs;
   std::unordered_map<std::string, DeclRefExpr *> BuiltinVariables;
   std::vector<CallExpr *> CallStack;
@@ -71,6 +72,7 @@ private:
   static bool isBuiltin(tok::TokenKind Kind);
   bool execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args);
   bool isEarlyExit();
+  void updateFields(Value *V);
 };
 
 } // namespace cawk

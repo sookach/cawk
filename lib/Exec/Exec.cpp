@@ -270,6 +270,9 @@ bool Exec::visit(BinaryOperator *B) {
                             ->getValueAs<NumberTy>() OP B->getRHS()            \
                             ->getValueAs<NumberTy>());                         \
   B->setValue(B->getValueAs<NumberTy>());                                      \
+  if (auto *U = dyn_cast<UnaryOperator>(B->getLHS());                          \
+      U != nullptr && U->getOpcode().is(tok::dollar))                          \
+    updateFields(B->getLHS()->getValue());                                     \
   break
     CASE(tok::plusequal, +);
     CASE(tok::minusequal, -);
@@ -442,6 +445,7 @@ bool Exec::visit(StringLiteral *S) {
 bool Exec::visit(UnaryOperator *U) {
   switch (U->getOpcode().getKind()) {
   default:
+    cawk_unreachable("Invalid unary operation");
   case tok::plus:
     traverse(U->getSubExpr());
     U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
@@ -480,6 +484,16 @@ bool Exec::visit(UnaryOperator *U) {
     case NullTy:
       U->setValue(true);
     }
+  case tok::dollar: {
+    traverse(U->getSubExpr());
+    auto SubExpr = U->getSubExpr()->getValueAs<NumberTy>();
+    if (std::clamp<int>(SubExpr, 0, std::size(FieldTable) - 1) !=
+        static_cast<int>(SubExpr)) {
+      U->setValue(Value());
+    } else {
+      U->setValue(FieldTable[SubExpr]);
+    }
+  }
   }
   return true;
 }
@@ -525,4 +539,16 @@ bool Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args) {
 bool Exec::isEarlyExit() {
   return ShouldBreak || ShouldContinue || ShouldReturn || SkipToNext ||
          SkipToNextfile;
+}
+
+void Exec::updateFields(Value *V) {
+  if (FieldTable.front() == V) {
+    FieldTable.resize(1);
+    auto String = V->getAs<StringTy>();
+    std::vector<std::string> Fields =
+        split(String, BuiltinVariables["FS"]->getValueAs<StringTy>());
+    for (auto &Field : Fields)
+      FieldTable.push_back(new Value(Field));
+  } else {
+  }
 }

@@ -15,7 +15,7 @@ template <bool NL> inline bool isWhitespace(char c) {
   case '\r':
     return true;
   case '\n': // NL has syntactic importance in AWK
-    return NL;
+    return !NL;
   }
 }
 

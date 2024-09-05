@@ -622,8 +622,7 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     case tok::slashequal:
     case tok::caretequal:
     case tok::starstarequal: {
-      ExprResult RHS = parseExpression(
-          prec::Level(getBinOpPrecedence(OpCode.getKind()) - 1));
+      ExprResult RHS = parseExpression(prec::Level(Prec - 1));
       LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode,
                                    SourceRange(BeginLoc, Lex.getBufferPtr()));
     }
