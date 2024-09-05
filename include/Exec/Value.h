@@ -9,7 +9,9 @@
 
 namespace cawk {
 
-enum TypeKind { NullTy, NumberTy, StringTy, ArrayTy };
+class FunctionDecl;
+
+enum TypeKind { NullTy, NumberTy, StringTy, ArrayTy, FuncionTy };
 
 class Value {
 public:
@@ -33,8 +35,7 @@ public:
 
 private:
   TypeKind Type;
-
-  std::variant<Scalar, Array> Raw;
+  std::variant<Scalar, Array, FunctionDecl *> Raw;
 
 public:
   explicit Value() : Type(NullTy), Raw(Scalar()) {}
@@ -45,7 +46,11 @@ public:
 
   explicit Value(std::string Raw) : Type(StringTy), Raw(Raw) {}
 
+  explicit Value(FunctionDecl *Raw) : Type(FuncionTy), Raw(Raw) {}
+
   TypeKind getType() { return Type; }
+
+  void setType(TypeKind Ty) { Type = Ty; }
 
   template <TypeKind T> auto get() {
     if constexpr (T == NumberTy)
@@ -54,6 +59,8 @@ public:
       return std::get<std::string>(std::get<Scalar>(Raw).Raw);
     if constexpr (T == ArrayTy)
       return std::get<Array>(Raw);
+    if constexpr (T == FuncionTy)
+      return std::get<FunctionDecl *>(Raw);
   }
 
   template <TypeKind T> auto getAs() {
@@ -88,7 +95,10 @@ public:
     }
 
     if constexpr (T == ArrayTy)
-      static_assert("use get<Array>() instead");
+      static_assert("use get<ArrayTy>() instead");
+
+    if constexpr (T == FuncionTy)
+      static_assert("use get<FunctionTy>() instead");
   }
 
   template <TypeKind T> bool is() { return Type == T; }

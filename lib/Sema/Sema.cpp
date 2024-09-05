@@ -9,46 +9,96 @@
 
 using namespace cawk;
 
-template <bool FirstVisit> bool Sema::check(FunctionDecl *F) {
-  return ControlFlowSema.check<FirstVisit>(F);
+bool checkType(TypeKind T1, TypeKind T2) {
+  if (T1 == T2 || T1 == NullTy || T2 == NullTy)
+    return true;
+  if (T1 == NumberTy && T2 == StringTy || T1 == StringTy && T2 == NumberTy)
+    return true;
+  return false;
 }
 
-template bool Sema::check<true>(FunctionDecl *);
-template bool Sema::check<false>(FunctionDecl *);
+bool checkType(Expr *E, TypeKind T) { return checkType(E->getType(), T); }
 
-bool Sema::check(BreakStmt *S) { return ControlFlowSema.check(S); }
-
-bool Sema::check(ContinueStmt *S) { return ControlFlowSema.check(S); }
-
-template <bool FirstVisit> bool Sema::check(DoStmt *S) {
-  return ControlFlowSema.check<FirstVisit>(S);
+void Sema::startFunction() {
+  CtrlFlow.enterFunction();
+  ReturnTypes.emplace_back();
 }
 
-template bool Sema::check<true>(DoStmt *);
-template bool Sema::check<false>(DoStmt *);
-
-template <bool FirstVisit> bool Sema::check(ForStmt *S) {
-  return ControlFlowSema.check<FirstVisit>(S);
+DeclResult Sema::check(FunctionDecl *F) {
+  CtrlFlow.exitFunction();
+  if (Symbols.contains(std::string(F->getName())))
+    return false;
+  for (TypeKind T : ReturnTypes.back())
+    F->addReturnType(T);
+  ReturnTypes.pop_back();
+  Symbols.addGlobal(std::string(F->getName()), new Value(F));
+  return F;
 }
 
-template bool Sema::check<true>(ForStmt *);
-template bool Sema::check<false>(ForStmt *);
-
-template <bool FirstVisit> bool Sema::check(ForRangeStmt *S) {
-  return ControlFlowSema.check<FirstVisit>(S);
+StmtResult Sema::check(BreakStmt *S) {
+  if (!CtrlFlow.isInLoop())
+    return false;
+  return S;
 }
 
-template bool Sema::check<true>(ForRangeStmt *);
-template bool Sema::check<false>(ForRangeStmt *);
-
-bool Sema::check(ReturnStmt *S) { return ControlFlowSema.check(S); }
-
-template <bool FirstVisit> bool Sema::check(WhileStmt *S) {
-  return ControlFlowSema.check<FirstVisit>(S);
+StmtResult Sema::check(ContinueStmt *S) {
+  if (!CtrlFlow.isInLoop())
+    return false;
+  return S;
 }
 
-template bool Sema::check<true>(WhileStmt *);
-template bool Sema::check<false>(WhileStmt *);
+void Sema::startDoStatement() { CtrlFlow.enterLoop(); }
+
+StmtResult Sema::check(DoStmt *S) {
+  CtrlFlow.exitLoop();
+  return S;
+}
+
+void Sema::startForStatement() { CtrlFlow.enterLoop(); }
+
+StmtResult Sema::check(ForStmt *S) {
+  CtrlFlow.exitLoop();
+  if (S->getCond() != nullptr && !checkType(S->getCond(), NumberTy))
+    return false;
+  return S;
+}
+
+StmtResult Sema::check(ForRangeStmt *S) {
+  CtrlFlow.exitLoop();
+  if (S->getLoopVar() != nullptr && !checkType(S->getLoopVar(), NumberTy) ||
+      S->getRange() != nullptr && !checkType(S->getRange(), ArrayTy))
+    return false;
+  return S;
+}
+
+StmtResult Sema::check(PrintStmt *P) {
+  for (Expr *E : P->getArgs())
+    if (!checkType(E, StringTy))
+      return false;
+  return P;
+}
+
+StmtResult Sema::check(ReturnStmt *R) {
+  if (!CtrlFlow.isInFunction())
+    return false;
+
+  if (R->getValue() == nullptr) {
+    ReturnTypes.back().insert(NullTy);
+  } else {
+    ReturnTypes.back().insert(R->getValue()->getType());
+  }
+
+  return R;
+}
+
+void Sema::startWhileStatement() { CtrlFlow.enterLoop(); }
+
+void Sema::check(WhileStmt *W) {
+  CtrlFlow.exitLoop();
+  if (W->getCond() != nullptr && !checkType(W->getCond(), NumberTy))
+    return false;
+  return W;
+}
 
 bool Sema::check(TranslationUnitDecl *T) {
   SemaType TypeSema(Diags);

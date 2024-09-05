@@ -5,6 +5,7 @@
 #include "Lexer/Lexer.h"
 #include "Sema/Type.h"
 
+#include <unordered_set>
 #include <vector>
 
 namespace cawk {
@@ -91,6 +92,7 @@ class FunctionDecl : public Decl {
   Token Identifier;
   std::vector<ParamVarDecl *> Params;
   CompoundStmt *Body;
+  std::unordered_set<TypeKind> ReturnTypes;
 
 protected:
   FunctionDecl() : Decl(DK_Function) {}
@@ -112,6 +114,10 @@ public:
   const CompoundStmt *getBody() const { return Body; }
 
   std::string_view getName() const { return getIdentifier().getIdentifier(); }
+
+  void addReturnType(TypeKind T) { ReturnTypes.insert(T); }
+
+  std::unordered_set<TypeKind> getReturnTypes() const { return ReturnTypes; }
 
   static FunctionDecl *Create(Token Identifier,
                               std::vector<ParamVarDecl *> Params,
@@ -559,7 +565,6 @@ private:
   SourceRange SrcRange;
   bool IsLValue = false;
   Value *Val = new Value;
-  type::TypeKind Type = type::null;
 
 public:
   ExprKind getKind() const { return Kind; }
@@ -580,12 +585,12 @@ public:
 
   void setValue(Value *V) { Val = V; }
 
-  type::TypeKind getType() { return Type; }
+  TypeKind getType() { return Val->getType(); }
 
-  void setType(type::TypeKind T) { Type = T; }
+  void setType(TypeKind T) { Val->setType(T); }
 
-  void setTypeIfNull(type::TypeKind T) {
-    if (Type == type::null)
+  void setTypeIfNull(TypeKind T) {
+    if (!Val->is<NullTy>())
       setType(T);
   }
 };
@@ -670,7 +675,6 @@ public:
 class CallExpr : public Expr {
   Expr *Callee;
   std::vector<Expr *> Args;
-  FunctionDecl *TheFunction;
 
 protected:
   CallExpr(Expr *Callee, std::vector<Expr *> Args, SourceRange SrcRange)
@@ -687,10 +691,6 @@ public:
     assert(I < std::size(Args));
     Args[I] = E;
   }
-
-  FunctionDecl *getFunction() { return TheFunction; }
-
-  void setFunction(FunctionDecl *F) { TheFunction = F; }
 
   static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args,
                           SourceRange SrcRange) {
@@ -819,5 +819,24 @@ public:
     return new UnaryOperator(Opcode, SubExpr, Fix, SrcRange);
   }
 };
+
+/// @brief Represents the result of a parse operation.
+/// @tparam T The type of the result (Decl, Stmt, Expr).
+template <typename T> struct ASTResult : private std::pair<T *, bool> {
+  ASTResult(bool Invalid = false) : std::pair<T *, bool>(nullptr, Invalid) {}
+  ASTResult(T *Ptr) : std::pair<T *, bool>(Ptr, true) {}
+  T *get() { return this->first; }
+  template <typename Ty> Ty *getAs() { return static_cast<Ty *>(get()); }
+  bool isValid() { return this->second; }
+  ASTResult &operator=(T *RHS) {
+    this->first = RHS;
+    this->second = true;
+    return *this;
+  }
+};
+
+using DeclResult = ASTResult<Decl>;
+using StmtResult = ASTResult<Stmt>;
+using ExprResult = ASTResult<Expr>;
 
 } // namespace cawk

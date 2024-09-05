@@ -353,15 +353,16 @@ StmtResult Parser::parsePrintStatement() {
 
     /// We need to convert the nested comma operators into a flat list of Exprs.
     std::vector<Expr *> Args;
-    recursive([&Args](auto &&This, Expr *E) -> void {
-      if (isa<BinaryOperator>(E) &&
-          ptr_cast<BinaryOperator>(E)->getOpcode().is(tok::comma)) {
-        This(ptr_cast<BinaryOperator>(E)->getLHS());
-        This(ptr_cast<BinaryOperator>(E)->getRHS());
-      } else {
-        Args.push_back(E);
-      }
-    })(Arg.get());
+    if (Arg.get() != nullptr)
+      recursive([&Args](auto &&This, Expr *E) -> void {
+        if (isa<BinaryOperator>(E) &&
+            ptr_cast<BinaryOperator>(E)->getOpcode().is(tok::comma)) {
+          This(ptr_cast<BinaryOperator>(E)->getLHS());
+          This(ptr_cast<BinaryOperator>(E)->getRHS());
+        } else {
+          Args.push_back(E);
+        }
+      })(Arg.get());
     return {Args, true};
   }();
 
@@ -384,8 +385,8 @@ StmtResult Parser::parsePrintStatement() {
     return {Tok, parseExpression()};
   }();
 
-  return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
-                           SourceRange(BeginLoc, Lex.getBufferPtr()));
+  PrintStmt::Create(Iden, Args, OpCode, Output.get(),
+                    SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 /// parseReturnStatement
@@ -397,9 +398,8 @@ StmtResult Parser::parseReturnStatement() {
   ExprResult E = parseExpression();
   if (!E.isValid())
     return false;
-  if (!Semantics.check(static_cast<ReturnStmt *>(nullptr)))
-    return false;
-  return ReturnStmt::Create(E.get(), SourceRange(BeginLoc, Lex.getBufferPtr()));
+  return return Semantics.check(
+      ReturnStmt::Create(E.get(), SourceRange(BeginLoc, Lex.getBufferPtr())));
 }
 
 /// parseSimpleStatement
@@ -463,7 +463,7 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     case tok::l_paren: {
       auto BeginLoc = Lex.getBufferPtr();
       expect(tok::l_paren);
-      ExprResult SubExpr = parseExpression();
+      ExprResult SubExpr = parseExpression<CommaOp>();
       if (!SubExpr.isValid())
         return false;
       if (!expect(tok::r_paren))
@@ -525,7 +525,7 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
                                      SourceRange(BeginLoc, Lex.getBufferPtr()));
       }
       case tok::l_paren: {
-        if (!LHS.isValid() || !isa<DeclRefExpr>(LHS.get()))
+        if (std::end(LHS.get()->getSourceRange()) != Lex.getBufferPtr())
           return LHS;
         auto BeginLoc = Lex.getBufferPtr();
         expect(tok::l_paren);

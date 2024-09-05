@@ -10,117 +10,123 @@ using namespace cawk;
 
 using namespace cawk;
 
-static bool areTypesConvertible(type::TypeKind FromType,
-                                type::TypeKind ToType) {
-  if (FromType == type::null || FromType == type::any || ToType == type::null ||
-      ToType == type::any)
-    return true;
-  return FromType == ToType;
+std::string toString(TypeKind Type) {
+  switch (Type) {
+  case NullTy:
+    return "null";
+  case NumberTy:
+    return "number";
+  case StringTy:
+    return "string";
+  case ArrayTy:
+    return "array";
+  case FuncionTy:
+    return "function";
+  }
 }
 
-static bool isConvertibleTo(Expr *E, type::TypeKind Type) {
-  return areTypesConvertible(E->getType(), Type);
+bool SemaType::checkType(TypeKind T1, TypeKind T2) {
+  if (T1 == T2 || T1 == NullTy || T2 == NullTy)
+    return true;
+  if (T1 == NumberTy && T2 == StringTy || T1 == StringTy && T2 == NumberTy)
+    return true;
+  return false;
 }
+
+bool checkType(Expr *E, TypeKind Type) { return checkType(E->getType(), Type); }
 
 bool SemaType::visit(RuleDecl *R) {
-  if (R->getPattern() != nullptr &&
-      !areTypesConvertible(R->getPattern()->getType(), type::primitive))
+  if (R->getPattern() != nullptr && !checkType(R->getPattern(), NumberTy))
     return false;
   return true;
 }
 
 bool SemaType::visit(DeleteStmt *D) {
-  return areTypesConvertible(D->getArgument()->getType(), type::array);
+  return checkType(D->getArgument(), ArrayTy);
 }
 
-bool SemaType::visit(DoStmt *D) {
-  return areTypesConvertible(D->getCond()->getType(), type::primitive);
-}
+bool SemaType::visit(DoStmt *D) { return checkType(D->getCond(), NumberTy); }
 
-bool SemaType::visit(ExitStmt *E) {
-  return areTypesConvertible(E->getValue()->getType(), type::primitive);
-}
+bool SemaType::visit(ExitStmt *E) { return checkType(E->getValue(), NumberTy); }
 
 bool SemaType::visit(ForStmt *F) {
-  if (F->getCond() != nullptr &&
-      !areTypesConvertible(F->getCond()->getType(), type::primitive))
+  if (F->getCond() != nullptr && !checkType(F->getCond(), NumberTy))
     return false;
   return true;
 }
 
 bool SemaType::visit(ForRangeStmt *F) {
-  return areTypesConvertible(F->getLoopVar()->getType(), type::primitive) &&
-         areTypesConvertible(F->getRange()->getType(), type::array);
+  return checkType(F->getLoopVar(), NumberTy) &&
+         checkType(F->getRange(), ArrayTy);
 }
 
-bool SemaType::visit(IfStmt *I) {
-  return areTypesConvertible(I->getCond()->getType(), type::primitive);
-}
+bool SemaType::visit(IfStmt *I) { return checkType(I->getCond(), NumberTy); }
 
 bool SemaType::visit(PrintStmt *P) {
   for (Expr *E : P->getArgs())
-    if (!areTypesConvertible(E->getType(), type::primitive))
+    if (!checkType(E->getType(), StringTy))
       return false;
   return true;
 }
 
 bool SemaType::visit(ReturnStmt *R) {
-  if (R->getValue() != nullptr)
-    return areTypesConvertible(R->getValue()->getType(), type::primitive);
+  if (R->getValue() != nullptr &&
+      !checkType(R->getValue()->getType(), NumberTy))
+    return false;
   return true;
 }
 
 bool SemaType::visit(WhileStmt *W) {
-  return areTypesConvertible(W->getCond()->getType(), type::primitive);
+  return checkType(W->getCond()->getType(), NumberTy);
 }
 
 bool SemaType::visit(ArraySubscriptExpr *A) {
-  if (!areTypesConvertible(A->getLHS()->getType(), type::array)) {
+  if (!checkType(A->getLHS(), ArrayTy)) {
     Diags.addError(A->getSourceRange(), diag::sema_primitive_subscript,
                    toString(A->getLHS()->getType()));
     return false;
   }
 
-  A->getLHS()->setType(type::array);
+  A->getLHS()->setType(ArrayTy);
 
   for (Expr *E : A->getRHS())
-    if (!areTypesConvertible(E->getType(), type::primitive))
+    if (!checkType(E->getType(), NumberTy))
       return false;
 
+  A->setType(NumberTy);
   return true;
 }
 
 bool SemaType::visit(BinaryOperator *B) {
-  if (!isConvertibleTo(B->getLHS(), type::primitive) ||
-      !isConvertibleTo(B->getRHS(), type::primitive)) {
+  if (!checkType(B->getLHS(), NumberTy) || !checkType(B->getRHS(), NumberTy)) {
     Diags.addError(B->getSourceRange(), diag::sema_invalid_operand_types, "+",
                    toString(B->getLHS()->getType()),
                    toString(B->getRHS()->getType()));
     return false;
   }
 
+  B->setType(NumberTy);
   return true;
 }
 
 bool SemaType::visit(CallExpr *C) {
-  for (Expr *E : C->getArgs())
-    if (!areTypesConvertible(E->getType(), type::primitive))
-      return false;
+
+  C->setType(NumberTy);
   return true;
 }
 
 bool SemaType::visit(FloatingLiteral *F) {
-  F->setType(type::primitive);
+  F->setType(NumberTy);
   return true;
 }
 
 bool SemaType::visit(RegexLiteral *R) {
-  R->setType(type::primitive);
+  R->setType(StringTy);
   return true;
 }
 
 bool SemaType::visit(StringLiteral *S) {
-  S->setType(type::primitive);
+  S->setType(StringTy);
   return true;
 }
 
@@ -133,8 +139,10 @@ bool SemaType::visit(UnaryOperator *U) {
   case tok::exclaim:
   case tok::plusplus:
   case tok::minusminus:
-    if (areTypesConvertible(U->getSubExpr()->getType(), type::primitive))
+    if (checkType(U->getSubExpr()->getType(), cat::Scalar)) {
+      U->setType(NumberTy);
       return true;
+    }
     Diags.addError(U->getSourceRange(), diag::sema_invalid_operand_type,
                    U->getOpcode().getLiteralData(),
                    toString(U->getSubExpr()->getType()));

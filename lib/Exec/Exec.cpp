@@ -19,6 +19,15 @@ using namespace cawk;
 void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
 
 void Exec::operator()() {
+  if (BuiltinVariables.contains("FS"))
+    BuiltinVariables["FS"]->setValue(Value(" "));
+  if (BuiltinVariables.contains("OFS"))
+    BuiltinVariables["OFS"]->setValue(Value(" "));
+  if (BuiltinVariables.contains("RS"))
+    BuiltinVariables["RS"]->setValue(Value("\n"));
+  if (BuiltinVariables.contains("ORS"))
+    BuiltinVariables["ORS"]->setValue(Value("\n"));
+
   BeginKeyword::Create({})->setValue(Value(1));
   EndKeyword::Create({})->setValue(Value(0));
 
@@ -32,17 +41,8 @@ void Exec::operator()() {
   for (auto &Input : Inputs) {
     SkipToNextfile = false;
     for (; !Input.isEOF() && !SkipToNextfile;) {
-      auto Fields = split(Input.getLine(),
-                          BuiltinVariables["FS"]->getValueAs<StringTy>());
-      if (!std::empty(Fields))
-        continue;
-      for (int I = 1; auto Field : Fields)
-        BuiltinVariables["$" + std::to_string(I++)]->setValue(Field);
-
-      BuiltinVariables["NF"]->setValue(Value(std::size(Fields)));
-      BuiltinVariables["NF"]->setValue(
-          BuiltinVariables["NF"]->getValueAs<NumberTy>() + 1);
-
+      FieldTable = {new Value(Input.getLine())};
+      updateFields(FieldTable.front());
       SkipToNext = false;
       visit(AST);
 
@@ -262,6 +262,9 @@ bool Exec::visit(BinaryOperator *B) {
     traverse(B->getLHS());
     traverse(B->getRHS());
     B->getLHS()->setValue(*B->getRHS()->getValue());
+    if (auto *U = dyn_cast<UnaryOperator>(B->getLHS());
+        U != nullptr && U->getOpcode().is(tok::dollar))
+      updateFields(B->getLHS()->getValue());
     break;
 #define CASE(TOK, OP)                                                          \
   traverse(B->getLHS());                                                       \
@@ -487,9 +490,11 @@ bool Exec::visit(UnaryOperator *U) {
   case tok::dollar: {
     traverse(U->getSubExpr());
     auto SubExpr = U->getSubExpr()->getValueAs<NumberTy>();
-    if (std::clamp<int>(SubExpr, 0, std::size(FieldTable) - 1) !=
-        static_cast<int>(SubExpr)) {
+    if (SubExpr < 0) {
       U->setValue(Value());
+    } else if (SubExpr >= std::size(FieldTable)) {
+      FieldTable.resize(SubExpr + 1, new Value);
+      U->setValue(FieldTable[SubExpr]);
     } else {
       U->setValue(FieldTable[SubExpr]);
     }
@@ -546,9 +551,17 @@ void Exec::updateFields(Value *V) {
     FieldTable.resize(1);
     auto String = V->getAs<StringTy>();
     std::vector<std::string> Fields =
-        split(String, BuiltinVariables["FS"]->getValueAs<StringTy>());
+        split(String, BuiltinVariables["FS"]->getAs<StringTy>());
     for (auto &Field : Fields)
       FieldTable.push_back(new Value(Field));
+    BuiltinVariables["NF"]->setValue(Value(std::size(Fields)));
   } else {
+    FieldTable.front() = std::accumulate(
+        std::cbegin(FieldTable) + 1, std::cend(FieldTable), new Value(),
+        [this](Value *Accum, Value *V) {
+          return new Value(Accum->getAs<StringTy>() +
+                           BuiltinVariables["OFS"]->getAs<StringTy>() +
+                           V->getAs<StringTy>());
+        });
   }
 }

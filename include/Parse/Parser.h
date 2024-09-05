@@ -20,25 +20,6 @@
 
 namespace cawk {
 
-/// @brief Represents the result of a parse operation.
-/// @tparam T The type of the result (Decl, Stmt, Expr).
-template <typename T> struct ParseResult : private std::pair<T *, bool> {
-  ParseResult(bool Invalid = false) : std::pair<T *, bool>(nullptr, Invalid) {}
-  ParseResult(T *Ptr) : std::pair<T *, bool>(Ptr, true) {}
-  T *get() { return this->first; }
-  template <typename Ty> Ty *getAs() { return static_cast<Ty *>(get()); }
-  bool isValid() { return this->second; }
-  ParseResult &operator=(T *RHS) {
-    this->first = RHS;
-    this->second = true;
-    return *this;
-  }
-};
-
-using DeclResult = ParseResult<Decl>;
-using StmtResult = ParseResult<Stmt>;
-using ExprResult = ParseResult<Expr>;
-
 /// @brief The Parser class is responsible for parsing the input source code.
 class Parser {
 public:

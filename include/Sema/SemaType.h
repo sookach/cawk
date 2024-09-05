@@ -13,6 +13,8 @@ class SemaType : ASTVisitor<SemaType, trav::Postorder, true> {
 public:
   SemaType(Diagnostic &Diags) : Diags(Diags) {}
   bool check(TranslationUnitDecl *T);
+  bool checkType(TypeKind T1, TypeKind T2);
+  bool checkType(Expr *E, TypeKind T);
 
 private:
   bool visit(RuleDecl *R);

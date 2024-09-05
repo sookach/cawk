@@ -1,7 +1,7 @@
 #pragma once
 
 namespace type {
-enum TypeKind { null, primitive, array, any };
+enum TypeKind { null, primitive, array, function, any };
 
 inline const char *toString(TypeKind T) {
   switch (T) {
@@ -11,6 +11,8 @@ inline const char *toString(TypeKind T) {
     return "primitive";
   case array:
     return "array";
+  case function:
+    return "function";
   case any:
     return "any";
   }

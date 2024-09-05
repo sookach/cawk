@@ -21,8 +21,8 @@ public:
                                                     std::cend(Source)),
         Valid(true) {}
 
-  std::string_view::const_iterator getBegin() const { return this->first; }
-  std::string_view::const_iterator getEnd() const { return this->second; }
+  std::string_view::const_iterator begin() const { return this->first; }
+  std::string_view::const_iterator end() const { return this->second; }
   bool isValid() const { return Valid; }
 };
 } // namespace cawk

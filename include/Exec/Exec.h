@@ -22,7 +22,7 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   TranslationUnitDecl *AST;
   std::vector<Value *> FieldTable;
   std::vector<InputFile> Inputs;
-  std::unordered_map<std::string, DeclRefExpr *> BuiltinVariables;
+  std::unordered_map<std::string, Value *> BuiltinVariables;
   std::vector<CallExpr *> CallStack;
   bool ShouldBreak = false;
   bool ShouldContinue = false;
@@ -33,7 +33,7 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
 public:
   Exec(Diagnostic &Diags, TranslationUnitDecl *AST,
        std::vector<InputFile> Inputs,
-       std::unordered_map<std::string, DeclRefExpr *> BuiltinVariables)
+       std::unordered_map<std::string, Value *> BuiltinVariables)
       : Diags(Diags), AST(AST), Inputs(Inputs),
         BuiltinVariables(BuiltinVariables) {}
   void operator()();
