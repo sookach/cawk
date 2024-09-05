@@ -802,6 +802,10 @@ protected:
         Fix(Fix) {}
 
 public:
+  static bool classof(const Expr *E) {
+    return E->getKind() == EK_UnaryOperator;
+  }
+
   Token getOpcode() { return Opcode; }
 
   Expr *getSubExpr() { return SubExpr; }
