@@ -737,7 +737,9 @@ class FloatingLiteral : public Expr {
 
 protected:
   FloatingLiteral(Token Literal, SourceRange SrcRange)
-      : Expr(EK_FloatingLiteral), Literal(Literal) {}
+      : Expr(EK_FloatingLiteral), Literal(Literal) {
+    this->setValue(Value(std::stod(std::string(Literal.getLiteralData()))));
+  }
 
 public:
   static bool classof(const Expr *E) {
@@ -773,7 +775,9 @@ class StringLiteral : public Expr {
 
 protected:
   StringLiteral(Token Literal, SourceRange SrcRange)
-      : Expr(EK_StringLiteral, SrcRange), Literal(Literal) {}
+      : Expr(EK_StringLiteral, SrcRange), Literal(Literal) {
+    this->setValue(Value(std::string(Literal.getLiteralData())));
+  }
 
 public:
   static bool classof(const Expr *E) {

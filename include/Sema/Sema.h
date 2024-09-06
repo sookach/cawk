@@ -2,8 +2,6 @@
 
 #include "AST/AST.h"
 #include "Basic/Diagnostic.h"
-#include "Sema/SemaControlFlow.h"
-#include "Sema/SemaType.h"
 
 namespace cawk {
 class Sema {
@@ -25,8 +23,10 @@ class Sema {
     std::unordered_map<std::string, Value *> Locals;
 
   public:
+    bool containsLocal(std::string Name) { return Locals.contains(Name); }
+    bool containsGlobal(std::string Name) { return Globals.contains(Name); }
     bool contains(std::string Name) {
-      return Globals.contains(Name) || Locals.contains(Name);
+      return containsLocal(Name) || containsGlobal(Name);
     }
 
     Value *at(std::string Name) {
@@ -35,6 +35,7 @@ class Sema {
       return Globals.at(Name);
     }
 
+    void clearLocals() { Locals.clear(); }
     void addLocal(std::string Name, Value *V) { Locals[Name] = V; }
     void addGlobal(std::string Name, Value *V) { Globals[Name] = V; }
 
@@ -46,8 +47,6 @@ class Sema {
     }
   };
 
-  std::vector<std::unordered_set<TypeKind>> ReturnTypes;
-
   Diagnostic &Diags;
   ControlFlow CtrlFlow;
   SymbolTable Symbols;
@@ -55,20 +54,19 @@ class Sema {
 public:
   Sema(Diagnostic &Diags) : Diags(Diags) {}
 
-  bool check(TranslationUnitDecl *T);
-
-  template <bool FirstVisit> bool check(FunctionDecl *F);
-  void start(FunctionDecl *F);
-  void check(FunctionDecl *F);
-
-  bool check(BreakStmt *S);
-  bool check(ContinueStmt *S);
-  template <bool FirstVisit> StmtResult check(DoStmt *S);
-  template <bool FirstVisit> StmtResult check(ForStmt *S);
-  template <bool FirstVisit> StmtResult check(ForRangeStmt *S);
-  StmtResult check(PrintStmt *S);
-  StmtResult check(ReturnStmt *S);
-  template <bool FirstVisit> bool check(WhileStmt *S);
+  bool actOnParamList(std::vector<ParamVarDecl *> Params);
+  void actOnStartOfFunctionBody();
+  void actOnFinishOfFunctionBody();
+  StmtResult actOnBreakStatement(BreakStmt *B);
+  StmtResult actOnContinueStatement(ContinueStmt *C);
+  void actOnStartOfDoStatement();
+  void actOnFinishOfDoStatement();
+  void actOnStartOfForStatement();
+  void actOnFinishOfForStatement();
+  StmtResult actOnReturnStatement(ReturnStmt *R);
+  void actOnStartOfWhileStatement();
+  void actOnFinishOfWhileStatement();
+  void actOnDeclRefExpr(DeclRefExpr *D);
 };
 
 } // namespace cawk

@@ -82,9 +82,6 @@ DeclResult Parser::parseDeclaration() {
 ///         param-list ',' identifier
 DeclResult Parser::parseFunctionDeclaration() {
   auto BeginLoc = Lex.getBufferPtr();
-  // These two tests should never be fail, but they're here as sanity checks.
-  if (!Semantics.check<true>(static_cast<FunctionDecl *>(nullptr)))
-    return false;
   if (!expect(tok::kw_function))
     return false;
   auto Identifier = Tok;
@@ -118,16 +115,20 @@ DeclResult Parser::parseFunctionDeclaration() {
 
     return std::pair(true, Params);
   }();
-  if (!Valid)
+
+  if (!Valid || !Actions.actOnParamList(Params))
     return false;
+
   if (!consume(tok::r_paren))
     return false;
+
+  Actions.actOnStartOfFunctionBody();
   auto Body = parseCompoundStatement();
+  Actions.actOnFinishOfFunctionBody();
+
   if (!Body.isValid())
     return false;
 
-  if (!Semantics.check<false>(static_cast<FunctionDecl *>(nullptr)))
-    return false;
   return FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>(),
                               SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
@@ -203,7 +204,8 @@ StmtResult Parser::parseBreakStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_break))
     return false;
-  return BreakStmt::Create(SourceRange(BeginLoc, Lex.getBufferPtr()));
+  return Actions.actOnBreakStatement(
+      BreakStmt::Create(SourceRange(BeginLoc, Lex.getBufferPtr())));
 }
 
 /// parseCompoundStatement
@@ -238,6 +240,7 @@ StmtResult Parser::parseCompoundStatement() {
 ///     do-statement:
 ///         'do' statement 'while' '(' expression ')'
 StmtResult Parser::parseDoStatement() {
+  Actions.actOnStartOfDoStatement();
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_do))
     return false;
@@ -256,8 +259,10 @@ StmtResult Parser::parseDoStatement() {
   if (!consume(tok::r_paren))
     return false;
 
-  return DoStmt::Create(Cond.get(), Body.get(),
-                        SourceRange(BeginLoc, Lex.getBufferPtr()));
+  Actions.actOnFinishOfDoStatement();
+
+  return DoStmt::Create(
+      Cond.get(), Body.get(), SourceRange(BeginLoc, Lex.getBufferPtr())));
 }
 
 /// parseForStatement
@@ -266,6 +271,7 @@ StmtResult Parser::parseDoStatement() {
 ///	        'for' '(' (print-statement | expression)? ';' expression? ';'
 ///             (print-statement | expression)? ')' statement
 StmtResult Parser::parseForStatement() {
+  Actions.actOnStartOfForStatement();
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_for, tok::l_paren))
     return false;
@@ -282,6 +288,7 @@ StmtResult Parser::parseForStatement() {
     StmtResult Body = parseStatement();
     if (!Body.isValid())
       return false;
+    Actions.actOnFinishOfForStatement();
     return ForRangeStmt::Create(LoopVar, Range, Body.get(),
                                 SourceRange(BeginLoc, Lex.getBufferPtr()));
   }
@@ -304,6 +311,7 @@ StmtResult Parser::parseForStatement() {
   StmtResult Body = parseStatement();
   if (!Body.isValid())
     return false;
+  Actions.actOnFinishOfForStatement();
   return ForStmt::Create(Init.get(), Cond.get(), Inc.get(), Body.get(),
                          SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
@@ -385,8 +393,8 @@ StmtResult Parser::parsePrintStatement() {
     return {Tok, parseExpression()};
   }();
 
-  PrintStmt::Create(Iden, Args, OpCode, Output.get(),
-                    SourceRange(BeginLoc, Lex.getBufferPtr()));
+  return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
+                           SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 /// parseReturnStatement
@@ -398,7 +406,7 @@ StmtResult Parser::parseReturnStatement() {
   ExprResult E = parseExpression();
   if (!E.isValid())
     return false;
-  return return Semantics.check(
+  return Actions.actOnReturnStatement(
       ReturnStmt::Create(E.get(), SourceRange(BeginLoc, Lex.getBufferPtr())));
 }
 
@@ -430,9 +438,8 @@ StmtResult Parser::parseValueStatement() {
 ///     while-statement:
 ///            'while' '(' expression ')' statement
 StmtResult Parser::parseWhileStatement() {
+  Actions.actOnStartOfWhileStatement();
   auto BeginLoc = Lex.getBufferPtr();
-  if (!Semantics.check<true>(static_cast<WhileStmt *>(nullptr)))
-    return false;
   if (!consume(tok::kw_while, tok::l_paren))
     return false;
 
@@ -447,8 +454,7 @@ StmtResult Parser::parseWhileStatement() {
   if (!Body.isValid())
     return false;
 
-  if (!Semantics.check<false>(static_cast<WhileStmt *>(nullptr)))
-    return false;
+  Actions.actOnFinishOfWhileStatement();
   return WhileStmt::Create(Cond.get(), Body.get(),
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
@@ -470,17 +476,19 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
         return false;
       return SubExpr;
     }
-    case tok::kw_gsub:
-    case tok::kw_index:
-    case tok::kw_match:
-    case tok::kw_split:
-    case tok::kw_sprintf:
-    case tok::kw_sub:
-    case tok::kw_substr:
+    // case tok::kw_gsub:
+    // case tok::kw_index:
+    // case tok::kw_match:
+    // case tok::kw_split:
+    // case tok::kw_sprintf:
+    // case tok::kw_sub:
+    // case tok::kw_substr:
     case tok::identifier: {
       auto BeginLoc = Lex.getBufferPtr();
-      return DeclRefExpr::Create(advance(),
-                                 SourceRange(BeginLoc, Lex.getBufferPtr()));
+      DeclRefExpr *D = DeclRefExpr::Create(
+          advance(), SourceRange(BeginLoc, Lex.getBufferPtr()));
+      Actions.actOnDeclRefExpr(D);
+      return D;
     }
     case tok::numeric_constant: {
       auto BeginLoc = Lex.getBufferPtr();

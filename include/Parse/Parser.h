@@ -26,8 +26,8 @@ public:
   /// @brief Lex - The lexer instance.
   Lexer &Lex;
 
-  /// @brief Semantics - The semantic analysis instance.
-  Sema Semantics;
+  /// @brief Actions - The semantic analysis instance.
+  Sema Actions;
 
   /// @brief Tok - The current lookahead token.
   Token Tok;
