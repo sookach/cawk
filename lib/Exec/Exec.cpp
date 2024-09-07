@@ -588,7 +588,7 @@ void Exec::joinFields() {
     return;
   }
   FieldTable.front()->setValue(FieldTable[1]->getAs<StringTy>());
-  FieldTable.resize(NF + 1);
+  FieldTable.resize(NF + 1, new Value);
   for (int I = 2; I != NF + 1; ++I) {
     FieldTable.front()->setValue(FieldTable.front()->getAs<StringTy>() +
                                  Globals["OFS"]->getAs<StringTy>() +
