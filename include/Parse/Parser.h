@@ -58,15 +58,15 @@ private:
 
   template <bool NL = true, bool RE = false, typename... Ts>
   bool consume(tok::TokenKind K, Ts... Ks) {
-    if (Tok.is(K)) {
-      Lex.next<NL, RE>(Tok);
-      return true;
-    }
+    if (!Tok.is(K))
+      return false;
+
+    advance<NL, RE>();
 
     if constexpr (sizeof...(Ks) != 0)
       return consume<NL, RE>(Ks...);
 
-    return false;
+    return true;
   }
 
   template <bool NL = true, bool RE = false, typename... Ts>
