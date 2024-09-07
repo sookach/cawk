@@ -4,7 +4,6 @@
 #include "AST/ASTVisitor.h"
 #include "Exec/IO.h"
 #include "Exec/Value.h"
-#include "Sema/FunctionSymbol.h"
 #include "Support/StringMap.h"
 #include "Support/Support.h"
 
@@ -22,7 +21,9 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   TranslationUnitDecl *AST;
   std::vector<Value *> FieldTable;
   std::vector<InputFile> Inputs;
-  std::unordered_map<std::string, Value *> BuiltinVariables;
+  std::unordered_map<std::string, Value *> Globals;
+  std::unordered_set<Value *> InputModifiers;
+  std::unordered_set<Value *> OutputModifiers;
   std::vector<CallExpr *> CallStack;
   bool ShouldBreak = false;
   bool ShouldContinue = false;
@@ -33,9 +34,10 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
 public:
   Exec(Diagnostic &Diags, TranslationUnitDecl *AST,
        std::vector<InputFile> Inputs,
-       std::unordered_map<std::string, Value *> BuiltinVariables)
-      : Diags(Diags), AST(AST), Inputs(Inputs),
-        BuiltinVariables(BuiltinVariables) {}
+       std::unordered_map<std::string, Value *> Globals)
+      : Diags(Diags), AST(AST), Inputs(Inputs), Globals(Globals) {
+    initBuiltinVariables();
+  }
   void operator()();
 
 private:
@@ -73,6 +75,9 @@ private:
   bool execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args);
   bool isEarlyExit();
   void updateFields(Value *V);
+  void splitFields();
+  void joinFields();
+  void initBuiltinVariables();
 };
 
 } // namespace cawk

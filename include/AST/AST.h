@@ -3,8 +3,8 @@
 #include "Basic/SourceLocation.h"
 #include "Exec/Value.h"
 #include "Lexer/Lexer.h"
-#include "Sema/Type.h"
 
+#include <functional>
 #include <unordered_set>
 #include <vector>
 
@@ -157,7 +157,6 @@ class VarDecl : public Decl {
 protected:
   Token Identifier;
   Value Val;
-  type::TypeKind Type;
   DeclRefExpr *E;
 
   VarDecl(DeclKind Kind, Token Identifier, SourceRange SrcRange)
@@ -565,6 +564,7 @@ private:
   SourceRange SrcRange;
   bool IsLValue = false;
   Value *Val = new Value;
+  std::function<void()> OnAssignment = []() {};
 
 public:
   ExprKind getKind() const { return Kind; }
@@ -587,12 +587,9 @@ public:
 
   TypeKind getType() { return Val->getType(); }
 
-  void setType(TypeKind T) { Val->setType(T); }
+  void setOnAssignment(std::function<void()> F) { OnAssignment = F; }
 
-  void setTypeIfNull(TypeKind T) {
-    if (!Val->is<NullTy>())
-      setType(T);
-  }
+  void executeOnAssignment() { OnAssignment(); }
 };
 
 class ArraySubscriptExpr : public Expr {

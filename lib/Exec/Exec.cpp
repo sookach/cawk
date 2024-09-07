@@ -19,24 +19,15 @@ using namespace cawk;
 void Exec::addInput(std::string Filepath) { Inputs.emplace_back(Filepath); }
 
 void Exec::operator()() {
-  if (BuiltinVariables.contains("FS"))
-    BuiltinVariables["FS"]->setValue(Value(" "));
-  if (BuiltinVariables.contains("OFS"))
-    BuiltinVariables["OFS"]->setValue(Value(" "));
-  if (BuiltinVariables.contains("RS"))
-    BuiltinVariables["RS"]->setValue(Value("\n"));
-  if (BuiltinVariables.contains("ORS"))
-    BuiltinVariables["ORS"]->setValue(Value("\n"));
-
   BeginKeyword::Create({})->setValue(Value(1));
-  EndKeyword::Create({})->setValue(Value(0));
+  EndKeyword::Create({})->setValue(Value(0.0));
 
   visit(AST);
 
   if (std::empty(Inputs))
     return;
 
-  BeginKeyword::Create({})->setValue(Value(0));
+  BeginKeyword::Create({})->setValue(Value(0.0));
 
   for (auto &Input : Inputs) {
     SkipToNextfile = false;
@@ -262,9 +253,10 @@ bool Exec::visit(BinaryOperator *B) {
     traverse(B->getLHS());
     traverse(B->getRHS());
     B->getLHS()->setValue(*B->getRHS()->getValue());
-    if (auto *U = dyn_cast<UnaryOperator>(B->getLHS());
-        U != nullptr && U->getOpcode().is(tok::dollar))
-      updateFields(B->getLHS()->getValue());
+    B->setValue(B->getLHS()->getValue());
+    B->getLHS()->executeOnAssignment();
+    if (OutputModifiers.contains(B->getLHS()->getValue()))
+      joinFields();
     break;
 #define CASE(TOK, OP)                                                          \
   traverse(B->getLHS());                                                       \
@@ -289,6 +281,8 @@ bool Exec::visit(BinaryOperator *B) {
     B->getLHS()->setValue(std::pow(B->getLHS()->getValueAs<NumberTy>(),
                                    B->getRHS()->getValueAs<NumberTy>()));
     B->setValue(B->getLHS()->getValueAs<NumberTy>());
+    if (OutputModifiers.contains(B->getLHS()->getValue()))
+      joinFields();
     break;
   }
   return true;
@@ -314,7 +308,10 @@ bool Exec::visit(CallExpr *C) {
     return true;
   }
 
-  FunctionDecl *Function = C->getFunction();
+  if (!isa<DeclRefExpr>(C->getCallee())) {
+    return false;
+  }
+  FunctionDecl *Function = C->getValue()->get<FunctionTy>();
   auto Params = Function->getParams();
   auto Args = C->getArgs();
 
@@ -464,6 +461,8 @@ bool Exec::visit(UnaryOperator *U) {
     else
       U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
     U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() + 1);
+    if (OutputModifiers.contains(U->getSubExpr()->getValue()))
+      joinFields();
     break;
   case tok::minusminus:
     traverse(U->getSubExpr());
@@ -472,12 +471,16 @@ bool Exec::visit(UnaryOperator *U) {
     else
       U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
     U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() - 1);
+    if (OutputModifiers.contains(U->getSubExpr()->getValue()))
+      joinFields();
     break;
   case tok::exclaim:
     traverse(U->getSubExpr());
-    switch (U->getSubExpr()->getValue()->getType()) {
+    switch (U->getSubExpr()->getType()) {
     case ArrayTy:
-      return false;
+    case FunctionTy:
+      cawk_fatal("Invalid conversion from ",
+                 toString(U->getSubExpr()->getType()), " to boolean.");
     case NumberTy:
       U->setValue(!U->getSubExpr()->getValueAs<NumberTy>());
       break;
@@ -498,6 +501,8 @@ bool Exec::visit(UnaryOperator *U) {
     } else {
       U->setValue(FieldTable[SubExpr]);
     }
+
+    U->setOnAssignment([this, U]() { updateFields(U->getValue()); });
   }
   }
   return true;
@@ -551,17 +556,76 @@ void Exec::updateFields(Value *V) {
     FieldTable.resize(1);
     auto String = V->getAs<StringTy>();
     std::vector<std::string> Fields =
-        split(String, BuiltinVariables["FS"]->getAs<StringTy>());
+        split(String, Globals["FS"]->getAs<StringTy>());
     for (auto &Field : Fields)
       FieldTable.push_back(new Value(Field));
-    BuiltinVariables["NF"]->setValue(Value(std::size(Fields)));
+    Globals["NF"]->setValue(Value(std::size(Fields)));
   } else {
-    FieldTable.front() = std::accumulate(
-        std::cbegin(FieldTable) + 1, std::cend(FieldTable), new Value(),
-        [this](Value *Accum, Value *V) {
-          return new Value(Accum->getAs<StringTy>() +
-                           BuiltinVariables["OFS"]->getAs<StringTy>() +
-                           V->getAs<StringTy>());
-        });
+    FieldTable.front() =
+        std::accumulate(std::cbegin(FieldTable) + 1, std::cend(FieldTable),
+                        new Value(), [this](Value *Accum, Value *V) {
+                          return new Value(Accum->getAs<StringTy>() +
+                                           Globals["OFS"]->getAs<StringTy>() +
+                                           V->getAs<StringTy>());
+                        });
   }
+}
+
+void Exec::splitFields() {
+  auto String = FieldTable.front()->getAs<StringTy>();
+  std::vector<std::string> Fields =
+      split(String, Globals["IFS"]->getAs<StringTy>());
+  FieldTable = {new Value(String)};
+  for (auto &Field : Fields)
+    FieldTable.push_back(new Value(Field));
+  Globals["NF"]->setValue(Value(std::size(Fields)));
+}
+
+void Exec::joinFields() {
+  double NF = Globals["NF"]->getAs<NumberTy>();
+  if (NF == 0) {
+    FieldTable.front()->setValue(Value(""));
+    return;
+  }
+  FieldTable.front()->setValue(FieldTable[1]->getAs<StringTy>());
+  FieldTable.resize(NF + 1);
+  for (int I = 2; I != NF + 1; ++I) {
+    FieldTable.front()->setValue(FieldTable.front()->getAs<StringTy>() +
+                                 Globals["OFS"]->getAs<StringTy>() +
+                                 FieldTable[I]->getAs<StringTy>());
+  }
+}
+
+void Exec::initBuiltinVariables() {
+  if (Globals.contains("FS"))
+    Globals["FS"]->setValue(Value(" "));
+  else
+    Globals["FS"] = new Value(" ");
+  InputModifiers.insert(Globals["FS"]);
+  OutputModifiers.insert(Globals["FS"]);
+
+  if (Globals.contains("OFS"))
+    Globals["OFS"]->setValue(Value(" "));
+  else
+    Globals["OFS"] = new Value(" ");
+  OutputModifiers.insert(Globals["OFS"]);
+
+  if (Globals.contains("RS"))
+    Globals["RS"]->setValue(Value("\n"));
+  else
+    Globals["RS"] = new Value("\n");
+  InputModifiers.insert(Globals["RS"]);
+  OutputModifiers.insert(Globals["RS"]);
+
+  if (Globals.contains("ORS"))
+    Globals["ORS"]->setValue(Value("\n"));
+  else
+    Globals["ORS"] = new Value("\n");
+  OutputModifiers.insert(Globals["ORS"]);
+
+  if (Globals.contains("NF"))
+    Globals["NF"]->setValue(Value(0.0));
+  else
+    Globals["NF"] = new Value(0.0);
+  OutputModifiers.insert(Globals["NF"]);
 }

@@ -1,10 +1,5 @@
 #include "Sema/Sema.h"
 #include "AST/ASTPrinter.h"
-#include "Sema/SemaControlFlow.h"
-#include "Sema/SemaLValue.h"
-#include "Sema/SemaType.h"
-#include "Sema/SymbolResolver.h"
-
 #include <cstdio>
 
 using namespace cawk;

@@ -82,11 +82,12 @@ public:
     for (const auto &[SrcRange, Error] : ErrorDiagnostics) {
       errs().printf("error: %s\n", Error.c_str());
       auto LineNumber =
-          std::count(std::cbegin(Source), SrcRange.getBegin(), '\n') + 1;
+          std::count(std::cbegin(Source), std::begin(SrcRange), '\n') + 1;
       std::string SourceLines("   " + std::to_string(LineNumber) + " | ");
-      for (auto It = SrcRange.getBegin(); It != SrcRange.getEnd(); ++It) {
+      for (auto It = std::begin(SrcRange), End = std::end(SrcRange); It != End;
+           ++It) {
         SourceLines.push_back(*It);
-        if (*It == '\n' && It != SrcRange.getEnd() - 1)
+        if (*It == '\n' && It != End - 1)
           SourceLines += "   " + std::to_string(++LineNumber) + " | ";
       }
       errs().printf("%s\n", SourceLines.c_str());

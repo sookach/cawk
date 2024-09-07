@@ -38,6 +38,7 @@ class Sema {
     void clearLocals() { Locals.clear(); }
     void addLocal(std::string Name, Value *V) { Locals[Name] = V; }
     void addGlobal(std::string Name, Value *V) { Globals[Name] = V; }
+    auto getGlobals() { return Globals; }
 
     void resolve(std::string Name, Expr *E) {
       if (contains(Name))
@@ -67,6 +68,8 @@ public:
   void actOnStartOfWhileStatement();
   void actOnFinishOfWhileStatement();
   void actOnDeclRefExpr(DeclRefExpr *D);
+
+  auto getSymbols() { return Symbols; }
 };
 
 } // namespace cawk

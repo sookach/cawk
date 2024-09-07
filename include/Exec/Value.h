@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Exec/IO.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
@@ -11,7 +13,22 @@ namespace cawk {
 
 class FunctionDecl;
 
-enum TypeKind { NullTy, NumberTy, StringTy, ArrayTy, FuncionTy };
+enum TypeKind { NullTy, NumberTy, StringTy, ArrayTy, FunctionTy };
+
+static std::string toString(TypeKind Ty) {
+  switch (Ty) {
+  case NullTy:
+    return "null";
+  case NumberTy:
+    return "number";
+  case StringTy:
+    return "string";
+  case ArrayTy:
+    return "array";
+  case FunctionTy:
+    return "function";
+  }
+}
 
 class Value {
 public:
@@ -46,7 +63,7 @@ public:
 
   explicit Value(std::string Raw) : Type(StringTy), Raw(Raw) {}
 
-  explicit Value(FunctionDecl *Raw) : Type(FuncionTy), Raw(Raw) {}
+  explicit Value(FunctionDecl *Raw) : Type(FunctionTy), Raw(Raw) {}
 
   TypeKind getType() { return Type; }
 
@@ -59,7 +76,7 @@ public:
       return std::get<std::string>(std::get<Scalar>(Raw).Raw);
     if constexpr (T == ArrayTy)
       return std::get<Array>(Raw);
-    if constexpr (T == FuncionTy)
+    if constexpr (T == FunctionTy)
       return std::get<FunctionDecl *>(Raw);
   }
 
@@ -72,8 +89,10 @@ public:
         return std::strtod(
             std::get<std::string>(std::get<Scalar>(Raw).Raw).c_str(), nullptr);
 
-      assert(is<NullTy>());
-      return 0.0;
+      if (Type == NullTy)
+        return 0.0;
+
+      cawk_fatal("Invalid conversion from ", toString(Type), " to number");
     }
 
     if constexpr (T == StringTy) {
@@ -90,14 +109,16 @@ public:
       if (Type == StringTy)
         return std::get<std::string>(std::get<Scalar>(Raw).Raw);
 
-      assert(is<NullTy>());
-      return std::string();
+      if (Type == NullTy)
+        return std::string();
+
+      cawk_fatal("Invalid conversion from ", toString(Type), " to string");
     }
 
     if constexpr (T == ArrayTy)
       static_assert("use get<ArrayTy>() instead");
 
-    if constexpr (T == FuncionTy)
+    if constexpr (T == FunctionTy)
       static_assert("use get<FunctionTy>() instead");
   }
 
@@ -127,7 +148,10 @@ public:
       Raw = Array();
       Type = ArrayTy;
     }
-    assert(Type == ArrayTy);
+
+    if (Type != ArrayTy)
+      cawk_fatal("Invalid subscripting of ", toString(Type));
+
     if (!std::get<Array>(Raw).contains(Key.getAs<StringTy>()))
       std::get<Array>(Raw)[Key.getAs<StringTy>()] = new Value();
     return std::get<Array>(Raw)[Key.getAs<StringTy>()];

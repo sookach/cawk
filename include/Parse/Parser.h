@@ -44,11 +44,13 @@ public:
 
 public:
   Parser(Lexer &Lex, Diagnostic &Diags)
-      : Lex(Lex), Semantics(Diags), Diags(Diags) {
+      : Lex(Lex), Actions(Diags), Diags(Diags) {
     Lex.next<false, false>(Tok);
   }
 
   DeclResult parse() { return parseTranslationUnit(); }
+
+  auto getSymbols() { return Actions.getSymbols(); }
 
 private:
   template <bool NL = true, bool RE = false> Token advance();

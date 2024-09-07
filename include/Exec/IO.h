@@ -2,6 +2,7 @@
 
 #include <array>
 #include <cstdio>
+#include <cstdlib>
 #include <string>
 
 namespace cawk {
@@ -53,6 +54,12 @@ inline OutputFile &outs() {
 inline OutputFile &errs() {
   static OutputFile Err(stderr);
   return Err;
+}
+
+template <typename... T> [[noreturn]] inline void cawk_fatal(T &&...Args) {
+  errs().print(std::forward<T>(Args)...);
+  errs().flush();
+  std::exit(1);
 }
 
 } // namespace cawk

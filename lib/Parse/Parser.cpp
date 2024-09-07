@@ -261,8 +261,8 @@ StmtResult Parser::parseDoStatement() {
 
   Actions.actOnFinishOfDoStatement();
 
-  return DoStmt::Create(
-      Cond.get(), Body.get(), SourceRange(BeginLoc, Lex.getBufferPtr())));
+  return DoStmt::Create(Cond.get(), Body.get(),
+                        SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 /// parseForStatement
