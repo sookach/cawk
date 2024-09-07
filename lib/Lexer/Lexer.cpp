@@ -77,8 +77,8 @@ void Lexer::lexNumericConstant(Token &T) {
   auto End = BufferPtr + 1;
   for (; charinfo::isDigit(*End); ++End)
     ;
-  if (*BufferPtr == '.')
-    for (++BufferPtr; charinfo::isDigit(*BufferPtr); ++BufferPtr)
+  if (*End == '.')
+    for (++End; charinfo::isDigit(*End); ++End)
       ;
   formToken(T, End, tok::numeric_constant);
   return;
