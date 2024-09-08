@@ -58,9 +58,10 @@ DeclResult Parser::parseTranslationUnit() {
     if (!HasError)
       Decls.push_back(Res.get());
   }
-  if (!HasError)
-    return TranslationUnitDecl::Create(Decls);
-  return false;
+  if (HasError)
+    return false;
+
+  return TranslationUnitDecl::Create(Decls);
 }
 
 /// parseDeclaration

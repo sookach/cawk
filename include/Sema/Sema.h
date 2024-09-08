@@ -19,33 +19,32 @@ class Sema {
   };
 
   class SymbolTable {
-    std::unordered_map<std::string, Value *> Globals;
-    std::unordered_map<std::string, Value *> Locals;
+    std::vector<std::unordered_map<std::string, Value *>> Tables;
+    std::unordered_map<std::string, std::vector<Expr *>> Undefined;
 
   public:
-    bool containsLocal(std::string Name) { return Locals.contains(Name); }
-    bool containsGlobal(std::string Name) { return Globals.contains(Name); }
+    void addTable() { Tables.emplace_back(); }
+    void removeTable() { Tables.pop_back(); }
+    Value *lookup(std::string Name) {
+      for (auto It = std::rbegin(Tables); It != std::rend(Tables); ++It)
+        if (It->contains(Name))
+          return It->at(Name);
+      return nullptr;
+    }
     bool contains(std::string Name) {
-      return containsLocal(Name) || containsGlobal(Name);
+      for (auto It = std::rbegin(Tables); It != std::rend(Tables); ++It)
+        if (It->contains(Name))
+          return true;
+      return false;
     }
-
-    Value *at(std::string Name) {
-      if (Locals.contains(Name))
-        return Locals.at(Name);
-      return Globals.at(Name);
+    auto getCurrentTable() { return Tables.back(); }
+    bool alreadyDefined(std::string Name) {
+      return Tables.back().contains(Name);
     }
-
-    void clearLocals() { Locals.clear(); }
-    void addLocal(std::string Name, Value *V) { Locals[Name] = V; }
-    void addGlobal(std::string Name, Value *V) { Globals[Name] = V; }
-    auto getGlobals() { return Globals; }
-
-    void resolve(std::string Name, Expr *E) {
-      if (contains(Name))
-        E->setValue(at(Name));
-      else
-        Globals[Name] = E->getValue();
+    void addUndefined(std::string Name, Value *V) {
+      Undefined[Name].push_back(V);
     }
+    void removeUndefined(std::string Name) { Undefined.erase(Name); }
   };
 
   Diagnostic &Diags;
@@ -67,6 +66,7 @@ public:
   StmtResult actOnReturnStatement(ReturnStmt *R);
   void actOnStartOfWhileStatement();
   void actOnFinishOfWhileStatement();
+  void actOnCallExpr(CallExpr *C);
   void actOnDeclRefExpr(DeclRefExpr *D);
 
   auto getSymbols() { return Symbols; }

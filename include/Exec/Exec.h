@@ -21,7 +21,7 @@ class Exec : public ASTVisitor<Exec, trav::None, true> {
   TranslationUnitDecl *AST;
   std::vector<Value *> FieldTable;
   std::vector<InputFile> Inputs;
-  std::unordered_map<std::string, Value *> Globals;
+  std::vector<std::unordered_map<std::string, Value *>> Environments;
   std::unordered_set<Value *> InputModifiers;
   std::unordered_set<Value *> OutputModifiers;
   std::vector<CallExpr *> CallStack;
@@ -35,7 +35,7 @@ public:
   Exec(Diagnostic &Diags, TranslationUnitDecl *AST,
        std::vector<InputFile> Inputs,
        std::unordered_map<std::string, Value *> Globals)
-      : Diags(Diags), AST(AST), Inputs(Inputs), Globals(Globals) {
+      : Diags(Diags), AST(AST), Inputs(Inputs), Environments({Globals}) {
     initBuiltinVariables();
   }
   void operator()();

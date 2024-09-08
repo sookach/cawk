@@ -1,5 +1,7 @@
 #include "Sema/Sema.h"
 #include "AST/ASTPrinter.h"
+#include "Support/Support.h"
+
 #include <cstdio>
 
 using namespace cawk;
@@ -51,6 +53,12 @@ StmtResult Sema::actOnReturnStatement(ReturnStmt *R) {
 void Sema::actOnStartOfWhileStatement() { CtrlFlow.enterLoop(); }
 
 void Sema::actOnFinishOfWhileStatement() { CtrlFlow.exitLoop(); }
+
+void Sema::actOnCallExpr(CallExpr *C) {
+  if (DeclRefExpr *D = dyn_cast<DeclRefExpr>(C->getCallee());
+      D && !Symbols.contains(std::string(D->getName())))
+    Symbols.addUndefined(std::string(D->getName()), D);
+}
 
 void Sema::actOnDeclRefExpr(DeclRefExpr *D) {
   Symbols.resolve(std::string(D->getName()), D);
