@@ -488,7 +488,6 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       auto BeginLoc = Lex.getBufferPtr();
       DeclRefExpr *D = DeclRefExpr::Create(
           advance(), SourceRange(BeginLoc, Lex.getBufferPtr()));
-      Actions.actOnDeclRefExpr(D);
       return D;
     }
     case tok::numeric_constant: {

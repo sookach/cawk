@@ -7,21 +7,21 @@
 using namespace cawk;
 
 bool Sema::actOnParamList(std::vector<ParamVarDecl *> Params) {
-  Symbols.clearLocals();
-  for (ParamVarDecl *P : Params) {
-    if (Symbols.containsLocal(std::string(P->getName()))) {
+  std::unordered_set<std::string> Names;
+  for (ParamVarDecl *P : Params)
+    if (!Names.emplace(P->getName()).second)
       return false;
-    }
-    Symbols.addLocal(std::string(P->getName()), new Value);
-  }
   return true;
 }
 
 void Sema::actOnStartOfFunctionBody() { CtrlFlow.enterFunction(); }
 
-void Sema::actOnFinishOfFunctionBody() {
-  CtrlFlow.exitFunction();
-  Symbols.clearLocals();
+void Sema::actOnFinishOfFunctionBody() { CtrlFlow.exitFunction(); }
+
+DeclResult Sema::actOnFunctionDeclaration(FunctionDecl *F) {
+  if (Symbols.emplace(F->getName(), new Value(F)).second)
+    return F;
+  return false;
 }
 
 StmtResult Sema::actOnBreakStatement(BreakStmt *B) {
@@ -53,13 +53,3 @@ StmtResult Sema::actOnReturnStatement(ReturnStmt *R) {
 void Sema::actOnStartOfWhileStatement() { CtrlFlow.enterLoop(); }
 
 void Sema::actOnFinishOfWhileStatement() { CtrlFlow.exitLoop(); }
-
-void Sema::actOnCallExpr(CallExpr *C) {
-  if (DeclRefExpr *D = dyn_cast<DeclRefExpr>(C->getCallee());
-      D && !Symbols.contains(std::string(D->getName())))
-    Symbols.addUndefined(std::string(D->getName()), D);
-}
-
-void Sema::actOnDeclRefExpr(DeclRefExpr *D) {
-  Symbols.resolve(std::string(D->getName()), D);
-}

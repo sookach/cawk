@@ -33,7 +33,6 @@ void Exec::operator()() {
     SkipToNextfile = false;
     for (; !Input.isEOF() && !SkipToNextfile;) {
       FieldTable = {new Value(Input.getLine())};
-      updateFields(FieldTable.front());
       SkipToNext = false;
       visit(AST);
 
@@ -255,8 +254,6 @@ bool Exec::visit(BinaryOperator *B) {
     B->getLHS()->setValue(*B->getRHS()->getValue());
     B->setValue(B->getLHS()->getValue());
     B->getLHS()->executeOnAssignment();
-    if (OutputModifiers.contains(B->getLHS()->getValue()))
-      joinFields();
     break;
 #define CASE(TOK, OP)                                                          \
   traverse(B->getLHS());                                                       \
@@ -265,9 +262,6 @@ bool Exec::visit(BinaryOperator *B) {
                             ->getValueAs<NumberTy>() OP B->getRHS()            \
                             ->getValueAs<NumberTy>());                         \
   B->setValue(B->getValueAs<NumberTy>());                                      \
-  if (auto *U = dyn_cast<UnaryOperator>(B->getLHS());                          \
-      U != nullptr && U->getOpcode().is(tok::dollar))                          \
-    updateFields(B->getLHS()->getValue());                                     \
   break
     CASE(tok::plusequal, +);
     CASE(tok::minusequal, -);
@@ -281,8 +275,6 @@ bool Exec::visit(BinaryOperator *B) {
     B->getLHS()->setValue(std::pow(B->getLHS()->getValueAs<NumberTy>(),
                                    B->getRHS()->getValueAs<NumberTy>()));
     B->setValue(B->getLHS()->getValueAs<NumberTy>());
-    if (OutputModifiers.contains(B->getLHS()->getValue()))
-      joinFields();
     break;
   }
   return true;
@@ -328,7 +320,10 @@ bool Exec::visit(CallExpr *C) {
   return true;
 }
 
-bool Exec::visit(DeclRefExpr *D) { return true; }
+bool Exec::visit(DeclRefExpr *D) {
+  D->setValue(Environments.back()[std::string(D->getName())]);
+  return true;
+}
 
 bool Exec::visit(FloatingLiteral *F) {
   F->setValue(Value(std::stod(std::string(F->getLiteral().getLiteralData()))));
@@ -461,8 +456,6 @@ bool Exec::visit(UnaryOperator *U) {
     else
       U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
     U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() + 1);
-    if (OutputModifiers.contains(U->getSubExpr()->getValue()))
-      joinFields();
     break;
   case tok::minusminus:
     traverse(U->getSubExpr());
@@ -471,8 +464,6 @@ bool Exec::visit(UnaryOperator *U) {
     else
       U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
     U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() - 1);
-    if (OutputModifiers.contains(U->getSubExpr()->getValue()))
-      joinFields();
     break;
   case tok::exclaim:
     traverse(U->getSubExpr());
@@ -501,8 +492,6 @@ bool Exec::visit(UnaryOperator *U) {
     } else {
       U->setValue(FieldTable[SubExpr]);
     }
-
-    U->setOnAssignment([this, U]() { updateFields(U->getValue()); });
   }
   }
   return true;
@@ -551,81 +540,10 @@ bool Exec::isEarlyExit() {
          SkipToNextfile;
 }
 
-void Exec::updateFields(Value *V) {
-  if (FieldTable.front() == V) {
-    FieldTable.resize(1);
-    auto String = V->getAs<StringTy>();
-    std::vector<std::string> Fields =
-        split(String, Globals["FS"]->getAs<StringTy>());
-    for (auto &Field : Fields)
-      FieldTable.push_back(new Value(Field));
-    Globals["NF"]->setValue(Value(std::size(Fields)));
-  } else {
-    FieldTable.front() =
-        std::accumulate(std::cbegin(FieldTable) + 1, std::cend(FieldTable),
-                        new Value(), [this](Value *Accum, Value *V) {
-                          return new Value(Accum->getAs<StringTy>() +
-                                           Globals["OFS"]->getAs<StringTy>() +
-                                           V->getAs<StringTy>());
-                        });
-  }
-}
-
-void Exec::splitFields() {
-  auto String = FieldTable.front()->getAs<StringTy>();
-  std::vector<std::string> Fields =
-      split(String, Globals["IFS"]->getAs<StringTy>());
-  FieldTable = {new Value(String)};
-  for (auto &Field : Fields)
-    FieldTable.push_back(new Value(Field));
-  Globals["NF"]->setValue(Value(std::size(Fields)));
-}
-
-void Exec::joinFields() {
-  double NF = Globals["NF"]->getAs<NumberTy>();
-  if (NF == 0) {
-    FieldTable.front()->setValue(Value(""));
-    return;
-  }
-  FieldTable.front()->setValue(FieldTable[1]->getAs<StringTy>());
-  FieldTable.resize(NF + 1, new Value);
-  for (int I = 2; I != NF + 1; ++I) {
-    FieldTable.front()->setValue(FieldTable.front()->getAs<StringTy>() +
-                                 Globals["OFS"]->getAs<StringTy>() +
-                                 FieldTable[I]->getAs<StringTy>());
-  }
-}
-
 void Exec::initBuiltinVariables() {
-  if (Globals.contains("FS"))
-    Globals["FS"]->setValue(Value(" "));
-  else
-    Globals["FS"] = new Value(" ");
-  InputModifiers.insert(Globals["FS"]);
-  OutputModifiers.insert(Globals["FS"]);
-
-  if (Globals.contains("OFS"))
-    Globals["OFS"]->setValue(Value(" "));
-  else
-    Globals["OFS"] = new Value(" ");
-  OutputModifiers.insert(Globals["OFS"]);
-
-  if (Globals.contains("RS"))
-    Globals["RS"]->setValue(Value("\n"));
-  else
-    Globals["RS"] = new Value("\n");
-  InputModifiers.insert(Globals["RS"]);
-  OutputModifiers.insert(Globals["RS"]);
-
-  if (Globals.contains("ORS"))
-    Globals["ORS"]->setValue(Value("\n"));
-  else
-    Globals["ORS"] = new Value("\n");
-  OutputModifiers.insert(Globals["ORS"]);
-
-  if (Globals.contains("NF"))
-    Globals["NF"]->setValue(Value(0.0));
-  else
-    Globals["NF"] = new Value(0.0);
-  OutputModifiers.insert(Globals["NF"]);
+  Environments.back()["FS"] = new Value(" ");
+  Environments.back()["OFS"] = new Value(" ");
+  Environments.back()["RS"] = new Value("\n");
+  Environments.back()["ORS"] = new Value("\n");
+  Environments.back()["NF"] = new Value(0.0);
 }
