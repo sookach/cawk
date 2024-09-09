@@ -129,10 +129,13 @@ bool Exec::visit(ForStmt *F) {
 }
 
 bool Exec::visit(ForRangeStmt *F) {
+  Environments.emplace_back();
   for (auto &[Key, Val] : F->getRange()->getValue()->get<ArrayTy>()) {
-    F->getLoopVar()->setValue(Value::Scalar(Key));
+    Environments.back()[std::string(F->getLoopVar()->getName())] =
+        new Value(Key);
     traverse(F->getBody());
   }
+  Environments.pop_back();
   return true;
 }
 
@@ -231,9 +234,9 @@ bool Exec::visit(BinaryOperator *B) {
   case TOK:                                                                    \
     traverse(B->getLHS());                                                     \
     traverse(B->getRHS());                                                     \
-    B->setValue(B->getLHS()                                                    \
-                    ->getValueAs<NumberTy>() OP B->getRHS()                    \
-                    ->getValueAs<NumberTy>());                                 \
+    B->setValue(Value(B->getLHS()                                              \
+                          ->getValueAs<NumberTy>() OP B->getRHS()              \
+                          ->getValueAs<NumberTy>()));                          \
     break
     CASE(tok::plus, +);
     CASE(tok::minus, -);
@@ -245,8 +248,8 @@ bool Exec::visit(BinaryOperator *B) {
   case tok::space:
     traverse(B->getLHS());
     traverse(B->getRHS());
-    B->setValue(B->getLHS()->getValueAs<StringTy>() +
-                B->getRHS()->getValueAs<StringTy>());
+    B->setValue(Value(B->getLHS()->getValueAs<StringTy>() +
+                      B->getRHS()->getValueAs<StringTy>()));
     break;
   case tok::equal:
     traverse(B->getLHS());
@@ -258,10 +261,10 @@ bool Exec::visit(BinaryOperator *B) {
 #define CASE(TOK, OP)                                                          \
   traverse(B->getLHS());                                                       \
   traverse(B->getRHS());                                                       \
-  B->getLHS()->setValue(B->getLHS()                                            \
-                            ->getValueAs<NumberTy>() OP B->getRHS()            \
-                            ->getValueAs<NumberTy>());                         \
-  B->setValue(B->getValueAs<NumberTy>());                                      \
+  B->getLHS()->setValue(Value(B->getLHS()                                      \
+                                  ->getValueAs<NumberTy>() OP B->getRHS()      \
+                                  ->getValueAs<NumberTy>()));                  \
+  B->setValue(B->getValue());                                                  \
   break
     CASE(tok::plusequal, +);
     CASE(tok::minusequal, -);
@@ -272,9 +275,9 @@ bool Exec::visit(BinaryOperator *B) {
   case tok::starstarequal:
     traverse(B->getLHS());
     traverse(B->getRHS());
-    B->getLHS()->setValue(std::pow(B->getLHS()->getValueAs<NumberTy>(),
-                                   B->getRHS()->getValueAs<NumberTy>()));
-    B->setValue(B->getLHS()->getValueAs<NumberTy>());
+    B->getLHS()->setValue(Value(std::pow(B->getLHS()->getValueAs<NumberTy>(),
+                                         B->getRHS()->getValueAs<NumberTy>())));
+    B->setValue(B->getLHS()->getValue());
     break;
   }
   return true;
@@ -443,27 +446,29 @@ bool Exec::visit(UnaryOperator *U) {
     cawk_unreachable("Invalid unary operation");
   case tok::plus:
     traverse(U->getSubExpr());
-    U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
+    U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>()));
     break;
   case tok::minus:
     traverse(U->getSubExpr());
-    U->setValue(-U->getSubExpr()->getValueAs<NumberTy>());
+    U->setValue(Value(-U->getSubExpr()->getValueAs<NumberTy>()));
     break;
   case tok::plusplus:
     traverse(U->getSubExpr());
     if (U->getFix() == UnaryOperator::Prefix)
-      U->setValue(U->getSubExpr()->getValueAs<NumberTy>() + 1);
+      U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>() + 1));
     else
-      U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
-    U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() + 1);
+      U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>()));
+    U->getSubExpr()->setValue(
+        Value(U->getSubExpr()->getValueAs<NumberTy>() + 1));
     break;
   case tok::minusminus:
     traverse(U->getSubExpr());
     if (U->getFix() == UnaryOperator::Prefix)
-      U->setValue(U->getSubExpr()->getValueAs<NumberTy>() - 1);
+      U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>() - 1));
     else
-      U->setValue(U->getSubExpr()->getValueAs<NumberTy>());
-    U->getSubExpr()->setValue(U->getSubExpr()->getValueAs<NumberTy>() - 1);
+      U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>()));
+    U->getSubExpr()->setValue(
+        Value(U->getSubExpr()->getValueAs<NumberTy>() - 1));
     break;
   case tok::exclaim:
     traverse(U->getSubExpr());
@@ -473,13 +478,13 @@ bool Exec::visit(UnaryOperator *U) {
       cawk_fatal("Invalid conversion from ",
                  toString(U->getSubExpr()->getType()), " to boolean.");
     case NumberTy:
-      U->setValue(!U->getSubExpr()->getValueAs<NumberTy>());
+      U->setValue(Value(!U->getSubExpr()->getValueAs<NumberTy>()));
       break;
     case StringTy:
-      U->setValue(!std::empty(U->getSubExpr()->getValueAs<StringTy>()));
+      U->setValue(Value(!std::empty(U->getSubExpr()->getValueAs<StringTy>())));
       break;
     case NullTy:
-      U->setValue(true);
+      U->setValue(Value(true));
     }
   case tok::dollar: {
     traverse(U->getSubExpr());
@@ -519,15 +524,15 @@ bool Exec::execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args) {
   case tok::kw_gsub:
   case tok::kw_index:
     assert(std::size(Args) == 2 && "invalid call to index");
-    CallStack.back()->setValue(
-        index(Args.front()->getAs<StringTy>(), Args.back()->getAs<StringTy>()));
+    CallStack.back()->setValue(Value(index(Args.front()->getAs<StringTy>(),
+                                           Args.back()->getAs<StringTy>())));
   case tok::kw_match:
   case tok::kw_split:
   case tok::kw_sprintf:
     assert(!std::empty(Args) && "invalid call to sprintf");
     CallStack.back()->setValue(
-        sprintf(Args.front()->getAs<StringTy>(),
-                std::vector(std::cbegin(Args) + 1, std::cend(Args))));
+        Value(sprintf(Args.front()->getAs<StringTy>(),
+                      std::vector(std::cbegin(Args) + 1, std::cend(Args)))));
   case tok::kw_sub:
   case tok::kw_substr:
     return true;

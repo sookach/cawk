@@ -93,6 +93,7 @@ class FunctionDecl : public Decl {
   std::vector<ParamVarDecl *> Params;
   CompoundStmt *Body;
   std::unordered_set<TypeKind> ReturnTypes;
+  bool IsAssignable = false;
 
 protected:
   FunctionDecl() : Decl(DK_Function) {}
@@ -118,6 +119,8 @@ public:
   void addReturnType(TypeKind T) { ReturnTypes.insert(T); }
 
   std::unordered_set<TypeKind> getReturnTypes() const { return ReturnTypes; }
+
+  bool isAssignable() const { return IsAssignable; }
 
   static FunctionDecl *Create(Token Identifier,
                               std::vector<ParamVarDecl *> Params,
@@ -578,8 +581,6 @@ public:
   Value *getValue() { return Val; }
 
   template <TypeKind T> auto getValueAs() { return Val->getAs<T>(); }
-
-  void setValue(Value::Scalar S) { Val->setValue(S); }
 
   void setValue(Value V) { *Val = V; }
 
