@@ -53,3 +53,9 @@ StmtResult Sema::actOnReturnStatement(ReturnStmt *R) {
 void Sema::actOnStartOfWhileStatement() { CtrlFlow.enterLoop(); }
 
 void Sema::actOnFinishOfWhileStatement() { CtrlFlow.exitLoop(); }
+
+bool Sema::actOnDeclRefExpr(DeclRefExpr *D) {
+  if (Symbols.try_emplace(std::string(D->getName()), new Value).first->second->getType() != NullTy)
+    return false;
+  return true;
+}

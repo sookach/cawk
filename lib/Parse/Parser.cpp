@@ -521,6 +521,12 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     if (!LHS.isValid())
       return false;
 
+    if (DeclRefExpr *D = dyn_cast<DeclRefExpr>(LHS.get()); D != nullptr)
+      if ((!Tok.is(tok::l_paren) ||
+           Lex.getBufferPtr() != std::cend(D->getSourceRange())) &&
+          !Actions.actOnDeclRefExpr(D))
+        return false;
+
     for (;;) {
       switch (Tok.getKind()) {
       default:
@@ -533,8 +539,9 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
                                      SourceRange(BeginLoc, Lex.getBufferPtr()));
       }
       case tok::l_paren: {
-        if (std::end(LHS.get()->getSourceRange()) != Lex.getBufferPtr())
+        if (std::end(LHS.get()->getSourceRange()) != Lex.getBufferPtr()) {
           return LHS;
+        }
         auto BeginLoc = Lex.getBufferPtr();
         expect(tok::l_paren);
         std::vector<Expr *> Args;

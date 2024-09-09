@@ -38,6 +38,7 @@ public:
   StmtResult actOnReturnStatement(ReturnStmt *R);
   void actOnStartOfWhileStatement();
   void actOnFinishOfWhileStatement();
+  bool actOnDeclRefExpr(DeclRefExpr *D);
 
   auto getSymbols() { return Symbols; }
 };
