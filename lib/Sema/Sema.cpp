@@ -6,10 +6,10 @@
 
 using namespace cawk;
 
-bool Sema::actOnParamList(std::vector<ParamVarDecl *> Params) {
+bool Sema::actOnParamList(std::vector<VarDecl *> Params) {
   std::unordered_set<std::string> Names;
-  for (ParamVarDecl *P : Params)
-    if (!Names.emplace(P->getName()).second)
+  for (VarDecl *V : Params)
+    if (!Names.emplace(V->getName()).second)
       return false;
   return true;
 }
@@ -55,7 +55,8 @@ void Sema::actOnStartOfWhileStatement() { CtrlFlow.enterLoop(); }
 void Sema::actOnFinishOfWhileStatement() { CtrlFlow.exitLoop(); }
 
 bool Sema::actOnDeclRefExpr(DeclRefExpr *D) {
-  if (Symbols.try_emplace(std::string(D->getName()), new Value).first->second->getType() != NullTy)
+  if (Symbols.try_emplace(std::string(D->getName()), new Value)
+          .first->second->getType() != NullTy)
     return false;
   return true;
 }

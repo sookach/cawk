@@ -42,7 +42,6 @@ class TranslationUnitDecl;
 class RuleDecl;
 class FunctionDecl;
 class VarDecl;
-class ParamVarDecl;
 
 class Expr {
 public:
@@ -666,13 +665,7 @@ public:
 
 class Decl {
 public:
-  enum DeclKind {
-    DK_TranslationUnit,
-    DK_Rule,
-    DK_Function,
-    DK_Var,
-    DK_ParamVar
-  };
+  enum DeclKind { DK_TranslationUnit, DK_Rule, DK_Function, DK_Var };
 
 private:
   const DeclKind Kind;
@@ -710,7 +703,7 @@ public:
 
 class FunctionDecl : public Decl {
   Token Identifier;
-  std::vector<ParamVarDecl *> Params;
+  std::vector<VarDecl *> Params;
   CompoundStmt *Body;
   std::unordered_set<TypeKind> ReturnTypes;
   bool IsAssignable = false;
@@ -718,7 +711,7 @@ class FunctionDecl : public Decl {
 protected:
   FunctionDecl() : Decl(DK_Function) {}
 
-  FunctionDecl(Token Identifier, std::vector<ParamVarDecl *> Params,
+  FunctionDecl(Token Identifier, std::vector<VarDecl *> Params,
                CompoundStmt *Body, SourceRange SrcRange)
       : Decl(DK_Function, SrcRange), Identifier(Identifier), Params(Params),
         Body(Body) {}
@@ -728,7 +721,7 @@ public:
 
   Token getIdentifier() const { return Identifier; }
 
-  std::vector<ParamVarDecl *> getParams() const { return Params; }
+  std::vector<VarDecl *> getParams() const { return Params; }
 
   CompoundStmt *getBody() { return Body; }
 
@@ -742,8 +735,7 @@ public:
 
   bool isAssignable() const { return IsAssignable; }
 
-  static FunctionDecl *Create(Token Identifier,
-                              std::vector<ParamVarDecl *> Params,
+  static FunctionDecl *Create(Token Identifier, std::vector<VarDecl *> Params,
                               CompoundStmt *Body, SourceRange SrcRange) {
     return new FunctionDecl(Identifier, Params, Body, SrcRange);
   }
@@ -778,48 +770,20 @@ public:
 
 class VarDecl : public Decl {
 protected:
-  Token Identifier;
-  Value Val;
-  DeclRefExpr *E;
+  DeclRefExpr *D;
 
-  VarDecl(DeclKind Kind, Token Identifier, SourceRange SrcRange)
-      : Decl(Kind, SrcRange), Identifier(Identifier) {}
+  VarDecl(DeclRefExpr *D) : Decl(DK_Var, D->getSourceRange()), D(D) {}
 
 public:
-  static bool classof(const Decl *D) {
-    switch (D->getKind()) {
-    default:
-      return false;
-    case DK_Var:
-    case DK_ParamVar:
-      return true;
-    };
-  }
+  static bool classof(const Decl *D) { return D->getKind() == DK_Var; }
 
-  Token getIdentifier() { return Identifier; }
+  std::string_view getName() { return D->getIdentifier().getIdentifier(); }
 
-  std::string_view getName() { return getIdentifier().getIdentifier(); }
+  DeclRefExpr *getDeclRefExpr() { return D; }
 
-  DeclRefExpr *getExpr() { return E; }
+  void setDeclRefExpr(DeclRefExpr *D) { this->D = D; }
 
-  void setExpr(DeclRefExpr *D) { E = D; }
-
-  static VarDecl *Create(Token Identifier, SourceRange SrcRange) {
-    return new VarDecl(DK_Var, Identifier, SrcRange);
-  }
-};
-
-class ParamVarDecl : public VarDecl {
-protected:
-  ParamVarDecl(Token Identifier, SourceRange SrcRange)
-      : VarDecl(DK_ParamVar, Identifier, SrcRange) {}
-
-public:
-  static bool classof(const Decl *D) { return D->getKind() == DK_ParamVar; }
-
-  static ParamVarDecl *Create(Token Identifier, SourceRange SrcRange) {
-    return new ParamVarDecl(Identifier, SrcRange);
-  }
+  static VarDecl *Create(DeclRefExpr *D) { return new VarDecl(D); }
 };
 
 /// @brief Represents the result of a parse operation.

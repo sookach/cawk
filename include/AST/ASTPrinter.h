@@ -31,12 +31,7 @@ private:
     print(std::string("FunctionDecl "), F, " ", F->getName());
     return true;
   }
-
-  bool visit(ParamVarDecl *P) {
-    print(std::string("ParamVarDecl "), P, " ", P->getName());
-    return true;
-  }
-
+  
   bool visit(RuleDecl *R) {
     print(std::string("RuleDecl "), R);
     return true;

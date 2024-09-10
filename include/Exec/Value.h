@@ -46,11 +46,14 @@ public:
 
   explicit Value(TypeKind Type) : Type(Type) {}
 
-  explicit Value(double Raw) : Type(NumberTy) {}
+  explicit Value(double NumberValue)
+      : Type(NumberTy), NumberValue(NumberValue) {}
 
-  explicit Value(std::string Raw) : Type(StringTy) {}
+  explicit Value(std::string StringValue)
+      : Type(StringTy), StringValue(StringValue) {}
 
-  explicit Value(FunctionDecl *Raw) : Type(FunctionTy) {}
+  explicit Value(FunctionDecl *FunctionValue)
+      : Type(FunctionTy), FunctionValue(FunctionValue) {}
 
   TypeKind getType() { return Type; }
 
@@ -68,7 +71,6 @@ public:
   }
 
   template <TypeKind T> auto getAs() {
-    assert(Type == NumberTy || Type == StringTy || Type == NullTy);
     if constexpr (T == NumberTy) {
       if (Type == NumberTy)
         return NumberValue;
@@ -100,6 +102,16 @@ public:
         return std::string();
 
       cawk_fatal("Invalid conversion from ", toString(Type), " to string");
+    }
+
+    if constexpr (T == ArrayTy) {
+      assert(Type == ArrayTy || Type == NullTy);
+      return ArrayValue;
+    }
+
+    if constexpr (T == FunctionTy) {
+      assert(Type == FunctionTy || Type == NullTy);
+      return FunctionValue;
     }
   }
 

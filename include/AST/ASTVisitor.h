@@ -28,7 +28,6 @@ protected:
   case Decl::DK_##KIND:                                                        \
     return visit(static_cast<CLASS *>(D))
       CASE(Function, FunctionDecl);
-      CASE(ParamVar, ParamVarDecl);
       CASE(Rule, RuleDecl);
       CASE(TranslationUnit, TranslationUnitDecl);
       CASE(Var, VarDecl);
@@ -58,12 +57,12 @@ protected:
         static_cast<Derived *>(this)->template visit<true>(F);
     }
 
-    for (ParamVarDecl *P : F->getParams()) {
+    for (VarDecl *V : F->getParams()) {
       if constexpr (ShortCircuit) {
-        if (!visit(P))
+        if (!visit(V))
           return false;
       } else {
-        visit(P);
+        visit(V);
       }
     }
 
@@ -80,22 +79,6 @@ protected:
 
       if constexpr (Traversal == trav::RecursiveDescent)
         return static_cast<Derived *>(this)->template visit<false>(F);
-    }
-
-    return true;
-  }
-
-  bool visit(ParamVarDecl *P) {
-    if constexpr (CheckNull)
-      if (P == nullptr)
-        return true;
-
-    if constexpr (RequireImpl || hasVisit<ParamVarDecl>()) {
-      if constexpr (Traversal == trav::RecursiveDescent)
-        return static_cast<Derived *>(this)->template visit<true>(P) &&
-               static_cast<Derived *>(this)->template visit<false>(P);
-      else
-        return static_cast<Derived *>(this)->visit(P);
     }
 
     return true;

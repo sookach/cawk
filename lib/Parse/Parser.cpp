@@ -55,7 +55,7 @@ DeclResult Parser::parseTranslationUnit() {
   std::vector<Decl *> Decls;
   for (; (skip(tok::newline, tok::semi), !consume(tok::eof));) {
     DeclResult Res = parseDeclaration();
-    if (!HasError)
+    if (Res.isValid())
       Decls.push_back(Res.get());
   }
   if (HasError)
@@ -95,21 +95,21 @@ DeclResult Parser::parseFunctionDeclaration() {
     return false;
   }
   auto [Valid, Params] = [this] {
-    std::vector<ParamVarDecl *> Params;
+    std::vector<VarDecl *> Params;
 
     if (Tok.is(tok::identifier)) {
       auto BeginLoc = Lex.getBufferPtr();
       auto Iden = advance();
       auto EndLoc = Lex.getBufferPtr();
-      Params.push_back(
-          ParamVarDecl::Create(Iden, SourceRange(BeginLoc, EndLoc)));
+      Params.push_back(VarDecl::Create(
+          DeclRefExpr::Create(Iden, SourceRange(BeginLoc, EndLoc))));
     }
 
     for (; consume(tok::comma);) {
       auto BeginLoc = Lex.getBufferPtr();
       auto EndLoc = BeginLoc + Tok.getLength();
-      Params.push_back(
-          ParamVarDecl::Create(Tok, SourceRange(BeginLoc, EndLoc)));
+      Params.push_back(VarDecl::Create(
+          DeclRefExpr::Create(Tok, SourceRange(BeginLoc, EndLoc))));
       if (!expect(tok::identifier))
         return std::pair(false, Params);
     }
@@ -130,8 +130,9 @@ DeclResult Parser::parseFunctionDeclaration() {
   if (!Body.isValid())
     return false;
 
-  return FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>(),
-                              SourceRange(BeginLoc, Lex.getBufferPtr()));
+  return Actions.actOnFunctionDeclaration(
+      FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>(),
+                           SourceRange(BeginLoc, Lex.getBufferPtr())));
 }
 
 /// parseRuleDeclaration
@@ -351,32 +352,20 @@ StmtResult Parser::parsePrintStatement() {
   if (!consumeOneOf<true>(tok::kw_print, tok::kw_printf))
     return false;
 
-  auto [Args, Valid] = [this] -> std::pair<std::vector<Expr *>, bool> {
-    if (consumeOneOf(tok::newline, tok::semi))
-      return {{}, true};
+  std::vector<Expr *> Args;
 
-    ExprResult Arg = parseExpression<true>();
-
+  if (!Tok.is(tok::newline, tok::semi)) {
+    ExprResult Arg = parseExpression();
     if (!Arg.isValid())
-      return {{}, false};
-
-    /// We need to convert the nested comma operators into a flat list of Exprs.
-    std::vector<Expr *> Args;
-    if (Arg.get() != nullptr)
-      recursive([&Args](auto &&This, Expr *E) -> void {
-        if (isa<BinaryOperator>(E) &&
-            ptr_cast<BinaryOperator>(E)->getOpcode().is(tok::comma)) {
-          This(ptr_cast<BinaryOperator>(E)->getLHS());
-          This(ptr_cast<BinaryOperator>(E)->getRHS());
-        } else {
-          Args.push_back(E);
-        }
-      })(Arg.get());
-    return {Args, true};
-  }();
-
-  if (!Valid)
-    return false;
+      return false;
+    Args.push_back(Arg.get());
+    for (; consume(tok::comma);) {
+      Arg = parseExpression();
+      if (!Arg.isValid())
+        return false;
+      Args.push_back(Arg.get());
+    }
+  }
 
   auto [OpCode, Output] = [this] -> std::pair<Token, ExprResult> {
     switch (Tok.getKind()) {

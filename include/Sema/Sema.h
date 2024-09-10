@@ -25,7 +25,7 @@ class Sema {
 public:
   Sema(Diagnostic &Diags) : Diags(Diags) {}
 
-  bool actOnParamList(std::vector<ParamVarDecl *> Params);
+  bool actOnParamList(std::vector<VarDecl *> Params);
   void actOnStartOfFunctionBody();
   void actOnFinishOfFunctionBody();
   DeclResult actOnFunctionDeclaration(FunctionDecl *F);

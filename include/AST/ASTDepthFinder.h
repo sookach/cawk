@@ -16,15 +16,15 @@ class ASTDepthFinder : public ASTVisitor<ASTDepthFinder, trav::Preorder, true> {
 
 private:
   bool visit(FunctionDecl *F) {
-    for (ParamVarDecl *P : F->getParams())
-      Table[P] = Table[F] + 1;
+    for (VarDecl *V : F->getParams())
+      Table[V] = Table[F] + 1;
 
     Table[F->getBody()] = Table[F] + 1;
 
     return true;
   }
 
-  bool visit(ParamVarDecl *P) { return true; }
+  bool visit(VarDecl *V) { return true; }
 
   bool visit(RuleDecl *R) {
     Table[R->getPattern()] = Table[R->getAction()] = Table[R] + 1;

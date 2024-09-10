@@ -303,10 +303,9 @@ bool Exec::visit(CallExpr *C) {
     return true;
   }
 
-  if (!isa<DeclRefExpr>(C->getCallee())) {
+  if (!traverse(C->getCallee()))
     return false;
-  }
-  FunctionDecl *Function = C->getValue()->get<FunctionTy>();
+  FunctionDecl *Function = C->getCallee()->getValueAs<FunctionTy>();
   auto Params = Function->getParams();
   auto Args = C->getArgs();
 
