@@ -309,11 +309,24 @@ bool Exec::visit(CallExpr *C) {
   auto Params = Function->getParams();
   auto Args = C->getArgs();
 
-  for (int I = 0; I != std::size(Args); ++I) {
-    if (isa<DeclRefExpr>(Args[I]) && Args[I]->getValue()->is<ArrayTy>())
-      Params[I]->setExpr(static_cast<DeclRefExpr *>(Args[I]));
+  Environments.emplace_back();
+
+  for (Expr *E : Args) {
+    if (!traverse(E))
+      return false;
+  }
+
+  for (int I = 0; I != std::min(std::size(Params), std::size(Args)); ++I) {
+    if (!traverse(Args[I]))
+      return false;
+
+    auto Type = Args[I]->getType();
+    if (Type == ArrayTy || Type == FunctionTy)
+      Environments.back()[std::string(Params[I]->getName())] =
+          Args[I]->getValue();
     else
-      Params[I]->getExpr()->setValue(*Args[I]->getValue());
+      Environments.back()[std::string(Params[I]->getName())] =
+          new Value(*Args[I]->getValue());
   }
 
   CallStack.push_back(C);
