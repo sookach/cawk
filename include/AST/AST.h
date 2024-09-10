@@ -10,12 +10,15 @@
 
 namespace cawk {
 
-class Decl;
-class TranslationUnitDecl;
-class RuleDecl;
-class FunctionDecl;
-class VarDecl;
-class ParamVarDecl;
+class Expr;
+class ArraySubscriptExpr;
+class BinaryOperator;
+class CallExpr;
+class DeclRefExpr;
+class FloatingLiteral;
+class RegexLiteral;
+class StringLiteral;
+class UnaryOperator;
 
 class Stmt;
 class BreakStmt;
@@ -34,171 +37,289 @@ class ReturnStmt;
 class ValueStmt;
 class WhileStmt;
 
-class Expr;
-class ArraySubscriptExpr;
-class BinaryOperator;
-class CallExpr;
-class DeclRefExpr;
-class FloatingLiteral;
-class RegexLiteral;
-class StringLiteral;
-class UnaryOperator;
+class Decl;
+class TranslationUnitDecl;
+class RuleDecl;
+class FunctionDecl;
+class VarDecl;
+class ParamVarDecl;
 
-class Decl {
+class Expr {
 public:
-  enum DeclKind {
-    DK_TranslationUnit,
-    DK_Rule,
-    DK_Function,
-    DK_Var,
-    DK_ParamVar
+  enum ExprKind {
+    EK_ArraySubscript,
+    EK_Begin,
+    EK_BinaryOperator,
+    EK_Call,
+    EK_DeclRef,
+    EK_End,
+    EK_FloatingLiteral,
+    EK_RegexLiteral,
+    EK_StringLiteral,
+    EK_UnaryOperator
   };
 
+protected:
+  Expr(ExprKind Kind) : Kind(Kind) {}
+  Expr(ExprKind Kind, SourceRange SrcRange) : Kind(Kind), SrcRange(SrcRange) {}
+
 private:
-  const DeclKind Kind;
+  const ExprKind Kind;
   SourceRange SrcRange;
-
-protected:
-  Decl(DeclKind K) : Kind(K) {}
-  Decl(DeclKind K, SourceRange SrcRange) : Kind(K), SrcRange(SrcRange) {}
+  bool IsLValue = false;
+  Value *Val = new Value;
+  std::function<void()> OnAssignment = []() {};
 
 public:
-  DeclKind getKind() const { return Kind; }
+  ExprKind getKind() const { return Kind; }
+
   SourceRange getSourceRange() const { return SrcRange; }
+
+  bool isLValue() const { return IsLValue; }
+
+  void markAsLValue() { IsLValue = true; }
+
+  Value *getValue() { return Val; }
+
+  template <TypeKind T> auto getValueAs() { return Val->getAs<T>(); }
+
+  void setValue(Value V) { *Val = V; }
+
+  void setValue(Value *V) { Val = V; }
+
+  TypeKind getType() { return Val->getType(); }
+
+  void setOnAssignment(std::function<void()> F) { OnAssignment = F; }
+
+  void executeOnAssignment() { OnAssignment(); }
 };
 
-class TranslationUnitDecl : public Decl {
-  std::vector<Decl *> Decls;
+class ArraySubscriptExpr : public Expr {
+  Expr *LHS;
+  std::vector<Expr *> RHS;
 
 protected:
-  TranslationUnitDecl() : Decl(DK_TranslationUnit) {}
-  TranslationUnitDecl(std::vector<Decl *> D)
-      : Decl(DK_TranslationUnit), Decls(D) {}
+  ArraySubscriptExpr(Expr *LHS, std::vector<Expr *> RHS, SourceRange SrcRange)
+      : Expr(EK_ArraySubscript, SrcRange), LHS(LHS), RHS(RHS) {}
 
 public:
-  static bool classof(const Decl *D) {
-    return D->getKind() == DK_TranslationUnit;
+  static bool classof(const Expr *E) {
+    return E->getKind() == EK_ArraySubscript;
   }
 
-  static TranslationUnitDecl *Create(std::vector<Decl *> Decls) {
-    return new TranslationUnitDecl(Decls);
-  }
-  static TranslationUnitDecl *CreateEmpty() { return new TranslationUnitDecl; }
+  Expr *getLHS() const { return LHS; }
 
-  const std::vector<Decl *> &getDecls() const { return Decls; }
+  void setLHS(Expr *E) { LHS = E; }
+
+  std::vector<Expr *> getRHS() const { return RHS; }
+
+  void setRHS(int I, Expr *E) {
+    assert(I < std::size(RHS));
+    RHS[I] = E;
+  }
+
+  void setRHS(std::vector<Expr *> E) { RHS = E; }
+
+  static ArraySubscriptExpr *Create(Expr *LHS, std::vector<Expr *> RHS,
+                                    SourceRange SrcRange) {
+    return new ArraySubscriptExpr(LHS, RHS, SrcRange);
+  }
 };
 
-class FunctionDecl : public Decl {
+class BeginKeyword : public Expr {
+protected:
+  BeginKeyword(SourceRange SrcRange) : Expr(EK_Begin, SrcRange) {}
+
+public:
+  static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
+
+  static BeginKeyword *Create(SourceRange SrcRange) {
+    static Value *TheValue = new Value;
+    BeginKeyword *Raw = new BeginKeyword(SrcRange);
+    Raw->setValue(TheValue);
+    return Raw;
+  }
+};
+
+class BinaryOperator : public Expr {
+  Expr *LHS;
+  Expr *RHS;
+  Token Opcode;
+
+protected:
+  BinaryOperator(Expr *LHS, Expr *RHS, Token Opcode, SourceRange SrcRange)
+      : Expr(EK_BinaryOperator, SrcRange), LHS(LHS), RHS(RHS), Opcode(Opcode) {}
+
+public:
+  static bool classof(const Expr *E) {
+    return E->getKind() == EK_BinaryOperator;
+  }
+
+  Expr *getLHS() { return LHS; }
+
+  void setLHS(Expr *E) { LHS = E; }
+
+  Expr *getRHS() { return RHS; }
+
+  void setRHS(Expr *E) { RHS = E; }
+
+  Token getOpcode() { return Opcode; }
+
+  static BinaryOperator *Create(Expr *LHS, Expr *RHS, Token Opcode,
+                                SourceRange SrcRange) {
+    return new BinaryOperator(LHS, RHS, Opcode, SrcRange);
+  }
+};
+
+class CallExpr : public Expr {
+  Expr *Callee;
+  std::vector<Expr *> Args;
+
+protected:
+  CallExpr(Expr *Callee, std::vector<Expr *> Args, SourceRange SrcRange)
+      : Expr(EK_Call, SrcRange), Callee(Callee), Args(Args) {}
+
+public:
+  static bool classof(const Expr *E) { return E->getKind() == EK_Call; }
+
+  Expr *getCallee() { return Callee; }
+
+  std::vector<Expr *> getArgs() { return Args; }
+
+  void setArg(int I, Expr *E) {
+    assert(I < std::size(Args));
+    Args[I] = E;
+  }
+
+  static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args,
+                          SourceRange SrcRange) {
+    return new CallExpr(Callee, Args, SrcRange);
+  }
+};
+
+class DeclRefExpr : public Expr {
   Token Identifier;
-  std::vector<ParamVarDecl *> Params;
-  CompoundStmt *Body;
-  std::unordered_set<TypeKind> ReturnTypes;
-  bool IsAssignable = false;
 
 protected:
-  FunctionDecl() : Decl(DK_Function) {}
-
-  FunctionDecl(Token Identifier, std::vector<ParamVarDecl *> Params,
-               CompoundStmt *Body, SourceRange SrcRange)
-      : Decl(DK_Function, SrcRange), Identifier(Identifier), Params(Params),
-        Body(Body) {}
+  DeclRefExpr(Token Identifier, SourceRange SrcRange)
+      : Expr(EK_DeclRef, SrcRange), Identifier(Identifier) {}
 
 public:
-  static bool classof(const Decl *D) { return D->getKind() == DK_Function; }
+  static bool classof(const Expr *E) { return E->getKind() == EK_DeclRef; }
 
   Token getIdentifier() const { return Identifier; }
 
-  std::vector<ParamVarDecl *> getParams() const { return Params; }
+  std::string_view getName() const { return getIdentifier().getRawData(); }
 
-  CompoundStmt *getBody() { return Body; }
-
-  const CompoundStmt *getBody() const { return Body; }
-
-  std::string_view getName() const { return getIdentifier().getIdentifier(); }
-
-  void addReturnType(TypeKind T) { ReturnTypes.insert(T); }
-
-  std::unordered_set<TypeKind> getReturnTypes() const { return ReturnTypes; }
-
-  bool isAssignable() const { return IsAssignable; }
-
-  static FunctionDecl *Create(Token Identifier,
-                              std::vector<ParamVarDecl *> Params,
-                              CompoundStmt *Body, SourceRange SrcRange) {
-    return new FunctionDecl(Identifier, Params, Body, SrcRange);
-  }
-
-  static FunctionDecl *CreateEmpty() { return new FunctionDecl; }
-};
-
-class RuleDecl : public Decl {
-  Expr *Pattern;
-  CompoundStmt *Action;
-
-protected:
-  RuleDecl() : Decl(DK_Rule) {}
-
-  RuleDecl(Expr *Pattern, CompoundStmt *Action, SourceRange SrcRange)
-      : Decl(DK_Rule, SrcRange), Pattern(Pattern), Action(Action) {}
-
-public:
-  static bool classof(const Decl *D) { return D->getKind() == DK_Rule; }
-
-  Expr *getPattern() const { return Pattern; }
-
-  CompoundStmt *getAction() const { return Action; }
-
-  void setPattern(Expr *E) { Pattern = E; }
-
-  static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action,
-                          SourceRange SrcRange) {
-    return new RuleDecl(Pattern, Action, SrcRange);
+  static DeclRefExpr *Create(Token Identifier, SourceRange SrcRange) {
+    return new DeclRefExpr(Identifier, SrcRange);
   }
 };
 
-class VarDecl : public Decl {
+class EndKeyword : public Expr {
 protected:
-  Token Identifier;
-  Value Val;
-  DeclRefExpr *E;
-
-  VarDecl(DeclKind Kind, Token Identifier, SourceRange SrcRange)
-      : Decl(Kind, SrcRange), Identifier(Identifier) {}
+  EndKeyword(SourceRange SrcRange) : Expr(EK_End, SrcRange) {}
 
 public:
-  static bool classof(const Decl *D) {
-    switch (D->getKind()) {
-    default:
-      return false;
-    case DK_Var:
-    case DK_ParamVar:
-      return true;
-    };
-  }
+  static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
 
-  Token getIdentifier() { return Identifier; }
-
-  std::string_view getName() { return getIdentifier().getIdentifier(); }
-
-  DeclRefExpr *getExpr() { return E; }
-
-  void setExpr(DeclRefExpr *D) { E = D; }
-
-  static VarDecl *Create(Token Identifier, SourceRange SrcRange) {
-    return new VarDecl(DK_Var, Identifier, SrcRange);
+  static EndKeyword *Create(SourceRange SrcRange) {
+    static Value *TheValue = new Value;
+    EndKeyword *Raw = new EndKeyword(SrcRange);
+    Raw->setValue(TheValue);
+    return Raw;
   }
 };
 
-class ParamVarDecl : public VarDecl {
+class FloatingLiteral : public Expr {
+  Token Literal;
+
 protected:
-  ParamVarDecl(Token Identifier, SourceRange SrcRange)
-      : VarDecl(DK_ParamVar, Identifier, SrcRange) {}
+  FloatingLiteral(Token Literal, SourceRange SrcRange)
+      : Expr(EK_FloatingLiteral), Literal(Literal) {
+    this->setValue(Value(std::stod(std::string(Literal.getLiteralData()))));
+  }
 
 public:
-  static bool classof(const Decl *D) { return D->getKind() == DK_ParamVar; }
+  static bool classof(const Expr *E) {
+    return E->getKind() == EK_FloatingLiteral;
+  }
 
-  static ParamVarDecl *Create(Token Identifier, SourceRange SrcRange) {
-    return new ParamVarDecl(Identifier, SrcRange);
+  Token getLiteral() { return Literal; }
+
+  static FloatingLiteral *Create(Token Literal, SourceRange SrcRange) {
+    return new FloatingLiteral(Literal, SrcRange);
+  }
+};
+
+class RegexLiteral : public Expr {
+  Token Literal;
+
+protected:
+  RegexLiteral(Token Literal, SourceRange SrcRange)
+      : Expr(EK_RegexLiteral), Literal(Literal) {}
+
+public:
+  static bool classof(const Expr *E) { return E->getKind() == EK_RegexLiteral; }
+
+  Token getLiteral() { return Literal; }
+
+  static RegexLiteral *Create(Token Literal, SourceRange SrcRange) {
+    return new RegexLiteral(Literal, SrcRange);
+  }
+};
+
+class StringLiteral : public Expr {
+  Token Literal;
+
+protected:
+  StringLiteral(Token Literal, SourceRange SrcRange)
+      : Expr(EK_StringLiteral, SrcRange), Literal(Literal) {
+    this->setValue(Value(std::string(Literal.getLiteralData())));
+  }
+
+public:
+  static bool classof(const Expr *E) {
+    return E->getKind() == EK_StringLiteral;
+  }
+
+  Token getLiteral() { return Literal; }
+
+  static StringLiteral *Create(Token Value, SourceRange SrcRange) {
+    return new StringLiteral(Value, SrcRange);
+  }
+};
+
+class UnaryOperator : public Expr {
+public:
+  enum FixKind { Prefix, Postfix };
+
+private:
+  Token Opcode;
+  Expr *SubExpr;
+  FixKind Fix;
+
+protected:
+  UnaryOperator(Token Opcode, Expr *SubExpr, FixKind Fix, SourceRange SrcRange)
+      : Expr(EK_UnaryOperator, SrcRange), Opcode(Opcode), SubExpr(SubExpr),
+        Fix(Fix) {}
+
+public:
+  static bool classof(const Expr *E) {
+    return E->getKind() == EK_UnaryOperator;
+  }
+
+  Token getOpcode() { return Opcode; }
+
+  Expr *getSubExpr() { return SubExpr; }
+
+  void setSubExpr(Expr *E) { SubExpr = E; }
+
+  FixKind getFix() { return Fix; }
+
+  static UnaryOperator *Create(Token Opcode, Expr *SubExpr, FixKind Fix,
+                               SourceRange SrcRange) {
+    return new UnaryOperator(Opcode, SubExpr, Fix, SrcRange);
   }
 };
 
@@ -543,282 +664,161 @@ public:
   }
 };
 
-class Expr {
+class Decl {
 public:
-  enum ExprKind {
-    EK_ArraySubscript,
-    EK_Begin,
-    EK_BinaryOperator,
-    EK_Call,
-    EK_DeclRef,
-    EK_End,
-    EK_FloatingLiteral,
-    EK_RegexLiteral,
-    EK_StringLiteral,
-    EK_UnaryOperator
+  enum DeclKind {
+    DK_TranslationUnit,
+    DK_Rule,
+    DK_Function,
+    DK_Var,
+    DK_ParamVar
   };
 
-protected:
-  Expr(ExprKind Kind) : Kind(Kind) {}
-  Expr(ExprKind Kind, SourceRange SrcRange) : Kind(Kind), SrcRange(SrcRange) {}
-
 private:
-  const ExprKind Kind;
+  const DeclKind Kind;
   SourceRange SrcRange;
-  bool IsLValue = false;
-  Value *Val = new Value;
-  std::function<void()> OnAssignment = []() {};
+
+protected:
+  Decl(DeclKind K) : Kind(K) {}
+  Decl(DeclKind K, SourceRange SrcRange) : Kind(K), SrcRange(SrcRange) {}
 
 public:
-  ExprKind getKind() const { return Kind; }
-
+  DeclKind getKind() const { return Kind; }
   SourceRange getSourceRange() const { return SrcRange; }
-
-  bool isLValue() const { return IsLValue; }
-
-  void markAsLValue() { IsLValue = true; }
-
-  Value *getValue() { return Val; }
-
-  template <TypeKind T> auto getValueAs() { return Val->getAs<T>(); }
-
-  void setValue(Value V) { *Val = V; }
-
-  void setValue(Value *V) { Val = V; }
-
-  TypeKind getType() { return Val->getType(); }
-
-  void setOnAssignment(std::function<void()> F) { OnAssignment = F; }
-
-  void executeOnAssignment() { OnAssignment(); }
 };
 
-class ArraySubscriptExpr : public Expr {
-  Expr *LHS;
-  std::vector<Expr *> RHS;
+class TranslationUnitDecl : public Decl {
+  std::vector<Decl *> Decls;
 
 protected:
-  ArraySubscriptExpr(Expr *LHS, std::vector<Expr *> RHS, SourceRange SrcRange)
-      : Expr(EK_ArraySubscript, SrcRange), LHS(LHS), RHS(RHS) {}
+  TranslationUnitDecl() : Decl(DK_TranslationUnit) {}
+  TranslationUnitDecl(std::vector<Decl *> D)
+      : Decl(DK_TranslationUnit), Decls(D) {}
 
 public:
-  static bool classof(const Expr *E) {
-    return E->getKind() == EK_ArraySubscript;
+  static bool classof(const Decl *D) {
+    return D->getKind() == DK_TranslationUnit;
   }
 
-  Expr *getLHS() const { return LHS; }
-
-  void setLHS(Expr *E) { LHS = E; }
-
-  std::vector<Expr *> getRHS() const { return RHS; }
-
-  void setRHS(int I, Expr *E) {
-    assert(I < std::size(RHS));
-    RHS[I] = E;
+  static TranslationUnitDecl *Create(std::vector<Decl *> Decls) {
+    return new TranslationUnitDecl(Decls);
   }
+  static TranslationUnitDecl *CreateEmpty() { return new TranslationUnitDecl; }
 
-  void setRHS(std::vector<Expr *> E) { RHS = E; }
-
-  static ArraySubscriptExpr *Create(Expr *LHS, std::vector<Expr *> RHS,
-                                    SourceRange SrcRange) {
-    return new ArraySubscriptExpr(LHS, RHS, SrcRange);
-  }
+  const std::vector<Decl *> &getDecls() const { return Decls; }
 };
 
-class BeginKeyword : public Expr {
-protected:
-  BeginKeyword(SourceRange SrcRange) : Expr(EK_Begin, SrcRange) {}
-
-public:
-  static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
-
-  static BeginKeyword *Create(SourceRange SrcRange) {
-    static Value *TheValue = new Value;
-    BeginKeyword *Raw = new BeginKeyword(SrcRange);
-    Raw->setValue(TheValue);
-    return Raw;
-  }
-};
-
-class BinaryOperator : public Expr {
-  Expr *LHS;
-  Expr *RHS;
-  Token Opcode;
-
-protected:
-  BinaryOperator(Expr *LHS, Expr *RHS, Token Opcode, SourceRange SrcRange)
-      : Expr(EK_BinaryOperator, SrcRange), LHS(LHS), RHS(RHS), Opcode(Opcode) {}
-
-public:
-  static bool classof(const Expr *E) {
-    return E->getKind() == EK_BinaryOperator;
-  }
-
-  Expr *getLHS() { return LHS; }
-
-  void setLHS(Expr *E) { LHS = E; }
-
-  Expr *getRHS() { return RHS; }
-
-  void setRHS(Expr *E) { RHS = E; }
-
-  Token getOpcode() { return Opcode; }
-
-  static BinaryOperator *Create(Expr *LHS, Expr *RHS, Token Opcode,
-                                SourceRange SrcRange) {
-    return new BinaryOperator(LHS, RHS, Opcode, SrcRange);
-  }
-};
-
-class CallExpr : public Expr {
-  Expr *Callee;
-  std::vector<Expr *> Args;
-
-protected:
-  CallExpr(Expr *Callee, std::vector<Expr *> Args, SourceRange SrcRange)
-      : Expr(EK_Call, SrcRange), Callee(Callee), Args(Args) {}
-
-public:
-  static bool classof(const Expr *E) { return E->getKind() == EK_Call; }
-
-  Expr *getCallee() { return Callee; }
-
-  std::vector<Expr *> getArgs() { return Args; }
-
-  void setArg(int I, Expr *E) {
-    assert(I < std::size(Args));
-    Args[I] = E;
-  }
-
-  static CallExpr *Create(Expr *Callee, std::vector<Expr *> Args,
-                          SourceRange SrcRange) {
-    return new CallExpr(Callee, Args, SrcRange);
-  }
-};
-
-class DeclRefExpr : public Expr {
+class FunctionDecl : public Decl {
   Token Identifier;
+  std::vector<ParamVarDecl *> Params;
+  CompoundStmt *Body;
+  std::unordered_set<TypeKind> ReturnTypes;
+  bool IsAssignable = false;
 
 protected:
-  DeclRefExpr(Token Identifier, SourceRange SrcRange)
-      : Expr(EK_DeclRef, SrcRange), Identifier(Identifier) {}
+  FunctionDecl() : Decl(DK_Function) {}
+
+  FunctionDecl(Token Identifier, std::vector<ParamVarDecl *> Params,
+               CompoundStmt *Body, SourceRange SrcRange)
+      : Decl(DK_Function, SrcRange), Identifier(Identifier), Params(Params),
+        Body(Body) {}
 
 public:
-  static bool classof(const Expr *E) { return E->getKind() == EK_DeclRef; }
+  static bool classof(const Decl *D) { return D->getKind() == DK_Function; }
 
   Token getIdentifier() const { return Identifier; }
 
-  std::string_view getName() const { return getIdentifier().getRawData(); }
+  std::vector<ParamVarDecl *> getParams() const { return Params; }
 
-  static DeclRefExpr *Create(Token Identifier, SourceRange SrcRange) {
-    return new DeclRefExpr(Identifier, SrcRange);
+  CompoundStmt *getBody() { return Body; }
+
+  const CompoundStmt *getBody() const { return Body; }
+
+  std::string_view getName() const { return getIdentifier().getIdentifier(); }
+
+  void addReturnType(TypeKind T) { ReturnTypes.insert(T); }
+
+  std::unordered_set<TypeKind> getReturnTypes() const { return ReturnTypes; }
+
+  bool isAssignable() const { return IsAssignable; }
+
+  static FunctionDecl *Create(Token Identifier,
+                              std::vector<ParamVarDecl *> Params,
+                              CompoundStmt *Body, SourceRange SrcRange) {
+    return new FunctionDecl(Identifier, Params, Body, SrcRange);
+  }
+
+  static FunctionDecl *CreateEmpty() { return new FunctionDecl; }
+};
+
+class RuleDecl : public Decl {
+  Expr *Pattern;
+  CompoundStmt *Action;
+
+protected:
+  RuleDecl() : Decl(DK_Rule) {}
+
+  RuleDecl(Expr *Pattern, CompoundStmt *Action, SourceRange SrcRange)
+      : Decl(DK_Rule, SrcRange), Pattern(Pattern), Action(Action) {}
+
+public:
+  static bool classof(const Decl *D) { return D->getKind() == DK_Rule; }
+
+  Expr *getPattern() const { return Pattern; }
+
+  CompoundStmt *getAction() const { return Action; }
+
+  void setPattern(Expr *E) { Pattern = E; }
+
+  static RuleDecl *Create(Expr *Pattern, CompoundStmt *Action,
+                          SourceRange SrcRange) {
+    return new RuleDecl(Pattern, Action, SrcRange);
   }
 };
 
-class EndKeyword : public Expr {
+class VarDecl : public Decl {
 protected:
-  EndKeyword(SourceRange SrcRange) : Expr(EK_End, SrcRange) {}
+  Token Identifier;
+  Value Val;
+  DeclRefExpr *E;
+
+  VarDecl(DeclKind Kind, Token Identifier, SourceRange SrcRange)
+      : Decl(Kind, SrcRange), Identifier(Identifier) {}
 
 public:
-  static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
+  static bool classof(const Decl *D) {
+    switch (D->getKind()) {
+    default:
+      return false;
+    case DK_Var:
+    case DK_ParamVar:
+      return true;
+    };
+  }
 
-  static EndKeyword *Create(SourceRange SrcRange) {
-    static Value *TheValue = new Value;
-    EndKeyword *Raw = new EndKeyword(SrcRange);
-    Raw->setValue(TheValue);
-    return Raw;
+  Token getIdentifier() { return Identifier; }
+
+  std::string_view getName() { return getIdentifier().getIdentifier(); }
+
+  DeclRefExpr *getExpr() { return E; }
+
+  void setExpr(DeclRefExpr *D) { E = D; }
+
+  static VarDecl *Create(Token Identifier, SourceRange SrcRange) {
+    return new VarDecl(DK_Var, Identifier, SrcRange);
   }
 };
 
-class FloatingLiteral : public Expr {
-  Token Literal;
-
+class ParamVarDecl : public VarDecl {
 protected:
-  FloatingLiteral(Token Literal, SourceRange SrcRange)
-      : Expr(EK_FloatingLiteral), Literal(Literal) {
-    this->setValue(Value(std::stod(std::string(Literal.getLiteralData()))));
-  }
+  ParamVarDecl(Token Identifier, SourceRange SrcRange)
+      : VarDecl(DK_ParamVar, Identifier, SrcRange) {}
 
 public:
-  static bool classof(const Expr *E) {
-    return E->getKind() == EK_FloatingLiteral;
-  }
+  static bool classof(const Decl *D) { return D->getKind() == DK_ParamVar; }
 
-  Token getLiteral() { return Literal; }
-
-  static FloatingLiteral *Create(Token Literal, SourceRange SrcRange) {
-    return new FloatingLiteral(Literal, SrcRange);
-  }
-};
-
-class RegexLiteral : public Expr {
-  Token Literal;
-
-protected:
-  RegexLiteral(Token Literal, SourceRange SrcRange)
-      : Expr(EK_RegexLiteral), Literal(Literal) {}
-
-public:
-  static bool classof(const Expr *E) { return E->getKind() == EK_RegexLiteral; }
-
-  Token getLiteral() { return Literal; }
-
-  static RegexLiteral *Create(Token Literal, SourceRange SrcRange) {
-    return new RegexLiteral(Literal, SrcRange);
-  }
-};
-
-class StringLiteral : public Expr {
-  Token Literal;
-
-protected:
-  StringLiteral(Token Literal, SourceRange SrcRange)
-      : Expr(EK_StringLiteral, SrcRange), Literal(Literal) {
-    this->setValue(Value(std::string(Literal.getLiteralData())));
-  }
-
-public:
-  static bool classof(const Expr *E) {
-    return E->getKind() == EK_StringLiteral;
-  }
-
-  Token getLiteral() { return Literal; }
-
-  static StringLiteral *Create(Token Value, SourceRange SrcRange) {
-    return new StringLiteral(Value, SrcRange);
-  }
-};
-
-class UnaryOperator : public Expr {
-public:
-  enum FixKind { Prefix, Postfix };
-
-private:
-  Token Opcode;
-  Expr *SubExpr;
-  FixKind Fix;
-
-protected:
-  UnaryOperator(Token Opcode, Expr *SubExpr, FixKind Fix, SourceRange SrcRange)
-      : Expr(EK_UnaryOperator, SrcRange), Opcode(Opcode), SubExpr(SubExpr),
-        Fix(Fix) {}
-
-public:
-  static bool classof(const Expr *E) {
-    return E->getKind() == EK_UnaryOperator;
-  }
-
-  Token getOpcode() { return Opcode; }
-
-  Expr *getSubExpr() { return SubExpr; }
-
-  void setSubExpr(Expr *E) { SubExpr = E; }
-
-  FixKind getFix() { return Fix; }
-
-  static UnaryOperator *Create(Token Opcode, Expr *SubExpr, FixKind Fix,
-                               SourceRange SrcRange) {
-    return new UnaryOperator(Opcode, SubExpr, Fix, SrcRange);
+  static ParamVarDecl *Create(Token Identifier, SourceRange SrcRange) {
+    return new ParamVarDecl(Identifier, SrcRange);
   }
 };
 
