@@ -29,7 +29,7 @@ int Instance::execute() {
     Diags.printErrors(Source);
     return EXIT_FAILURE;
   }
-  // Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
+  Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   Diags.printErrors(Source);
   //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   auto Globals = Parse.getSymbols();

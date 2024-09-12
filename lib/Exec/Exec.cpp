@@ -259,13 +259,14 @@ bool Exec::visit(BinaryOperator *B) {
     B->getLHS()->executeOnAssignment();
     break;
 #define CASE(TOK, OP)                                                          \
-  traverse(B->getLHS());                                                       \
-  traverse(B->getRHS());                                                       \
-  B->getLHS()->setValue(Value(B->getLHS()                                      \
-                                  ->getValueAs<NumberTy>() OP B->getRHS()      \
-                                  ->getValueAs<NumberTy>()));                  \
-  B->setValue(B->getValue());                                                  \
-  break
+  case TOK:                                                                    \
+    traverse(B->getLHS());                                                     \
+    traverse(B->getRHS());                                                     \
+    B->getLHS()->setValue(Value(B->getLHS()                                    \
+                                    ->getValueAs<NumberTy>() OP B->getRHS()    \
+                                    ->getValueAs<NumberTy>()));                \
+    B->setValue(B->getValue());                                                \
+    break
     CASE(tok::plusequal, +);
     CASE(tok::minusequal, -);
     CASE(tok::starequal, *);
@@ -336,6 +337,14 @@ bool Exec::visit(CallExpr *C) {
 }
 
 bool Exec::visit(DeclRefExpr *D) {
+  for (auto It = std::crbegin(Environments), End = std::crend(Environments);
+       It != End; ++It) {
+    if (It->contains(std::string(D->getName()))) {
+      D->setValue(*It->at(std::string(D->getName())));
+      return true;
+    }
+  }
+  Environments.front()[std::string(D->getName())] = new Value;
   D->setValue(Environments.back()[std::string(D->getName())]);
   return true;
 }
