@@ -31,7 +31,7 @@ private:
     print(std::string("FunctionDecl "), F, " ", F->getName());
     return true;
   }
-  
+
   bool visit(RuleDecl *R) {
     print(std::string("RuleDecl "), R);
     return true;
@@ -123,7 +123,8 @@ private:
   }
 
   bool visit(BinaryOperator *B) {
-    print(std::string("BinaryOperator "), B);
+    print(std::string("BinaryOperator "), B, " ",
+          tok::getPunctuatorSpelling(B->getOpcode().getKind()));
     return true;
   }
 
@@ -144,7 +145,8 @@ private:
   }
 
   bool visit(RegexLiteral *R) {
-    print(std::string("RegexLiteral "), R, " ", R->getLiteral().getLiteralData());
+    print(std::string("RegexLiteral "), R, " ",
+          R->getLiteral().getLiteralData());
     return true;
   }
 
