@@ -179,6 +179,52 @@ protected:
     return true;
   }
 
+  bool visit(VarDecl *V) {
+    if constexpr (CheckNull)
+      if (V == nullptr)
+        return true;
+
+    if constexpr (Traversal == trav::None)
+      return static_cast<Derived *>(this)->visit(V);
+
+    if constexpr (RequireImpl || hasVisit<VarDecl>()) {
+      if constexpr (Traversal == trav::Preorder) {
+        if constexpr (ShortCircuit) {
+          if (!static_cast<Derived *>(this)->visit(V))
+            return false;
+        } else {
+          static_cast<Derived *>(this)->visit(V);
+        }
+      }
+
+      if constexpr (Traversal == trav::RecursiveDescent) {
+        if constexpr (ShortCircuit) {
+          if (!static_cast<Derived *>(this)->template visit<true>(V))
+            return false;
+        } else {
+          static_cast<Derived *>(this)->template visit<true>(V);
+        }
+      }
+    }
+
+    if constexpr (ShortCircuit) {
+      if (!visit(V->getDeclRefExpr()))
+        return false;
+    } else {
+      visit(V->getDeclRefExpr());
+    }
+
+    if constexpr (RequireImpl || hasVisit<VarDecl>()) {
+      if constexpr (Traversal == trav::Postorder)
+        return static_cast<Derived *>(this)->visit(V);
+
+      if constexpr (Traversal == trav::RecursiveDescent)
+        return static_cast<Derived *>(this)->template visit<false>(V);
+    }
+
+    return true;
+  }
+
   bool visit(Stmt *S) {
     if constexpr (CheckNull)
       if (S == nullptr)
