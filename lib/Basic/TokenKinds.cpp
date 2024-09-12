@@ -32,6 +32,7 @@ std::string_view tok::getPunctuatorSpelling(TokenKind Kind) {
 #define PUNCTUATOR(ID, SP)                                                     \
   case ID:                                                                     \
     return #SP;
+#include "Basic/TokenKinds.def"
   default:
     break;
   }
