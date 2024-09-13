@@ -139,6 +139,8 @@ private:
       ;
   }
 
+  bool consumeTerminator() { return consumeOneOf(tok::newline, tok::semi); }
+
   DeclResult parseTranslationUnit();
 
   DeclResult parseDeclaration();
@@ -154,6 +156,7 @@ private:
   StmtResult parsePrintStatement();
   StmtResult parseReturnStatement();
   StmtResult parseSimpleStatement();
+  StmtResult parseTerminatedStatement();
   StmtResult parseValueStatement();
   StmtResult parseWhileStatement();
 

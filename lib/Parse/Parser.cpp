@@ -8,6 +8,13 @@
 
 using namespace cawk;
 
+bool isTerminatedStatement(Stmt *S) {
+  if (isa<CompoundStmt>(S))
+    return true;
+  return *std::prev(std::cend(S->getSourceRange())) == ';' ||
+         *std::prev(std::cend(S->getSourceRange())) == '\n';
+}
+
 /// \brief Consumes the current lookahead token and advances to the next one.
 /// \tparam NL - should the lexer lex newlines?
 /// \tparam RE - are we attempting to lex a regex?
@@ -46,11 +53,11 @@ template Token Parser::peek<true, true>(std::size_t N) const;
 
 /// parseTranslationUnit
 ///     translation-unit:
-///	        declaration-seq
+///	      declaration-seq
 ///
 ///     declaration-seq:
-///	        declaration
-///         declaration-seq declaration
+///	      declaration
+///       declaration-seq declaration
 DeclResult Parser::parseTranslationUnit() {
   std::vector<Decl *> Decls;
   for (; (skip(tok::newline, tok::semi), !consume(tok::eof));) {
@@ -66,8 +73,8 @@ DeclResult Parser::parseTranslationUnit() {
 
 /// parseDeclaration
 ///     declaration:
-///	        rule-declaration
-///	        function-declaration
+///	      rule-declaration
+///	      function-declaration
 DeclResult Parser::parseDeclaration() {
   if (Tok.is(tok::kw_function))
     return parseFunctionDeclaration();
@@ -76,11 +83,11 @@ DeclResult Parser::parseDeclaration() {
 
 /// parseFunctionDeclaration
 ///     function-declaration
-///         'function' identifier '(' param-list? ')' compound-statement
+///       'function' identifier '(' param-list? ')' compound-statement
 ///
 ///     param-list:
-///         identifier
-///         param-list ',' identifier
+///       identifier
+///       param-list ',' identifier
 DeclResult Parser::parseFunctionDeclaration() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!expect(tok::kw_function))
@@ -137,8 +144,8 @@ DeclResult Parser::parseFunctionDeclaration() {
 
 /// parseRuleDeclaration
 ///     rule-declaration:
-///         expression compound-statement?
-///         compound-statement
+///       expression compound-statement?
+///       compound-statement
 DeclResult Parser::parseRuleDeclaration() {
   auto BeginLoc = Lex.getBufferPtr();
   auto Pattern = [this, BeginLoc] -> ExprResult {
@@ -173,9 +180,24 @@ DeclResult Parser::parseRuleDeclaration() {
 }
 
 /// statement:
-///	    block-statement
-///	    basic-statement
-///	    ';'
+///	    terminated-statement:
+///      compound-statement
+///      terminated-simple-statement
+///      terminated-break-statement
+///      terminated-do-statement
+///      terminated-for-statement
+///      terminated-if-statement
+///      terminated-return-statement
+///      terminated-while-statement
+///
+///	    unterminated-statement:
+///      unterminated-simple-statement
+///      unterminated-break-statement
+///      unterminated-do-statement
+///      unterminated-for-statement
+///      unterminated-if-statement
+///      unterminated-return-statement
+///      unterminated-while-statement
 StmtResult Parser::parseStatement() {
   switch (Tok.getKind()) {
   default: {
@@ -202,45 +224,63 @@ StmtResult Parser::parseStatement() {
   }
 }
 
+/// parseBreakStatement
+///     terminated-break-statement:
+///       'break' terminator
+///
+///     unterminated-break-statement:
+///       'break'
 StmtResult Parser::parseBreakStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!consume(tok::kw_break))
     return false;
+  consumeTerminator();
   return Actions.actOnBreakStatement(
       BreakStmt::Create(SourceRange(BeginLoc, Lex.getBufferPtr())));
 }
 
 /// parseCompoundStatement
 ///     compound-statement:
-///         '{' statement-sequence '}'
+///       '{' statement-sequence '}'
 ///
 ///     statement-sequence:
-///         statement
-///         statement-sequence (block-statement | simple-statement eol)
+///       statement
+///       statement-sequence terminated-statement
 StmtResult Parser::parseCompoundStatement() {
+  assert(Tok.is(tok::l_brace) && "Not a compound statement");
   auto BeginLoc = Lex.getBufferPtr();
-  if (!consume(tok::l_brace))
-    return false;
+  consume(tok::l_brace);
 
   std::vector<Stmt *> Stmts;
-  for (; (skip(tok::newline, tok::semi), !Tok.is(tok::r_brace, tok::eof));) {
-    StmtResult S = parseStatement();
-    if (!S.isValid()) {
+  for (; !Tok.is(tok::r_brace, tok::eof);) {
+    if (consumeTerminator()) {
+      skip(tok::newline, tok::semi);
+      continue;
+    }
+
+    if (StmtResult S = parseStatement(); S.isValid()) {
+      Stmts.push_back(S.get());
+    } else {
       recover();
       return false;
     }
-    Stmts.push_back(S.get());
+
+    if (!isTerminatedStatement(Stmts.back()))
+      break;
   }
 
-  if (!consume(tok::r_brace))
+  if (!expect(tok::r_brace))
     return false;
 
   return CompoundStmt::Create(Stmts, SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 /// parseDoStatement
-///     do-statement:
-///         'do' statement 'while' '(' expression ')'
+///     terminated-do-statement:
+///       'do' statement 'while' '(' expression ')' terminator
+///
+///     unterminated-do-statement:
+///       'do' statement 'while' '(' expression ')'
 StmtResult Parser::parseDoStatement() {
   Actions.actOnStartOfDoStatement();
   auto BeginLoc = Lex.getBufferPtr();
@@ -268,10 +308,15 @@ StmtResult Parser::parseDoStatement() {
 }
 
 /// parseForStatement
-///     for-statement:
-///	        'for' '(' identifier 'in' identifier ')' statement
-///	        'for' '(' (print-statement | expression)? ';' expression? ';'
-///             (print-statement | expression)? ')' statement
+///     terminated-for-statement:
+///	      'for' '(' identifier 'in' identifier ')' terminated-statement
+///	      'for' '(' (print-statement | expression)? ';' expression? ';'
+///             (print-statement | expression)? ')' terminated-statement
+///
+///     unterminated-for-statement:
+///	      'for' '(' identifier 'in' identifier ')' unterminated-statement
+///	      'for' '(' (print-statement | expression)? ';' expression? ';'
+///             (print-statement | expression)? ')' unterminated-statement
 StmtResult Parser::parseForStatement() {
   Actions.actOnStartOfForStatement();
   auto BeginLoc = Lex.getBufferPtr();
@@ -319,8 +364,13 @@ StmtResult Parser::parseForStatement() {
 }
 
 /// parseIfStatement
-///     if-statement:
-///	        'if' '(' expression ')' statement ('else' statement)?
+///   terminated-if-statement:
+///	    'if' '(' expression ')' terminated-statement
+///	    'if' '(' expression ')' statement 'else' terminated-statement
+///
+///   unterminated-if-statement:
+///	    'if' '(' expression ')' unterminated-statement
+///	    'if' '(' expression ')' statement 'else' unterminated-statement
 StmtResult Parser::parseIfStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   if (!expect(tok::kw_if, tok::l_paren))
@@ -330,7 +380,11 @@ StmtResult Parser::parseIfStatement() {
     return false;
   if (!expect(tok::r_paren))
     return false;
-  StmtResult Then = parseStatement();
+  StmtResult Then = [this] -> StmtResult {
+    if (consumeTerminator())
+      return nullptr;
+    return parseStatement();
+  }();
   if (!Then.isValid())
     return false;
   StmtResult Else = consume(tok::kw_else) ? parseStatement() : true;
@@ -341,11 +395,17 @@ StmtResult Parser::parseIfStatement() {
 }
 
 /// parsePrintStatement
-///     print-statement:
-///	        'print' expression-list
-///	        'printf' expression-list
-///         'print' '(' expression-list ')'
-///         'printf' '(' expression-list ')'
+///   terminated-print-statement:
+///	    'print' expression-list terminator
+///	    'printf' expression-list terminator
+///     'print' '(' expression-list ')' terminator
+///     'printf' '(' expression-list ')' terminator
+///
+///   unterminated-print-statement:
+///	    'print' expression-list
+///	    'printf' expression-list
+///     'print' '(' expression-list ')'
+///     'printf' '(' expression-list ')'
 StmtResult Parser::parsePrintStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   Token Iden = Tok;
@@ -383,11 +443,17 @@ StmtResult Parser::parsePrintStatement() {
     return {Tok, parseExpression()};
   }();
 
+  consumeTerminator();
+
   return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 /// parseReturnStatement
+///   terminated-return-statement:
+///     'return' expression? terminator
+///
+///   unterminated-return-statement:
 ///     'return' expression?
 StmtResult Parser::parseReturnStatement() {
   auto BeginLoc = Lex.getBufferPtr();
@@ -396,13 +462,21 @@ StmtResult Parser::parseReturnStatement() {
   ExprResult E = parseExpression();
   if (!E.isValid())
     return false;
+
+  consumeTerminator();
+
   return Actions.actOnReturnStatement(
       ReturnStmt::Create(E.get(), SourceRange(BeginLoc, Lex.getBufferPtr())));
 }
 
 /// parseSimpleStatement
-///     expression
-///     print-statement
+///   terminated-simple-statement:
+///     terminated-value-statement
+///     terminated-print-statement
+///
+///   unterminated-simple-statement:
+///     unterminated-value-statement
+///     unterminated-print-statement
 StmtResult Parser::parseSimpleStatement() {
   switch (Tok.getKind()) {
   default:
@@ -414,19 +488,27 @@ StmtResult Parser::parseSimpleStatement() {
 }
 
 /// parseValueStatement
+///   terminated-value-statement:
+///     expression terminator
+///
+///   unterminated-value-statement:
 ///     expression
 StmtResult Parser::parseValueStatement() {
   auto BeginLoc = Lex.getBufferPtr();
   ExprResult Value = parseExpression();
   if (!Value.isValid())
     return false;
+  consumeTerminator();
   return ValueStmt::Create(Value.get(),
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
 /// parseWhileStatement
-///     while-statement:
-///            'while' '(' expression ')' statement
+///     terminated-while-statement:
+///       'while' '(' expression ')' terminated-statement
+///
+///     unterminated-while-statement:
+///       'while' '(' expression ')' unterminated-statement
 StmtResult Parser::parseWhileStatement() {
   Actions.actOnStartOfWhileStatement();
   auto BeginLoc = Lex.getBufferPtr();
@@ -440,7 +522,12 @@ StmtResult Parser::parseWhileStatement() {
   if (!consume(tok::r_paren))
     return false;
 
-  StmtResult Body = parseStatement();
+  StmtResult Body = [this] -> StmtResult {
+    if (consumeTerminator())
+      return nullptr;
+    return parseStatement();
+  }();
+
   if (!Body.isValid())
     return false;
 
