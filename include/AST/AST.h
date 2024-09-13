@@ -32,6 +32,7 @@ class ForRangeStmt;
 class IfStmt;
 class NextStmt;
 class NextfileStmt;
+class NullStmt;
 class PrintStmt;
 class ReturnStmt;
 class ValueStmt;
@@ -338,6 +339,7 @@ public:
     SK_If,
     SK_Next,
     SK_Nextfile,
+    SK_Null,
     SK_Print,
     SK_Return,
     SK_Value,
@@ -590,6 +592,19 @@ public:
 
   static DoStmt *Create(Expr *Cond, Stmt *Body, SourceRange SrcRange) {
     return new DoStmt(Cond, Body, SrcRange);
+  }
+};
+
+class NullStmt : public Stmt {
+
+protected:
+  NullStmt(SourceRange SrcRange) : Stmt(SK_Null, SrcRange) {}
+
+public:
+  static bool classof(const Stmt *S) { return S->getKind() == SK_Null; }
+
+  static NullStmt *Create(SourceRange SrcRange) {
+    return new NullStmt(SrcRange);
   }
 };
 

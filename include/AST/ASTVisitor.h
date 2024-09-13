@@ -244,6 +244,7 @@ protected:
       CASE(If, IfStmt);
       CASE(Next, NextStmt);
       CASE(Nextfile, NextfileStmt);
+      CASE(Null, NullStmt);
       CASE(Print, PrintStmt);
       CASE(Return, ReturnStmt);
       CASE(Value, ValueStmt);
@@ -637,6 +638,21 @@ protected:
         return true;
 
     if constexpr (RequireImpl || hasVisit<NextfileStmt>()) {
+      if constexpr (Traversal == trav::RecursiveDescent)
+        return static_cast<Derived *>(this)->template visit<true>(N) &&
+               static_cast<Derived *>(this)->template visit<false>(N);
+      else
+        return static_cast<Derived *>(this)->visit(N);
+    }
+    return true;
+  }
+
+  bool visit(NullStmt *N) {
+    if constexpr (CheckNull)
+      if (N == nullptr)
+        return true;
+
+    if constexpr (RequireImpl || hasVisit<NullStmt>()) {
       if constexpr (Traversal == trav::RecursiveDescent)
         return static_cast<Derived *>(this)->template visit<true>(N) &&
                static_cast<Derived *>(this)->template visit<false>(N);

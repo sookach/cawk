@@ -97,6 +97,11 @@ private:
     return true;
   }
 
+  bool visit(NullStmt *N) {
+    print(std::string("NullStmt "), N);
+    return true;
+  }
+
   bool visit(PrintStmt *P) {
     print(std::string("PrintStmt "), P);
     return true;
