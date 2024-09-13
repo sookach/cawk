@@ -153,5 +153,18 @@ public:
       ArrayValue[Key.getAs<StringTy>()] = new Value;
     return ArrayValue[Key.getAs<StringTy>()];
   }
+
+  bool isTrue() {
+    switch (Type) {
+    default:
+      cawk_fatal("Invalid conversion from ", toString(Type), " to boolean");
+    case NullTy:
+      return false;
+    case NumberTy:
+      return NumberValue != 0.0;
+    case StringTy:
+      return !std::empty(StringValue);
+    }
+  }
 };
 } // namespace cawk

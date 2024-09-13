@@ -85,11 +85,7 @@ bool Exec::visit(DoStmt *D) {
     if (isEarlyExit())
       break;
 
-    if (traverse(D->getCond());
-        D->getCond()->getValue()->is<NumberTy>() &&
-            !D->getCond()->getValue()->get<NumberTy>() ||
-        D->getCond()->getValue()->is<StringTy>() &&
-            !std::empty(D->getCond()->getValue()->get<StringTy>()))
+    if (traverse(D->getCond()); !D->getCond()->isTrue())
       break;
   }
   ShouldBreak = ShouldContinue = false;
@@ -111,10 +107,7 @@ bool Exec::visit(ForStmt *F) {
   for (;;) {
     if (F->getCond() != nullptr) {
       traverse(F->getCond());
-      if (F->getCond()->getValue()->is<NumberTy>() &&
-              !F->getCond()->getValue()->get<NumberTy>() ||
-          F->getCond()->getValue()->is<StringTy>() &&
-              !std::empty(F->getCond()->getValue()->get<StringTy>()))
+      if (!F->getCond()->isTrue())
         break;
     }
 
@@ -141,13 +134,10 @@ bool Exec::visit(ForRangeStmt *F) {
 
 bool Exec::visit(IfStmt *I) {
   traverse(I->getCond());
-  if (I->getCond()->getValue()->is<NumberTy>() &&
-          !I->getCond()->getValue()->get<NumberTy>() ||
-      I->getCond()->getValue()->is<StringTy>() &&
-          !std::empty(I->getCond()->getValue()->get<StringTy>()))
-    traverse(I->getThen());
+  if (I->getCond()->isTrue())
+    return traverse(I->getThen());
   else if (I->getElse() != nullptr)
-    traverse(I->getElse());
+    return traverse(I->getElse());
   return true;
 }
 
@@ -205,6 +195,8 @@ bool Exec::visit(ValueStmt *V) {
 bool Exec::visit(WhileStmt *W) {
   for (;;) {
     traverse(W->getCond());
+    if (!W->getCond()->isTrue())
+      break;
     traverse(W->getBody());
     if (isEarlyExit())
       break;

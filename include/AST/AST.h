@@ -91,6 +91,8 @@ public:
   void setOnAssignment(std::function<void()> F) { OnAssignment = F; }
 
   void executeOnAssignment() { OnAssignment(); }
+
+  bool isTrue() { return Val->isTrue(); }
 };
 
 class ArraySubscriptExpr : public Expr {
