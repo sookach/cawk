@@ -536,7 +536,6 @@ StmtResult Parser::parseWhileStatement() {
                            SourceRange(BeginLoc, Lex.getBufferPtr()));
 }
 
-template <bool CommaOp>
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto BeginLoc = Lex.getBufferPtr();
   auto NUD = [this] -> ExprResult {
@@ -546,7 +545,7 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     case tok::l_paren: {
       auto BeginLoc = Lex.getBufferPtr();
       expect(tok::l_paren);
-      ExprResult SubExpr = parseExpression<CommaOp>();
+      ExprResult SubExpr = parseExpression();
       if (!SubExpr.isValid())
         return false;
       if (!expect(tok::r_paren))
@@ -677,14 +676,8 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       return getBinOpPrecedence(Tok.getKind());
     }();
 
-    if (Prec <= MinPrec) {
-      if constexpr (CommaOp) {
-        if (!Tok.is(tok::comma))
-          break;
-      } else {
-        break;
-      }
-    }
+    if (Prec <= MinPrec)
+      break;
 
     skip(tok::newline);
 

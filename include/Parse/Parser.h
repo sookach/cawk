@@ -160,7 +160,6 @@ private:
   StmtResult parseValueStatement();
   StmtResult parseWhileStatement();
 
-  template <bool CommaOp = false>
   ExprResult parseExpression(prec::Level MinPrec = prec::Unknown);
 
   void recover() { skipUntil(tok::newline, tok::semi, tok::eof); }
