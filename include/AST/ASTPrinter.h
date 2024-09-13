@@ -117,6 +117,11 @@ private:
     return true;
   }
 
+  bool visit(VarDecl *V) {
+    print(std::string("VarDecl "), V);
+    return true;
+  }
+
   bool visit(WhileStmt *W) {
     print(std::string("WhileStmt "), W);
     return true;
@@ -162,7 +167,8 @@ private:
   }
 
   bool visit(UnaryOperator *U) {
-    print(std::string("UnaryOperator "), U);
+    print(std::string("UnaryOperator "), U, " ",
+          tok::getPunctuatorSpelling(U->getOpcode().getKind()));
     return true;
   }
 

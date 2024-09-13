@@ -24,7 +24,10 @@ private:
     return true;
   }
 
-  bool visit(VarDecl *V) { return true; }
+  bool visit(VarDecl *V) {
+    Table[V->getDeclRefExpr()] = Table[V] + 1;
+    return true;
+  }
 
   bool visit(RuleDecl *R) {
     Table[R->getPattern()] = Table[R->getAction()] = Table[R] + 1;
@@ -66,7 +69,8 @@ private:
   }
 
   bool visit(ForRangeStmt *F) {
-    Table[F->getLoopVar()] = Table[F->getRange()] = Table[F] + 1;
+    Table[F->getLoopVar()] = Table[F->getRange()] = Table[F->getBody()] =
+        Table[F] + 1;
     return true;
   }
 
