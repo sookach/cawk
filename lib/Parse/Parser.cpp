@@ -89,7 +89,7 @@ DeclResult Parser::parseDeclaration() {
 ///       identifier
 ///       param-list ',' identifier
 DeclResult Parser::parseFunctionDeclaration() {
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   if (!expect(tok::kw_function))
     return false;
   auto Identifier = Tok;
@@ -137,9 +137,9 @@ DeclResult Parser::parseFunctionDeclaration() {
   if (!Body.isValid())
     return false;
 
-  return Actions.actOnFunctionDeclaration(
-      FunctionDecl::Create(Identifier, Params, Body.getAs<CompoundStmt>(),
-                           SourceRange(BeginLoc, Lex.getBufferPtr())));
+  return Actions.actOnFunctionDeclaration(FunctionDecl::Create(
+      Identifier, Params, Body.getAs<CompoundStmt>(),
+      SourceRange(BeginLoc, std::cend(Body.get()->getSourceRange()))));
 }
 
 /// parseRuleDeclaration
@@ -147,7 +147,7 @@ DeclResult Parser::parseFunctionDeclaration() {
 ///       expression compound-statement?
 ///       compound-statement
 DeclResult Parser::parseRuleDeclaration() {
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   auto Pattern = [this, BeginLoc] -> ExprResult {
     switch (Tok.getKind()) {
     default:
@@ -168,6 +168,10 @@ DeclResult Parser::parseRuleDeclaration() {
   if (!Pattern.isValid())
     return false;
 
+  auto EndLoc = BeginLoc;
+  if (Pattern.get() != nullptr)
+    EndLoc = std::cend(Pattern.get()->getSourceRange());
+
   auto Action = consumeOneOf(tok::semi, tok::newline)
                     ? nullptr
                     : parseCompoundStatement();
@@ -175,8 +179,11 @@ DeclResult Parser::parseRuleDeclaration() {
   if (!Action.isValid())
     return false;
 
+  if (Action.get() != nullptr)
+    EndLoc = std::cend(Action.get()->getSourceRange());
+
   return RuleDecl::Create(Pattern.get(), Action.getAs<CompoundStmt>(),
-                          SourceRange(BeginLoc, Lex.getBufferPtr()));
+                          SourceRange(BeginLoc, EndLoc));
 }
 
 /// statement:
@@ -231,12 +238,19 @@ StmtResult Parser::parseStatement() {
 ///     unterminated-break-statement:
 ///       'break'
 StmtResult Parser::parseBreakStatement() {
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   if (!consume(tok::kw_break))
     return false;
-  consumeTerminator();
+  auto EndLoc = [&, this] {
+    if (Tok.is(tok::newline, tok::semi)) {
+      auto EndLoc = std::cend(Tok.getRawData());
+      advance();
+      return EndLoc;
+    }
+    return BeginLoc + std::size(tok::getKeywordSpelling(tok::kw_break));
+  }();
   return Actions.actOnBreakStatement(
-      BreakStmt::Create(SourceRange(BeginLoc, Lex.getBufferPtr())));
+      BreakStmt::Create(SourceRange(BeginLoc, EndLoc)));
 }
 
 /// parseCompoundStatement
@@ -248,7 +262,7 @@ StmtResult Parser::parseBreakStatement() {
 ///       statement-sequence terminated-statement
 StmtResult Parser::parseCompoundStatement() {
   assert(Tok.is(tok::l_brace) && "Not a compound statement");
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   consume(tok::l_brace);
 
   std::vector<Stmt *> Stmts;
@@ -269,10 +283,11 @@ StmtResult Parser::parseCompoundStatement() {
       break;
   }
 
+  auto EndLoc = std::cend(Tok.getRawData());
   if (!expect(tok::r_brace))
     return false;
 
-  return CompoundStmt::Create(Stmts, SourceRange(BeginLoc, Lex.getBufferPtr()));
+  return CompoundStmt::Create(Stmts, SourceRange(BeginLoc, EndLoc));
 }
 
 /// parseDoStatement
@@ -283,7 +298,7 @@ StmtResult Parser::parseCompoundStatement() {
 ///       'do' statement 'while' '(' expression ')'
 StmtResult Parser::parseDoStatement() {
   Actions.actOnStartOfDoStatement();
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   if (!consume(tok::kw_do))
     return false;
 
@@ -298,13 +313,19 @@ StmtResult Parser::parseDoStatement() {
   if (!Cond.isValid())
     return false;
 
+  auto EndLoc = std::cend(Tok.getRawData());
+
   if (!consume(tok::r_paren))
     return false;
 
+  if (Tok.is(tok::newline, tok::semi)) {
+    EndLoc = std::cend(Tok.getRawData());
+    advance();
+  }
+
   Actions.actOnFinishOfDoStatement();
 
-  return DoStmt::Create(Cond.get(), Body.get(),
-                        SourceRange(BeginLoc, Lex.getBufferPtr()));
+  return DoStmt::Create(Cond.get(), Body.get(), SourceRange(BeginLoc, EndLoc));
 }
 
 /// parseForStatement
@@ -319,7 +340,7 @@ StmtResult Parser::parseDoStatement() {
 ///             (print-statement | expression)? ')' unterminated-statement
 StmtResult Parser::parseForStatement() {
   Actions.actOnStartOfForStatement();
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   if (!consume(tok::kw_for, tok::l_paren))
     return false;
 
@@ -355,12 +376,15 @@ StmtResult Parser::parseForStatement() {
     return false;
   if (!expect(tok::r_paren))
     return false;
+  auto EndLoc = std::cend(Tok.getRawData());
   StmtResult Body = parseStatement();
   if (!Body.isValid())
     return false;
+  if (Body.get() != nullptr)
+    EndLoc = std::cend(Body.get()->getSourceRange());
   Actions.actOnFinishOfForStatement();
   return ForStmt::Create(Init.get(), Cond.get(), Inc.get(), Body.get(),
-                         SourceRange(BeginLoc, Lex.getBufferPtr()));
+                         SourceRange(BeginLoc, EndLoc));
 }
 
 /// parseIfStatement
@@ -372,7 +396,7 @@ StmtResult Parser::parseForStatement() {
 ///	    'if' '(' expression ')' unterminated-statement
 ///	    'if' '(' expression ')' statement 'else' unterminated-statement
 StmtResult Parser::parseIfStatement() {
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   if (!expect(tok::kw_if, tok::l_paren))
     return false;
   ExprResult Cond = parseExpression();
@@ -380,6 +404,7 @@ StmtResult Parser::parseIfStatement() {
     return false;
   if (!expect(tok::r_paren))
     return false;
+  auto EndLoc = std::cend(Tok.getRawData());
   StmtResult Then = [this] -> StmtResult {
     if (consumeTerminator())
       return nullptr;
@@ -387,11 +412,15 @@ StmtResult Parser::parseIfStatement() {
   }();
   if (!Then.isValid())
     return false;
+  if (Then.get() != nullptr)
+    EndLoc = std::cend(Then.get()->getSourceRange());
   StmtResult Else = consume(tok::kw_else) ? parseStatement() : true;
   if (!Else.isValid())
     return false;
+  if (Else.get() != nullptr)
+    EndLoc = std::cend(Else.get()->getSourceRange());
   return IfStmt::Create(Cond.get(), Then.get(), Else.get(),
-                        SourceRange(BeginLoc, Lex.getBufferPtr()));
+                        SourceRange(BeginLoc, EndLoc));
 }
 
 /// parsePrintStatement
@@ -407,7 +436,7 @@ StmtResult Parser::parseIfStatement() {
 ///     'print' '(' expression-list ')'
 ///     'printf' '(' expression-list ')'
 StmtResult Parser::parsePrintStatement() {
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   Token Iden = Tok;
   if (!consumeOneOf<true>(tok::kw_print, tok::kw_printf))
     return false;
@@ -443,10 +472,18 @@ StmtResult Parser::parsePrintStatement() {
     return {Tok, parseExpression()};
   }();
 
-  consumeTerminator();
+  auto EndLoc = [&, this] {
+    if (Tok.is(tok::newline, tok::semi)) {
+      auto EndLoc = std::cend(Tok.getRawData());
+      advance();
+      return EndLoc;
+    }
+    return std::empty(Args) ? std::cend(Iden.getIdentifier())
+                            : std::cend(Args.back()->getSourceRange());
+  }();
 
   return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
-                           SourceRange(BeginLoc, Lex.getBufferPtr()));
+                           SourceRange(BeginLoc, EndLoc));
 }
 
 /// parseReturnStatement
@@ -456,17 +493,24 @@ StmtResult Parser::parsePrintStatement() {
 ///   unterminated-return-statement:
 ///     'return' expression?
 StmtResult Parser::parseReturnStatement() {
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   if (!consume(tok::kw_return))
     return false;
+  auto EndLoc = std::cend(Tok.getRawData());
   ExprResult E = parseExpression();
   if (!E.isValid())
     return false;
 
-  consumeTerminator();
+  if (E.get() != nullptr)
+    EndLoc = std::cend(E.get()->getSourceRange());
+
+  if (Tok.is(tok::newline, tok::semi)) {
+    EndLoc = std::cend(Tok.getRawData());
+    advance();
+  }
 
   return Actions.actOnReturnStatement(
-      ReturnStmt::Create(E.get(), SourceRange(BeginLoc, Lex.getBufferPtr())));
+      ReturnStmt::Create(E.get(), SourceRange(BeginLoc, EndLoc)));
 }
 
 /// parseSimpleStatement
@@ -494,13 +538,17 @@ StmtResult Parser::parseSimpleStatement() {
 ///   unterminated-value-statement:
 ///     expression
 StmtResult Parser::parseValueStatement() {
-  auto BeginLoc = Lex.getBufferPtr();
   ExprResult Value = parseExpression();
   if (!Value.isValid())
     return false;
-  consumeTerminator();
-  return ValueStmt::Create(Value.get(),
-                           SourceRange(BeginLoc, Lex.getBufferPtr()));
+  auto EndLoc = std::cend(Value.get()->getSourceRange());
+  if (Tok.is(tok::newline, tok::semi)) {
+    EndLoc = std::cend(Tok.getRawData());
+    advance();
+  }
+  return ValueStmt::Create(
+      Value.get(),
+      SourceRange(std::cbegin(Value.get()->getSourceRange()), EndLoc));
 }
 
 /// parseWhileStatement
@@ -511,7 +559,7 @@ StmtResult Parser::parseValueStatement() {
 ///       'while' '(' expression ')' unterminated-statement
 StmtResult Parser::parseWhileStatement() {
   Actions.actOnStartOfWhileStatement();
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   if (!consume(tok::kw_while, tok::l_paren))
     return false;
 
@@ -519,6 +567,7 @@ StmtResult Parser::parseWhileStatement() {
   if (!Cond.isValid())
     return false;
 
+  auto EndLoc = std::cend(Tok.getRawData());
   if (!consume(tok::r_paren))
     return false;
 
@@ -531,13 +580,16 @@ StmtResult Parser::parseWhileStatement() {
   if (!Body.isValid())
     return false;
 
+  if (Body.get() != nullptr)
+    EndLoc = std::cend(Body.get()->getSourceRange());
+
   Actions.actOnFinishOfWhileStatement();
   return WhileStmt::Create(Cond.get(), Body.get(),
-                           SourceRange(BeginLoc, Lex.getBufferPtr()));
+                           SourceRange(BeginLoc, EndLoc));
 }
 
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
-  auto BeginLoc = Lex.getBufferPtr();
+  auto BeginLoc = std::cbegin(Tok.getRawData());
   auto NUD = [this] -> ExprResult {
     switch (Tok.getKind()) {
     default:
