@@ -2,9 +2,9 @@
 
 #include "AST/AST.h"
 #include "AST/ASTVisitor.h"
+#include "Basic/Diagnostic.h"
 #include "Exec/IO.h"
 #include "Exec/Value.h"
-#include "Support/StringMap.h"
 #include "Support/Support.h"
 
 #include <cstddef>
@@ -47,6 +47,7 @@ private:
 
   bool visit(TranslationUnitDecl *T);
   bool visit(RuleDecl *R);
+  bool visit(VarDecl *V);
 
   bool visit(BreakStmt *B);
   bool visit(ContinueStmt *C);
@@ -70,6 +71,7 @@ private:
   bool visit(CallExpr *C);
   bool visit(DeclRefExpr *D);
   bool visit(FloatingLiteral *F);
+  bool visit(LambdaExpr *L);
   bool visit(RegexLiteral *R);
   bool visit(StringLiteral *S);
   bool visit(UnaryOperator *U);

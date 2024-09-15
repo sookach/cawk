@@ -1,17 +1,18 @@
 #pragma once
 
+#include "AST/Decl.h"
 #include "Exec/IO.h"
 
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <variant>
 
 namespace cawk {
-
-class FunctionDecl;
+class LambdaExpr;
 
 enum TypeKind { NullTy, NumberTy, StringTy, ArrayTy, FunctionTy };
 
@@ -34,12 +35,18 @@ class Value {
 public:
   using Array = std::unordered_map<std::string, Value *>;
 
+  struct FunctionImpl {
+    std::vector<VarDecl *> Params;
+    CompoundStmt *Body;
+    bool IsAssignable;
+  };
+
 private:
   TypeKind Type;
   double NumberValue;
   std::string StringValue;
   std::unordered_map<std::string, Value *> ArrayValue;
-  FunctionDecl *FunctionValue;
+  FunctionImpl FunctionValue;
 
 public:
   explicit Value() : Type(NullTy) {}
@@ -52,8 +59,10 @@ public:
   explicit Value(std::string StringValue)
       : Type(StringTy), StringValue(StringValue) {}
 
-  explicit Value(FunctionDecl *FunctionValue)
-      : Type(FunctionTy), FunctionValue(FunctionValue) {}
+  explicit Value(FunctionDecl *F)
+      : Type(FunctionTy), FunctionValue(F->getParams(), F->getBody(), false) {}
+
+  explicit Value(LambdaExpr *L);
 
   TypeKind getType() { return Type; }
 

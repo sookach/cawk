@@ -864,6 +864,7 @@ protected:
       CASE(DeclRef, DeclRefExpr);
       CASE(End, EndKeyword);
       CASE(FloatingLiteral, FloatingLiteral);
+      CASE(Lambda, LambdaExpr);
       CASE(RegexLiteral, RegexLiteral);
       CASE(StringLiteral, StringLiteral);
       CASE(UnaryOperator, UnaryOperator);
@@ -1070,6 +1071,55 @@ protected:
       else
         return static_cast<Derived *>(this)->visit(F);
     }
+    return true;
+  }
+
+  bool visit(LambdaExpr *L) {
+    if constexpr (CheckNull)
+      if (L == nullptr)
+        return true;
+
+    if constexpr (Traversal == trav::None)
+      return static_cast<Derived *>(this)->visit(L);
+
+    if constexpr (RequireImpl || hasVisit<LambdaExpr>()) {
+      if constexpr (Traversal == trav::Preorder) {
+        if constexpr (ShortCircuit) {
+          if (!static_cast<Derived *>(this)->visit(L))
+            return false;
+        } else {
+          static_cast<Derived *>(this)->visit(L);
+        }
+      }
+
+      if constexpr (Traversal == trav::RecursiveDescent)
+        static_cast<Derived *>(this)->template visit<true>(L);
+    }
+
+    for (VarDecl *V : L->getParams()) {
+      if constexpr (ShortCircuit) {
+        if (!visit(V))
+          return false;
+      } else {
+        visit(V);
+      }
+    }
+
+    if constexpr (ShortCircuit) {
+      if (!visit(L->getBody()))
+        return false;
+    } else {
+      visit(L->getBody());
+    }
+
+    if constexpr (RequireImpl || hasVisit<LambdaExpr>()) {
+      if constexpr (Traversal == trav::Postorder)
+        return static_cast<Derived *>(this)->visit(L);
+
+      if constexpr (Traversal == trav::RecursiveDescent)
+        return static_cast<Derived *>(this)->template visit<false>(L);
+    }
+
     return true;
   }
 

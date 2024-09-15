@@ -162,6 +162,8 @@ private:
 
   ExprResult parseExpression(prec::Level MinPrec = prec::Unknown);
 
+  std::pair<std::vector<VarDecl *>, bool> parseParameterDeclarationClause();
+
   void recover() { skipUntil(tok::newline, tok::semi, tok::eof); }
 };
 } // namespace cawk

@@ -40,8 +40,12 @@ prec::Level cawk::getBinOpPrecedence(tok::TokenKind Kind) {
   case tok::pipeamp:
     return prec::Redirect;
   case tok::identifier:
-  case tok::string_literal:
   case tok::numeric_constant:
+  case tok::string_literal:
+  case tok::plusplus:
+  case tok::minusminus:
+  case tok::exclaim:
+  case tok::l_paren:
     return prec::StringConcat;
   case tok::plus:
   case tok::minus:

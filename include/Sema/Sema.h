@@ -3,6 +3,8 @@
 #include "AST/AST.h"
 #include "Basic/Diagnostic.h"
 
+#include <unordered_set>
+
 namespace cawk {
 class Sema {
   class ControlFlow {

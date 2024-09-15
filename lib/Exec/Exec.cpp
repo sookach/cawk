@@ -59,6 +59,8 @@ bool Exec::visit(RuleDecl *R) {
   return true;
 }
 
+bool Exec::visit(VarDecl *V) { return true; }
+
 bool Exec::visit(BreakStmt *B) {
   ShouldBreak = true;
   return true;
@@ -197,7 +199,11 @@ bool Exec::visit(PrintStmt *P) {
 bool Exec::visit(ReturnStmt *R) {
   if (!traverse(R->getValue()))
     return false;
-  CallStack.back()->setValue(*R->getValue()->getValue());
+  if (R->getValue()->getValue()->is<ArrayTy>() ||
+      R->getValue()->getValue()->is<FunctionTy>())
+    CallStack.back()->setValue(R->getValue()->getValue());
+  else
+    CallStack.back()->setValue(*R->getValue()->getValue());
   ShouldReturn = true;
   return true;
 }
@@ -269,7 +275,6 @@ bool Exec::visit(BinaryOperator *B) {
     } else {
       return false;
     }
-    B->getLHS()->executeOnAssignment();
     break;
 #define CASE(TOK, OP)                                                          \
   case TOK:                                                                    \
@@ -319,8 +324,9 @@ bool Exec::visit(CallExpr *C) {
 
   if (!traverse(C->getCallee()))
     return false;
-  FunctionDecl *Function = C->getCallee()->getValueAs<FunctionTy>();
-  auto Params = Function->getParams();
+
+  auto Function = C->getCallee()->getValueAs<FunctionTy>();
+  auto Params = Function.Params;
   auto Args = C->getArgs();
 
   Environments.emplace_back();
@@ -338,7 +344,7 @@ bool Exec::visit(CallExpr *C) {
   }
 
   CallStack.push_back(C);
-  visit(const_cast<CompoundStmt *>(Function->getBody()));
+  visit(Function.Body);
   CallStack.pop_back();
   return true;
 }
@@ -358,6 +364,11 @@ bool Exec::visit(DeclRefExpr *D) {
 
 bool Exec::visit(FloatingLiteral *F) {
   F->setValue(Value(std::stod(std::string(F->getLiteral().getLiteralData()))));
+  return true;
+}
+
+bool Exec::visit(LambdaExpr *L) {
+  L->setValue(new Value(L));
   return true;
 }
 

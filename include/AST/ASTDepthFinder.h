@@ -128,6 +128,14 @@ private:
 
   bool visit(FloatingLiteral *F) { return true; }
 
+  bool visit(LambdaExpr *L) {
+    for (VarDecl *V : L->getParams())
+      Table[V] = Table[L] + 1;
+
+    Table[L->getBody()] = Table[L] + 1;
+    return true;
+  }
+
   bool visit(RegexLiteral *R) { return true; }
 
   bool visit(StringLiteral *S) { return true; }

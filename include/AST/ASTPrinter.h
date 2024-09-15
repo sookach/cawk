@@ -154,6 +154,11 @@ private:
     return true;
   }
 
+  bool visit(LambdaExpr *L) {
+    print(std::string("LambdaExpr "), L);
+    return true;
+  }
+
   bool visit(RegexLiteral *R) {
     print(std::string("RegexLiteral "), R, " ",
           R->getLiteral().getLiteralData());

@@ -83,7 +83,7 @@ DeclResult Parser::parseDeclaration() {
 
 /// parseFunctionDeclaration
 ///     function-declaration
-///       'function' identifier '(' param-list? ')' compound-statement
+///       'function' identifier parameter-declaration-clause compound-statement
 ///
 ///     param-list:
 ///       identifier
@@ -101,34 +101,8 @@ DeclResult Parser::parseFunctionDeclaration() {
     parseCompoundStatement();
     return false;
   }
-  auto [Valid, Params] = [this] {
-    std::vector<VarDecl *> Params;
 
-    if (Tok.is(tok::identifier)) {
-      auto BeginLoc = Lex.getBufferPtr();
-      auto Iden = advance();
-      auto EndLoc = Lex.getBufferPtr();
-      Params.push_back(VarDecl::Create(
-          DeclRefExpr::Create(Iden, SourceRange(BeginLoc, EndLoc))));
-    }
-
-    for (; consume(tok::comma);) {
-      auto BeginLoc = Lex.getBufferPtr();
-      auto EndLoc = BeginLoc + Tok.getLength();
-      Params.push_back(VarDecl::Create(
-          DeclRefExpr::Create(Tok, SourceRange(BeginLoc, EndLoc))));
-      if (!expect(tok::identifier))
-        return std::pair(false, Params);
-    }
-
-    return std::pair(true, Params);
-  }();
-
-  if (!Valid || !Actions.actOnParamList(Params))
-    return false;
-
-  if (!consume(tok::r_paren))
-    return false;
+  auto [Params, Valid] = parseParameterDeclarationClause();
 
   Actions.actOnStartOfFunctionBody();
   auto Body = parseCompoundStatement();
@@ -604,7 +578,7 @@ StmtResult Parser::parseWhileStatement() {
 
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto BeginLoc = std::cbegin(Tok.getRawData());
-  auto NUD = [&, this] -> ExprResult {
+  auto ParseAtom = [&, this] -> ExprResult {
     switch (Tok.getKind()) {
     default:
       return false;
@@ -653,6 +627,20 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       return UnaryOperator::Create(
           OpCode, SubExpr.get(), UnaryOperator::Prefix,
           SourceRange(BeginLoc, SubExpr.get()->getSourceRange().first));
+    }
+    case tok::kw_function: {
+      advance();
+      auto [Params, Valid] = parseParameterDeclarationClause();
+      if (!Valid)
+        return false;
+      Actions.actOnStartOfFunctionBody();
+      auto Body = parseCompoundStatement();
+      Actions.actOnFinishOfFunctionBody();
+      if (!Body.isValid())
+        return false;
+      return LambdaExpr::Create(
+          Params, Body.getAs<CompoundStmt>(),
+          SourceRange(BeginLoc, std::cend(Body.get()->getSourceRange())));
     }
     }
   };
@@ -727,23 +715,18 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       }
       }
     }
-  }(NUD());
+  }(ParseAtom());
 
   for (;;) {
-    auto Prec = [this] {
-      if (Tok.is(tok::identifier, tok::numeric_constant, tok::string_literal,
-                 tok::plusplus, tok::minusminus, tok::exclaim, tok::l_paren))
-        return prec::StringConcat;
-      return getBinOpPrecedence(Tok.getKind());
-    }();
+    auto NextTokPrec = getBinOpPrecedence(Tok.getKind());
 
-    if (Prec <= MinPrec)
+    if (NextTokPrec < MinPrec)
       break;
 
     skip(tok::newline);
 
-    auto OpCode = [this, Prec] {
-      if (Prec == prec::StringConcat) {
+    auto OpCode = [this, NextTokPrec] {
+      if (NextTokPrec == prec::StringConcat) {
         auto SpaceTok = Tok;
         Lex.formSpaceToken(SpaceTok, std::cbegin(SpaceTok.getRawData()) - 1);
         return SpaceTok;
@@ -751,28 +734,49 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       return advance();
     }();
 
-    switch (OpCode.getKind()) {
-    default: {
-      ExprResult RHS = parseExpression(Prec);
-      if (!RHS.isValid())
-        return false;
-      LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode,
-                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
-      break;
-    }
-    case tok::equal:
-    case tok::plusequal:
-    case tok::minusequal:
-    case tok::starequal:
-    case tok::slashequal:
-    case tok::caretequal:
-    case tok::starstarequal: {
-      ExprResult RHS = parseExpression(prec::Level(Prec - 1));
-      LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode,
-                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
-    }
-    }
+    bool IsRightAssoc = NextTokPrec == prec::Assignment;
+    ExprResult RHS =
+        parseExpression(static_cast<prec::Level>(NextTokPrec + !IsRightAssoc));
+    if (!RHS.isValid())
+      return false;
+    LHS = BinaryOperator::Create(LHS.get(), RHS.get(), OpCode,
+                                 SourceRange(BeginLoc, Lex.getBufferPtr()));
   }
 
   return LHS;
+}
+
+/// parseParameterDeclarationClause
+///     parameter-declaration-clause:
+///       ( parameter-declaration-list? )
+///
+///     parameter-declaration-list:
+///       parameter-declaration
+///       parameter-declaration-list, parameter-declaration
+std::pair<std::vector<VarDecl *>, bool>
+Parser::parseParameterDeclarationClause() {
+  std::vector<VarDecl *> Params;
+
+  if (Tok.is(tok::identifier)) {
+    std::string_view SrcRange = Tok.getIdentifier();
+    auto Iden = advance();
+    Params.push_back(VarDecl::Create(
+        DeclRefExpr::Create(Iden, SourceRange(SrcRange)), SrcRange));
+  }
+
+  for (; consume(tok::comma);) {
+    std::string_view SrcRange = Tok.getIdentifier();
+    Params.push_back(VarDecl::Create(
+        DeclRefExpr::Create(Tok, SourceRange(SrcRange)), SrcRange));
+    if (!expect(tok::identifier))
+      return std::pair(Params, false);
+  }
+
+  if (!Actions.actOnParamList(Params))
+    return std::pair(Params, false);
+
+  if (!expect(tok::r_paren))
+    return std::pair(Params, false);
+
+  return std::pair(Params, true);
 }
