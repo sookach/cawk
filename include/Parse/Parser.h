@@ -50,7 +50,7 @@ public:
 
   DeclResult parse() { return parseTranslationUnit(); }
 
-  auto getSymbols() { return Actions.getSymbols(); }
+  auto getFunctions() { return Actions.getFunctions(); }
 
 private:
   template <bool NL = true, bool RE = false> Token advance();

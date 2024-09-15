@@ -36,8 +36,8 @@ int Instance::execute() {
   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   Diags.printErrors(Source);
   //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
-  auto Globals = Parse.getSymbols();
-  Exec Executor(Diags, ParseResult.getAs<TranslationUnitDecl>(), {}, Globals);
+  auto Functions = Parse.getFunctions();
+  Exec Executor(Diags, ParseResult.getAs<TranslationUnitDecl>(), {}, Functions);
   Executor();
   return EXIT_SUCCESS;
 }

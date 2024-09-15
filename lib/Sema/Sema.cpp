@@ -19,9 +19,11 @@ void Sema::actOnStartOfFunctionBody() { CtrlFlow.enterFunction(); }
 void Sema::actOnFinishOfFunctionBody() { CtrlFlow.exitFunction(); }
 
 DeclResult Sema::actOnFunctionDeclaration(FunctionDecl *F) {
-  if (Symbols.emplace(F->getName(), new Value(F)).second)
-    return F;
-  return false;
+  if (Variables.contains(std::string(F->getName())) ||
+      Functions.contains(std::string(F->getName())))
+    return false;
+  Functions.emplace(F->getName(), F);
+  return F;
 }
 
 StmtResult Sema::actOnBreakStatement(BreakStmt *B) {
@@ -53,10 +55,3 @@ StmtResult Sema::actOnReturnStatement(ReturnStmt *R) {
 void Sema::actOnStartOfWhileStatement() { CtrlFlow.enterLoop(); }
 
 void Sema::actOnFinishOfWhileStatement() { CtrlFlow.exitLoop(); }
-
-bool Sema::actOnDeclRefExpr(DeclRefExpr *D) {
-  if (Symbols.try_emplace(std::string(D->getName()), new Value)
-          .first->second->getType() != NullTy)
-    return false;
-  return true;
-}

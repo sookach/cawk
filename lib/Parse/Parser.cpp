@@ -604,13 +604,12 @@ StmtResult Parser::parseWhileStatement() {
 
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto BeginLoc = std::cbegin(Tok.getRawData());
-  auto NUD = [this] -> ExprResult {
+  auto NUD = [&, this] -> ExprResult {
     switch (Tok.getKind()) {
     default:
       return false;
     case tok::l_paren: {
-      auto BeginLoc = Lex.getBufferPtr();
-      expect(tok::l_paren);
+      advance();
       ExprResult SubExpr = parseExpression();
       if (!SubExpr.isValid())
         return false;
@@ -618,28 +617,28 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
         return false;
       return SubExpr;
     }
-    // case tok::kw_gsub:
-    // case tok::kw_index:
-    // case tok::kw_match:
-    // case tok::kw_split:
-    // case tok::kw_sprintf:
-    // case tok::kw_sub:
-    // case tok::kw_substr:
+    case tok::kw_gsub:
+    case tok::kw_index:
+    case tok::kw_match:
+    case tok::kw_split:
+    case tok::kw_sprintf:
+    case tok::kw_sub:
+    case tok::kw_substr:
     case tok::identifier: {
-      auto BeginLoc = Lex.getBufferPtr();
+      auto Identifier = advance();
       DeclRefExpr *D = DeclRefExpr::Create(
-          advance(), SourceRange(BeginLoc, Lex.getBufferPtr()));
+          Identifier, SourceRange(BeginLoc, std::end(Identifier.getRawData())));
       return D;
     }
     case tok::numeric_constant: {
-      auto BeginLoc = Lex.getBufferPtr();
-      return FloatingLiteral::Create(advance(),
-                                     SourceRange(BeginLoc, Lex.getBufferPtr()));
+      auto Literal = advance();
+      return FloatingLiteral::Create(
+          Literal, SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
     }
     case tok::string_literal: {
-      auto BeginLoc = Lex.getBufferPtr();
-      return StringLiteral::Create(advance(),
-                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
+      auto Literal = advance();
+      return StringLiteral::Create(
+          Literal, SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
     }
     case tok::plusplus:
     case tok::minusminus:
@@ -647,26 +646,20 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     case tok::plus:
     case tok::minus:
     case tok::dollar: {
-      auto BeginLoc = Lex.getBufferPtr();
       Token OpCode = advance();
       ExprResult SubExpr = parseExpression(prec::Maximum);
       if (!SubExpr.isValid())
         return false;
-      return UnaryOperator::Create(OpCode, SubExpr.get(), UnaryOperator::Prefix,
-                                   SourceRange(BeginLoc, Lex.getBufferPtr()));
+      return UnaryOperator::Create(
+          OpCode, SubExpr.get(), UnaryOperator::Prefix,
+          SourceRange(BeginLoc, SubExpr.get()->getSourceRange().first));
     }
     }
   };
 
-  auto LHS = [this](ExprResult LHS) -> ExprResult {
+  auto LHS = [&, this](ExprResult LHS) -> ExprResult {
     if (!LHS.isValid())
       return false;
-
-    if (DeclRefExpr *D = dyn_cast<DeclRefExpr>(LHS.get()); D != nullptr)
-      if ((!Tok.is(tok::l_paren) ||
-           Lex.getBufferPtr() != std::cend(D->getSourceRange())) &&
-          !Actions.actOnDeclRefExpr(D))
-        return false;
 
     for (;;) {
       switch (Tok.getKind()) {
@@ -674,17 +667,18 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
         return LHS;
       case tok::plusplus:
       case tok::minusminus: {
-        auto BeginLoc = Lex.getBufferPtr();
         auto OpCode = advance();
-        return UnaryOperator::Create(OpCode, LHS.get(), UnaryOperator::Prefix,
-                                     SourceRange(BeginLoc, Lex.getBufferPtr()));
+        return UnaryOperator::Create(
+            OpCode, LHS.get(), UnaryOperator::Prefix,
+            SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
       }
       case tok::l_paren: {
-        if (std::end(LHS.get()->getSourceRange()) != Lex.getBufferPtr()) {
+        if (std::end(LHS.get()->getSourceRange()) !=
+            std::cbegin(Tok.getRawData())) {
           return LHS;
         }
-        auto BeginLoc = Lex.getBufferPtr();
-        expect(tok::l_paren);
+
+        advance();
         std::vector<Expr *> Args;
 
         if (!Tok.is(tok::r_paren)) {
@@ -701,11 +695,12 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
           Args.push_back(Arg.get());
         }
 
-        if (!consume(tok::r_paren))
+        if (!expect(tok::r_paren))
           return false;
 
-        LHS = CallExpr::Create(LHS.get(), Args,
-                               SourceRange(BeginLoc, Lex.getBufferPtr()));
+        LHS = CallExpr::Create(
+            LHS.get(), Args,
+            SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
         break;
       }
       case tok::l_square: {

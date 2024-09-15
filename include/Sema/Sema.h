@@ -20,7 +20,8 @@ class Sema {
 
   Diagnostic &Diags;
   ControlFlow CtrlFlow;
-  std::unordered_map<std::string, Value *> Symbols;
+  std::unordered_map<std::string, FunctionDecl *> Functions;
+  std::unordered_set<std::string> Variables;
 
 public:
   Sema(Diagnostic &Diags) : Diags(Diags) {}
@@ -38,9 +39,8 @@ public:
   StmtResult actOnReturnStatement(ReturnStmt *R);
   void actOnStartOfWhileStatement();
   void actOnFinishOfWhileStatement();
-  bool actOnDeclRefExpr(DeclRefExpr *D);
 
-  auto getSymbols() { return Symbols; }
+  auto getFunctions() { return Functions; }
 };
 
 } // namespace cawk

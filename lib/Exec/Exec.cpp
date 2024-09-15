@@ -352,7 +352,7 @@ bool Exec::visit(DeclRefExpr *D) {
     }
   }
   Environments.front()[std::string(D->getName())] = new Value;
-  D->setValue(Environments.back()[std::string(D->getName())]);
+  D->setValue(Environments.front()[std::string(D->getName())]);
   return true;
 }
 
