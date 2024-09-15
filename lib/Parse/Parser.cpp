@@ -214,6 +214,9 @@ StmtResult Parser::parseStatement() {
     skip(tok::semi, tok::newline);
     return S;
   }
+  case tok::newline:
+  case tok::semi:
+    return parseNullStatement();
   case tok::l_brace:
     return parseCompoundStatement();
   case tok::kw_break:
@@ -267,11 +270,6 @@ StmtResult Parser::parseCompoundStatement() {
 
   std::vector<Stmt *> Stmts;
   for (; !Tok.is(tok::r_brace, tok::eof);) {
-    if (consumeTerminator()) {
-      skip(tok::newline, tok::semi);
-      continue;
-    }
-
     if (StmtResult S = parseStatement(); S.isValid()) {
       Stmts.push_back(S.get());
     } else {
@@ -353,12 +351,17 @@ StmtResult Parser::parseForStatement() {
         DeclRefExpr::Create(Tok, SourceRange(Tok.getIdentifier()));
     if (!expect(tok::identifier, tok::r_paren))
       return false;
-    StmtResult Body = parseStatement();
+    auto EndLoc = std::cend(Tok.getRawData());
+    consume(tok::newline);
+    StmtResult Body =
+        consumeTerminator() ? StmtResult(nullptr) : parseStatement();
     if (!Body.isValid())
       return false;
+    if (Body.get() != nullptr)
+      EndLoc = std::cend(Body.get()->getSourceRange());
     Actions.actOnFinishOfForStatement();
     return ForRangeStmt::Create(LoopVar, Range, Body.get(),
-                                SourceRange(BeginLoc, Lex.getBufferPtr()));
+                                SourceRange(BeginLoc, EndLoc));
   }
 
   StmtResult Init = Tok.is(tok::semi) ? true : parseSimpleStatement();
@@ -405,6 +408,7 @@ StmtResult Parser::parseIfStatement() {
   if (!expect(tok::r_paren))
     return false;
   auto EndLoc = std::cend(Tok.getRawData());
+  consume(tok::newline);
   StmtResult Then = [this] -> StmtResult {
     if (consumeTerminator())
       return nullptr;
@@ -421,6 +425,16 @@ StmtResult Parser::parseIfStatement() {
     EndLoc = std::cend(Else.get()->getSourceRange());
   return IfStmt::Create(Cond.get(), Then.get(), Else.get(),
                         SourceRange(BeginLoc, EndLoc));
+}
+
+/// parseNullStatement
+///     null-statement:
+///       terminator
+StmtResult Parser::parseNullStatement() {
+  assert(Tok.is(tok::newline, tok::semi) && "Not a null statement");
+  auto BeginLoc = std::cbegin(Tok.getRawData());
+  advance();
+  return NullStmt::Create(SourceRange(BeginLoc, BeginLoc + 1));
 }
 
 /// parsePrintStatement

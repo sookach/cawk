@@ -57,6 +57,7 @@ private:
   bool visit(IfStmt *I);
   bool visit(NextStmt *N);
   bool visit(NextfileStmt *N);
+  bool visit(NullStmt *N);
   bool visit(PrintStmt *P);
   bool visit(ReturnStmt *R);
   bool visit(ValueStmt *V);

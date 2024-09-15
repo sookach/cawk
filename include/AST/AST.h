@@ -373,6 +373,8 @@ public:
 
   std::vector<Stmt *> getBody() { return Body; }
 
+  void setBody(std::vector<Stmt *> B) { Body = B; }
+
   static CompoundStmt *Create(std::vector<Stmt *> Body, SourceRange SrcRange) {
     return new CompoundStmt(Body, SrcRange);
   }
@@ -403,6 +405,10 @@ public:
   Stmt *getElse() { return Else; }
 
   void setCond(Expr *E) { Cond = E; }
+
+  void setThen(Stmt *S) { Then = S; }
+
+  void setElse(Stmt *S) { Else = S; }
 
   static IfStmt *Create(Expr *Cond, Stmt *Then, Stmt *Else,
                         SourceRange SrcRange) {
@@ -435,6 +441,8 @@ public:
 
   void setCond(Expr *E) { Cond = E; }
 
+  void setBody(Stmt *S) { Body = S; }
+
   static ForStmt *Create(Stmt *Init, Expr *Cond, Stmt *Inc, Stmt *Body,
                          SourceRange SrcRange) {
     return new ForStmt(Init, Cond, Inc, Body, SrcRange);
@@ -464,6 +472,8 @@ public:
   void setRange(DeclRefExpr *E) { Range = E; }
 
   Stmt *getBody() { return Body; }
+
+  void setBody(Stmt *S) { Body = S; }
 
   static ForRangeStmt *Create(DeclRefExpr *LoopVar, DeclRefExpr *Range,
                               Stmt *Body, SourceRange SrcRange) {
@@ -551,6 +561,8 @@ public:
 
   void setCond(Expr *E) { Cond = E; }
 
+  void setBody(Stmt *S) { Body = S; }
+
   static WhileStmt *Create(Expr *Cond, Stmt *Body, SourceRange SrcRange) {
     return new WhileStmt(Cond, Body, SrcRange);
   }
@@ -589,6 +601,8 @@ public:
   Expr *getCond() { return Cond; }
 
   Stmt *getBody() { return Body; }
+
+  void setBody(Stmt *S) { Body = S; }
 
   static DoStmt *Create(Expr *Cond, Stmt *Body, SourceRange SrcRange) {
     return new DoStmt(Cond, Body, SrcRange);

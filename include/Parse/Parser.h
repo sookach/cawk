@@ -153,10 +153,10 @@ private:
   StmtResult parseDoStatement();
   StmtResult parseForStatement();
   StmtResult parseIfStatement();
+  StmtResult parseNullStatement();
   StmtResult parsePrintStatement();
   StmtResult parseReturnStatement();
   StmtResult parseSimpleStatement();
-  StmtResult parseTerminatedStatement();
   StmtResult parseValueStatement();
   StmtResult parseWhileStatement();
 

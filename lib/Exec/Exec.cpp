@@ -48,14 +48,14 @@ void Exec::operator()() {
 
 bool Exec::visit(TranslationUnitDecl *T) {
   for (Decl *D : T->getDecls())
-    if (RuleDecl *R = dyn_cast<RuleDecl>(D))
-      visit(R);
+    if (RuleDecl *R = dyn_cast<RuleDecl>(D); R != nullptr && !visit(R))
+      return false;
   return true;
 }
 
 bool Exec::visit(RuleDecl *R) {
   if (R->getPattern() == nullptr || R->getPattern()->getValue())
-    visit(R->getAction());
+    return visit(R->getAction());
   return true;
 }
 
@@ -70,9 +70,12 @@ bool Exec::visit(ContinueStmt *C) {
 }
 
 bool Exec::visit(CompoundStmt *C) {
-  for (Stmt *S : C->getBody())
-    if (traverse(S); isEarlyExit())
+  for (Stmt *S : C->getBody()) {
+    if (!traverse(S))
+      return false;
+    if (isEarlyExit())
       break;
+  }
   return true;
 }
 
@@ -80,12 +83,16 @@ bool Exec::visit(DeleteStmt *D) { return true; }
 
 bool Exec::visit(DoStmt *D) {
   for (;;) {
-    traverse(D->getBody());
+    if (!traverse(D->getBody()))
+      return false;
 
     if (isEarlyExit())
       break;
 
-    if (traverse(D->getCond()); !D->getCond()->isTrue())
+    if (!traverse(D->getCond()))
+      return false;
+
+    if (!D->getCond()->isTrue())
       break;
   }
   ShouldBreak = ShouldContinue = false;
@@ -94,25 +101,28 @@ bool Exec::visit(DoStmt *D) {
 
 bool Exec::visit(ExitStmt *E) {
   if (E->getValue() != nullptr) {
-    traverse(E->getValue());
+    if (!traverse(E->getValue()))
+      return false;
     std::exit(E->getValue()->getValue()->getAs<NumberTy>());
   }
   std::exit(EXIT_SUCCESS);
 }
 
 bool Exec::visit(ForStmt *F) {
-  if (F->getInit() != nullptr)
-    traverse(F->getInit());
+  if (F->getInit() != nullptr && !traverse(F->getInit()))
+    return false;
 
   for (;;) {
     if (F->getCond() != nullptr) {
-      traverse(F->getCond());
+      if (!traverse(F->getCond()))
+        return false;
+
       if (!F->getCond()->isTrue())
         break;
     }
 
-    if (F->getBody() != nullptr)
-      traverse(F->getBody());
+    if (F->getBody() != nullptr && !traverse(F->getBody()))
+      return false;
 
     if (F->getInc() != nullptr)
       traverse(F->getInc());
@@ -123,17 +133,19 @@ bool Exec::visit(ForStmt *F) {
 
 bool Exec::visit(ForRangeStmt *F) {
   Environments.emplace_back();
-  for (auto &[Key, Val] : F->getRange()->getValue()->get<ArrayTy>()) {
+  for (auto &[Key, Val] : F->getRange()->getValueAs<ArrayTy>()) {
     Environments.back()[std::string(F->getLoopVar()->getName())] =
         new Value(Key);
-    traverse(F->getBody());
+    if (!traverse(F->getBody()))
+      return false;
   }
   Environments.pop_back();
   return true;
 }
 
 bool Exec::visit(IfStmt *I) {
-  traverse(I->getCond());
+  if (!traverse(I->getCond()))
+    return false;
   if (I->getCond()->isTrue())
     return traverse(I->getThen());
   else if (I->getElse() != nullptr)
@@ -150,6 +162,8 @@ bool Exec::visit(NextfileStmt *N) {
   SkipToNextfile = true;
   return true;
 }
+
+bool Exec::visit(NullStmt *N) { return true; }
 
 bool Exec::visit(PrintStmt *P) {
   assert(P->getOpcode().is(tok::unknown) && P->getOutput() == nullptr &&
@@ -181,23 +195,23 @@ bool Exec::visit(PrintStmt *P) {
 }
 
 bool Exec::visit(ReturnStmt *R) {
-  traverse(R->getValue());
+  if (!traverse(R->getValue()))
+    return false;
   CallStack.back()->setValue(*R->getValue()->getValue());
   ShouldReturn = true;
   return true;
 }
 
-bool Exec::visit(ValueStmt *V) {
-  traverse(V->getValue());
-  return true;
-}
+bool Exec::visit(ValueStmt *V) { return traverse(V->getValue()); }
 
 bool Exec::visit(WhileStmt *W) {
   for (;;) {
-    traverse(W->getCond());
+    if (traverse(W->getCond()))
+      return false;
     if (!W->getCond()->isTrue())
       break;
-    traverse(W->getBody());
+    if (traverse(W->getBody()))
+      return false;
     if (isEarlyExit())
       break;
   }
@@ -206,14 +220,17 @@ bool Exec::visit(WhileStmt *W) {
 }
 
 bool Exec::visit(ArraySubscriptExpr *A) {
-  traverse(A->getLHS());
-  Value *S = A->getLHS()->getValue()->operator[](Value(std::ranges::fold_left(
-      A->getRHS(), std::string(), [this](std::string S, Expr * E) {
-        traverse(E);
-        return S + E->getValue()->getAs<StringTy>();
-      })));
+  if (!traverse(A->getLHS()))
+    return false;
 
-  A->setValue(S);
+  Value V;
+  for (Expr *E : A->getRHS()) {
+    if (!traverse(E))
+      return false;
+    V = Value(V.get<StringTy>() + E->getValueAs<StringTy>());
+  }
+
+  A->setValue(A->getLHS()->getValue()->operator[](V));
   return true;
 }
 
@@ -224,11 +241,12 @@ bool Exec::visit(BinaryOperator *B) {
     exit(EXIT_FAILURE);
 #define CASE(TOK, OP)                                                          \
   case TOK:                                                                    \
-    traverse(B->getLHS());                                                     \
-    traverse(B->getRHS());                                                     \
-    B->setValue(Value(B->getLHS()                                              \
-                          ->getValueAs<NumberTy>() OP B->getRHS()              \
-                          ->getValueAs<NumberTy>()));                          \
+    if (traverse(B->getLHS()) && traverse(B->getRHS()))                        \
+      B->setValue(Value(B->getLHS()                                            \
+                            ->getValueAs<NumberTy>() OP B->getRHS()            \
+                            ->getValueAs<NumberTy>()));                        \
+    else                                                                       \
+      return false;                                                            \
     break
     CASE(tok::plus, +);
     CASE(tok::minus, -);
@@ -238,26 +256,31 @@ bool Exec::visit(BinaryOperator *B) {
     CASE(tok::exclaimequal, !=);
 #undef CASE
   case tok::space:
-    traverse(B->getLHS());
-    traverse(B->getRHS());
-    B->setValue(Value(B->getLHS()->getValueAs<StringTy>() +
-                      B->getRHS()->getValueAs<StringTy>()));
+    if (traverse(B->getLHS()) && traverse(B->getRHS()))
+      B->setValue(Value(B->getLHS()->getValueAs<StringTy>() +
+                        B->getRHS()->getValueAs<StringTy>()));
+    else
+      return false;
     break;
   case tok::equal:
-    traverse(B->getLHS());
-    traverse(B->getRHS());
-    B->getLHS()->setValue(*B->getRHS()->getValue());
-    B->setValue(B->getLHS()->getValue());
+    if (traverse(B->getLHS()) && traverse(B->getRHS())) {
+      B->getLHS()->setValue(*B->getRHS()->getValue());
+      B->setValue(B->getLHS()->getValue());
+    } else {
+      return false;
+    }
     B->getLHS()->executeOnAssignment();
     break;
 #define CASE(TOK, OP)                                                          \
   case TOK:                                                                    \
-    traverse(B->getLHS());                                                     \
-    traverse(B->getRHS());                                                     \
-    B->getLHS()->setValue(Value(B->getLHS()                                    \
-                                    ->getValueAs<NumberTy>() OP B->getRHS()    \
-                                    ->getValueAs<NumberTy>()));                \
-    B->setValue(B->getValue());                                                \
+    if (traverse(B->getLHS()) && traverse(B->getRHS())) {                      \
+      B->getLHS()->setValue(Value(B->getLHS()                                  \
+                                      ->getValueAs<NumberTy>() OP B->getRHS()  \
+                                      ->getValueAs<NumberTy>()));              \
+      B->setValue(B->getValue());                                              \
+    } else {                                                                   \
+      return false;                                                            \
+    }                                                                          \
     break
     CASE(tok::plusequal, +);
     CASE(tok::minusequal, -);
@@ -266,34 +289,32 @@ bool Exec::visit(BinaryOperator *B) {
 #undef CASE
   case tok::caretequal:
   case tok::starstarequal:
-    traverse(B->getLHS());
-    traverse(B->getRHS());
-    B->getLHS()->setValue(Value(std::pow(B->getLHS()->getValueAs<NumberTy>(),
-                                         B->getRHS()->getValueAs<NumberTy>())));
-    B->setValue(B->getLHS()->getValue());
+    if (traverse(B->getLHS()) && traverse(B->getRHS())) {
+      B->getLHS()->setValue(
+          Value(std::pow(B->getLHS()->getValueAs<NumberTy>(),
+                         B->getRHS()->getValueAs<NumberTy>())));
+      B->setValue(B->getLHS()->getValue());
+    } else {
+      return false;
+    }
     break;
   }
   return true;
 }
 
 bool Exec::visit(CallExpr *C) {
-  auto IdenKind =
-      ptr_cast<DeclRefExpr>(C->getCallee())->getIdentifier().getKind();
-  if (isBuiltin(IdenKind)) {
-    auto Args =
-        std::ranges::fold_left(C->getArgs(), std::vector<Value *>(),
-                               [this](std::vector<Value *> Args, Expr *E) {
-                                 traverse(E);
-                                 Args.push_back(E->getValue());
-                                 return Args;
-                               });
-    CallStack.push_back(C);
-    if (!execBuiltin(IdenKind, Args)) {
-      CallStack.pop_back();
-      return false;
+  if (DeclRefExpr *D = dyn_cast<DeclRefExpr>(C->getCallee());
+      D && isBuiltin(D->getIdentifier().getKind())) {
+    std::vector<Value *> Args;
+    for (Expr *E : C->getArgs()) {
+      if (!traverse(E))
+        return false;
+      Args.push_back(E->getValue());
     }
+    CallStack.push_back(C);
+    bool Return = execBuiltin(D->getIdentifier().getKind(), Args);
     CallStack.pop_back();
-    return true;
+    return Return;
   }
 
   if (!traverse(C->getCallee()))
@@ -304,15 +325,9 @@ bool Exec::visit(CallExpr *C) {
 
   Environments.emplace_back();
 
-  for (Expr *E : Args) {
-    if (!traverse(E))
-      return false;
-  }
-
   for (int I = 0; I != std::min(std::size(Params), std::size(Args)); ++I) {
     if (!traverse(Args[I]))
       return false;
-
     auto Type = Args[I]->getType();
     if (Type == ArrayTy || Type == FunctionTy)
       Environments.back()[std::string(Params[I]->getName())] =
@@ -332,7 +347,7 @@ bool Exec::visit(DeclRefExpr *D) {
   for (auto It = std::crbegin(Environments), End = std::crend(Environments);
        It != End; ++It) {
     if (It->contains(std::string(D->getName()))) {
-      D->setValue(*It->at(std::string(D->getName())));
+      D->setValue(It->at(std::string(D->getName())));
       return true;
     }
   }
@@ -454,19 +469,18 @@ bool Exec::visit(StringLiteral *S) {
 }
 
 bool Exec::visit(UnaryOperator *U) {
+  if (!traverse(U->getSubExpr()))
+    return false;
   switch (U->getOpcode().getKind()) {
   default:
     cawk_unreachable("Invalid unary operation");
   case tok::plus:
-    traverse(U->getSubExpr());
     U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>()));
     break;
   case tok::minus:
-    traverse(U->getSubExpr());
     U->setValue(Value(-U->getSubExpr()->getValueAs<NumberTy>()));
     break;
   case tok::plusplus:
-    traverse(U->getSubExpr());
     if (U->getFix() == UnaryOperator::Prefix)
       U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>() + 1));
     else
@@ -475,7 +489,6 @@ bool Exec::visit(UnaryOperator *U) {
         Value(U->getSubExpr()->getValueAs<NumberTy>() + 1));
     break;
   case tok::minusminus:
-    traverse(U->getSubExpr());
     if (U->getFix() == UnaryOperator::Prefix)
       U->setValue(Value(U->getSubExpr()->getValueAs<NumberTy>() - 1));
     else
@@ -484,7 +497,6 @@ bool Exec::visit(UnaryOperator *U) {
         Value(U->getSubExpr()->getValueAs<NumberTy>() - 1));
     break;
   case tok::exclaim:
-    traverse(U->getSubExpr());
     switch (U->getSubExpr()->getType()) {
     case ArrayTy:
     case FunctionTy:
@@ -500,7 +512,6 @@ bool Exec::visit(UnaryOperator *U) {
       U->setValue(Value(true));
     }
   case tok::dollar: {
-    traverse(U->getSubExpr());
     auto SubExpr = U->getSubExpr()->getValueAs<NumberTy>();
     if (SubExpr < 0) {
       U->setValue(Value());
