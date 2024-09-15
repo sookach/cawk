@@ -39,6 +39,9 @@ public:
   bool PanicMode = false;
   std::string ExpectedTypes = "one of";
 
+  /// @brief ParenCount - The nested level of parentheses.
+  int ParenCount = 0;
+
   /// @brief Diags - The diagnostic engine.
   Diagnostic &Diags;
 
@@ -160,7 +163,7 @@ private:
   StmtResult parseValueStatement();
   StmtResult parseWhileStatement();
 
-  ExprResult parseExpression(prec::Level MinPrec = prec::Unknown);
+  ExprResult parseExpression(prec::Level MinPrec = prec::Assignment);
 
   std::pair<std::vector<VarDecl *>, bool> parseParameterDeclarationClause();
 

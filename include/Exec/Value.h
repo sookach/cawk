@@ -124,7 +124,9 @@ public:
     }
   }
 
-  template <TypeKind T> bool is() { return Type == T; }
+  template <typename... Ts> bool is(Ts... Ks) {
+    return (false || ... || (Type == Ks));
+  }
 
   void setValue(Value *V) { setValue(*V); }
 
@@ -133,19 +135,19 @@ public:
     case NullTy:
       break;
     case NumberTy:
-      assert(is<NumberTy>() || is<StringTy>() || is<NullTy>());
+      assert(is(NumberTy, StringTy, NullTy));
       NumberValue = V.get<NumberTy>();
       break;
     case StringTy:
-      assert(is<NumberTy>() || is<StringTy>() || is<NullTy>());
+      assert(is(NumberTy, StringTy, NullTy));
       StringValue = V.get<StringTy>();
       break;
     case ArrayTy:
-      assert(is<ArrayTy>() || is<NullTy>());
+      assert(is(ArrayTy, NullTy));
       ArrayValue = V.get<ArrayTy>();
       break;
     case FunctionTy:
-      assert(is<FunctionTy>() || is<NullTy>());
+      assert(is(FunctionTy, NullTy));
       FunctionValue = V.get<FunctionTy>();
     }
     Type = V.getType();

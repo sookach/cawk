@@ -199,8 +199,7 @@ bool Exec::visit(PrintStmt *P) {
 bool Exec::visit(ReturnStmt *R) {
   if (!traverse(R->getValue()))
     return false;
-  if (R->getValue()->getValue()->is<ArrayTy>() ||
-      R->getValue()->getValue()->is<FunctionTy>())
+  if (R->getValue()->getValue()->is(ArrayTy, FunctionTy))
     CallStack.back()->setValue(R->getValue()->getValue());
   else
     CallStack.back()->setValue(*R->getValue()->getValue());

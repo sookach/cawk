@@ -4,6 +4,7 @@
 //
 //===----------------------------------------------------------------------===//
 #include "Parse/Parser.h"
+#include "Support/ScopeExit.h"
 #include "Support/Support.h"
 
 using namespace cawk;
@@ -126,6 +127,8 @@ DeclResult Parser::parseRuleDeclaration() {
     switch (Tok.getKind()) {
     default:
       return parseExpression();
+    case tok::l_brace:
+      return nullptr;
     case tok::kw_BEGIN: {
       advance();
       auto EndLoc = Lex.getBufferPtr();
@@ -584,6 +587,8 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       return false;
     case tok::l_paren: {
       advance();
+      ++ParenCount;
+      auto OnExit = make_scope_exit([this] { --ParenCount; });
       ExprResult SubExpr = parseExpression();
       if (!SubExpr.isValid())
         return false;
@@ -667,6 +672,8 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
         }
 
         advance();
+        ++ParenCount;
+        auto OnExit = make_scope_exit([this] { --ParenCount; });
         std::vector<Expr *> Args;
 
         if (!Tok.is(tok::r_paren)) {
@@ -718,6 +725,9 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
   }(ParseAtom());
 
   for (;;) {
+    if (ParenCount != 0)
+      skip(tok::newline);
+
     auto NextTokPrec = getBinOpPrecedence(Tok.getKind());
 
     if (NextTokPrec < MinPrec)
@@ -756,6 +766,11 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
 std::pair<std::vector<VarDecl *>, bool>
 Parser::parseParameterDeclarationClause() {
   std::vector<VarDecl *> Params;
+  if (!expect(tok::l_paren))
+    return std::pair(Params, false);
+
+  ++ParenCount;
+  auto OnExit = make_scope_exit([this] { --ParenCount; });
 
   if (Tok.is(tok::identifier)) {
     std::string_view SrcRange = Tok.getIdentifier();
