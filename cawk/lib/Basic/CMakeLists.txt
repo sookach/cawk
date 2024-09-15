@@ -4,4 +4,4 @@ add_library(
     OperatorPrecedence.cpp
     TokenKinds.cpp
 )
-target_include_directories(Basic PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_include_directories(Basic PRIVATE ${CMAKE_SOURCE_DIR}/cawk/include)
