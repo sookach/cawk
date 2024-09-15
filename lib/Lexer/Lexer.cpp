@@ -143,6 +143,11 @@ template <bool NL, bool RE> void Lexer::next(Token &T) {
     CASE('$', tok::dollar);
     CASE('~', tok::tilde);
 #undef CASE
+  case '#':
+    BufferPtr = std::find(BufferPtr, BufferEnd, '\n');
+    if (BufferPtr != BufferEnd)
+      ++BufferPtr;
+    return next<NL, RE>(T);
   case '0' ... '9':
     lexNumericConstant(T);
     break;
