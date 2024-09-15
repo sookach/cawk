@@ -33,7 +33,7 @@ int Instance::execute() {
   //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   DCEPass DCE;
   DCE.traverse(ParseResult.getAs<TranslationUnitDecl>());
-  Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
+  //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   Diags.printErrors(Source);
   //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   auto Functions = Parse.getFunctions();
