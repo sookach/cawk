@@ -1,10 +1,6 @@
 #include "Exec/Exec.h"
 #include "AST/AST.h"
 #include "Basic/TokenKinds.h"
-#include "Exec/Format.h"
-#include "Exec/Index.h"
-#include "Exec/Split.h"
-#include "Exec/Sprintf.h"
 
 #include <algorithm>
 #include <iostream>
