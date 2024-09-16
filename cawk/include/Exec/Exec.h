@@ -92,5 +92,16 @@ class ExecutionEngine {
       }
     }
   }
+
+  void dumpCode() {
+    for (auto I = std::begin(Code), E = std::cend(Code); I != E;) {
+      auto Inst = static_cast<inst::InstKind>(*I++);
+      outs().printf("%04d %s", inst::getInstructionName(Inst).data()).flush();
+      if (Inst == inst::Const)
+        outs().printf(" %f\n", Constants[*I++].As.Number).flush();
+      else
+        outs().printf("\n").flush();
+    }
+  }
 };
 } // namespace cawk
