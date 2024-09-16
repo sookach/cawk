@@ -1,88 +1,96 @@
 #pragma once
 
-#include "AST/AST.h"
-#include "AST/ASTVisitor.h"
-#include "Basic/Diagnostic.h"
-#include "Exec/IO.h"
-#include "Exec/Value.h"
-#include "Support/Support.h"
+#include "IR/Instruction.h"
+#include "IR/Value.h"
 
-#include <cstddef>
+#include <array>
+#include <cassert>
 #include <cstdint>
-#include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 namespace cawk {
-class Exec : public ASTVisitor<Exec, trav::None, true> {
-  friend class ASTVisitor<Exec, trav::None, true>;
-  Diagnostic &Diags;
-  TranslationUnitDecl *AST;
-  std::vector<Value *> FieldTable;
-  std::vector<InputFile> Inputs;
-  std::vector<std::unordered_map<std::string, Value *>> Environments = {{}};
-  std::unordered_set<Value *> InputModifiers;
-  std::unordered_set<Value *> OutputModifiers;
-  std::vector<CallExpr *> CallStack;
-  bool ShouldBreak = false;
-  bool ShouldContinue = false;
-  bool ShouldReturn = false;
-  bool SkipToNext = false;
-  bool SkipToNextfile = false;
+class ExecutionEngine {
+  std::vector<std::uint8_t> Code;
+  decltype(Code)::iterator PC;
+  std::vector<Value> Stack;
+  std::array<Value, std::numeric_limits<std::uint8_t>::max()> Constants;
 
-public:
-  Exec(Diagnostic &Diags, TranslationUnitDecl *AST,
-       std::vector<InputFile> Inputs,
-       std::unordered_map<std::string, FunctionDecl *> Functions)
-      : Diags(Diags), AST(AST), Inputs(Inputs) {
-    for (auto [Name, Function] : Functions)
-      Environments.back().emplace(Name, new Value(Function));
-    initBuiltinVariables();
+  int run() {
+    auto NextInst = [this](int Incr = 1) {
+      return static_cast<inst::InstKind>(*std::exchange(PC, PC + Incr));
+    };
+    for (inst::InstKind Inst;;) {
+      switch (Inst = NextInst()) {
+      case inst::Add: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number += RHS.As.Number;
+        break;
+      }
+      case inst::Cmp: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number - RHS.As.Number;
+        break;
+      }
+      case inst::Const: {
+        assert(PC != std::end(Code));
+        Stack.push_back(*NextInst());
+        break;
+      }
+      case inst::Div: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number /= RHS.As.Number;
+        break;
+      }
+      case inst::Mul: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number *= RHS.As.Number;
+        break;
+      }
+      case inst::Neg: {
+        assert(!std::empty(Stack));
+        assert(Stack.back().is(ValueTy::NumberVal));
+        Stack.back().As.Number = -Stack.back().As.Number;
+        break;
+      }
+      case inst::Not: {
+        assert(!std::empty(Stack));
+        assert(Stack.back().is(ValueTy::NumberVal));
+        Stack.back().As.Number = !Stack.back().As.Number;
+        break;
+      }
+      case inst::Ret: {
+        assert(!std::empty(Stack));
+        auto Result = Stack.back();
+        Stack.pop_back();
+        return Result;
+      }
+      case inst::Sub: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number -= RHS.As.Number;
+        break;
+      }
+      }
+    }
   }
-  void operator()();
-
-private:
-  void addInput(std::string Filepath);
-
-  bool visit(TranslationUnitDecl *T);
-  bool visit(RuleDecl *R);
-  bool visit(VarDecl *V);
-
-  bool visit(BreakStmt *B);
-  bool visit(ContinueStmt *C);
-  bool visit(CompoundStmt *C);
-  bool visit(DeleteStmt *D);
-  bool visit(DoStmt *D);
-  bool visit(ExitStmt *E);
-  bool visit(ForStmt *F);
-  bool visit(ForRangeStmt *F);
-  bool visit(IfStmt *I);
-  bool visit(NextStmt *N);
-  bool visit(NextfileStmt *N);
-  bool visit(NullStmt *N);
-  bool visit(PrintStmt *P);
-  bool visit(ReturnStmt *R);
-  bool visit(ValueStmt *V);
-  bool visit(WhileStmt *W);
-
-  bool visit(ArraySubscriptExpr *A);
-  bool visit(BinaryOperator *B);
-  bool visit(CallExpr *C);
-  bool visit(DeclRefExpr *D);
-  bool visit(FloatingLiteral *F);
-  bool visit(LambdaExpr *L);
-  bool visit(RegexLiteral *R);
-  bool visit(StringLiteral *S);
-  bool visit(UnaryOperator *U);
-
-  static bool isBuiltin(tok::TokenKind Kind);
-  bool execBuiltin(tok::TokenKind Kind, std::vector<Value *> Args);
-  bool isEarlyExit();
-  void updateFields(Value *V);
-  void splitFields();
-  void joinFields();
-  void initBuiltinVariables();
 };
-
 } // namespace cawk
