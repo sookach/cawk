@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Basic/SourceLocation.h"
-#include "Exec/Value.h"
 
 #include <vector>
 
@@ -30,7 +29,6 @@ private:
   const ExprKind Kind;
   SourceRange SrcRange;
   bool IsLValue = false;
-  Value *Val = new Value;
 
 public:
   ExprKind getKind() const { return Kind; }
@@ -40,18 +38,6 @@ public:
   bool isLValue() const { return IsLValue; }
 
   void markAsLValue() { IsLValue = true; }
-
-  Value *getValue() { return Val; }
-
-  template <TypeKind T> auto getValueAs() { return Val->getAs<T>(); }
-
-  void setValue(Value V) { Val->setValue(V); }
-
-  void setValue(Value *V) { Val = V; }
-
-  TypeKind getType() { return Val->getType(); }
-
-  bool isTrue() { return Val->isTrue(); }
 };
 
 class ArraySubscriptExpr : public Expr {
@@ -94,10 +80,7 @@ public:
   static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
 
   static BeginKeyword *Create(SourceRange SrcRange) {
-    static Value *TheValue = new Value;
-    BeginKeyword *Raw = new BeginKeyword(SrcRange);
-    Raw->setValue(TheValue);
-    return Raw;
+    return new BeginKeyword(SrcRange);
   }
 };
 
@@ -184,10 +167,7 @@ public:
   static bool classof(const Expr *E) { return E->getKind() == EK_Begin; }
 
   static EndKeyword *Create(SourceRange SrcRange) {
-    static Value *TheValue = new Value;
-    EndKeyword *Raw = new EndKeyword(SrcRange);
-    Raw->setValue(TheValue);
-    return Raw;
+    return new EndKeyword(SrcRange);
   }
 };
 
@@ -196,9 +176,7 @@ class FloatingLiteral : public Expr {
 
 protected:
   FloatingLiteral(Token Literal, SourceRange SrcRange)
-      : Expr(EK_FloatingLiteral), Literal(Literal) {
-    this->setValue(Value(std::stod(std::string(Literal.getLiteralData()))));
-  }
+      : Expr(EK_FloatingLiteral), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) {
@@ -256,9 +234,7 @@ class StringLiteral : public Expr {
 
 protected:
   StringLiteral(Token Literal, SourceRange SrcRange)
-      : Expr(EK_StringLiteral, SrcRange), Literal(Literal) {
-    this->setValue(Value(std::string(Literal.getLiteralData())));
-  }
+      : Expr(EK_StringLiteral, SrcRange), Literal(Literal) {}
 
 public:
   static bool classof(const Expr *E) {

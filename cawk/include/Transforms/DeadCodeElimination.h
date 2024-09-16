@@ -1,6 +1,8 @@
 #include "AST/AST.h"
 #include "AST/ASTVisitor.h"
 
+#include "Support/Support.h"
+
 namespace cawk {
 class DCEPass : public ASTVisitor<DCEPass, trav::Preorder, true> {
   friend class ASTVisitor<DCEPass, trav::Preorder, true>;

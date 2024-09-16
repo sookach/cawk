@@ -4,8 +4,8 @@
 
 #include <cstdio>
 #include <string>
-#include <unordered_set>
 #include <vector>
+#include <unordered_map>
 
 namespace cawk {
 class ASTDepthFinder : public ASTVisitor<ASTDepthFinder, trav::Preorder, true> {

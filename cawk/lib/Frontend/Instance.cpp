@@ -4,8 +4,6 @@
 #include "Parse/Parser.h"
 #include "Transforms/DeadCodeElimination.h"
 
-#include <exception>
-
 using namespace cawk;
 
 int Instance::execute() {
@@ -37,7 +35,5 @@ int Instance::execute() {
   Diags.printErrors(Source);
   //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
   auto Functions = Parse.getFunctions();
-  Exec Executor(Diags, ParseResult.getAs<TranslationUnitDecl>(), {}, Functions);
-  Executor();
   return EXIT_SUCCESS;
 }

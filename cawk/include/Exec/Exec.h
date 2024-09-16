@@ -41,7 +41,7 @@ class ExecutionEngine {
       }
       case inst::Const: {
         assert(PC != std::end(Code));
-        Stack.push_back(*NextInst());
+        Stack.push_back(NextInst());
         break;
       }
       case inst::Div: {
@@ -78,7 +78,7 @@ class ExecutionEngine {
         assert(!std::empty(Stack));
         auto Result = Stack.back();
         Stack.pop_back();
-        return Result;
+        return Result.As.Number;
       }
       case inst::Sub: {
         assert(std::size(Stack) >= 2);
@@ -94,7 +94,7 @@ class ExecutionEngine {
   }
 
   void dumpCode() {
-    for (auto I = std::begin(Code), E = std::cend(Code); I != E;) {
+    for (auto I = std::cbegin(Code), E = std::cend(Code); I != E;) {
       auto Inst = static_cast<inst::InstKind>(*I++);
       outs().printf("%04d %s", inst::getInstructionName(Inst).data()).flush();
       if (Inst == inst::Const)

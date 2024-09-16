@@ -45,6 +45,7 @@ public:
   OutputFile &print(T &&First, Args &&...Rest) {
     put(std::forward<T>(First));
     (put(std::forward<Args>(Rest)), ...);
+    return *this;
   }
 };
 
