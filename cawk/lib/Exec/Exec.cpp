@@ -171,14 +171,16 @@ bool Exec::visit(PrintStmt *P) {
   assert(P->getOpcode().is(tok::unknown) && P->getOutput() == nullptr &&
          "unimplemented");
   if (P->getIden().is(tok::kw_print)) {
-    std::puts(std::ranges::fold_left(P->getArgs(), std::string(),
-                                     [this](std::string S, Expr *E) {
-                                       traverse(E);
-                                       return S +
-                                              E->getValue()->getAs<StringTy>() +
-                                              ' ';
-                                     })
-                  .c_str());
+    std::string Text;
+    for (bool Delim = false; Expr * E : P->getArgs()) {
+      if (!traverse(E))
+        return false;
+      if (std::exchange(Delim, true))
+        Text += ' ';
+      Text += E->getValue()->getAs<StringTy>();
+    }
+    outs().print(Text + '\n');
+    outs().flush();
   } else {
     if (!std::empty(P->getArgs())) {
       auto Args = std::ranges::fold_left(

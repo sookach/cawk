@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cassert>
 #include <cerrno>
 
 using namespace cawk;
@@ -35,11 +36,8 @@ OutputFile::OutputFile(std::string Pathname) {
 OutputFile::OutputFile(FILE *FilePtr) : FilePtr(FilePtr) {}
 
 void OutputFile::put(char C) {
-  if (Curr == End) {
-    std::fwrite(std::data(Buffer), 1, std::size(Buffer), FilePtr);
-    Curr = std::begin(Buffer);
-  }
-
+  if (Curr == End)
+    flush();
   *Curr++ = C;
 }
 
@@ -49,8 +47,7 @@ void OutputFile::put(std::string S) {
 }
 
 void OutputFile::flush() {
-  std::fwrite(std::data(Buffer), 1, std::distance(std::begin(Buffer), Curr),
-              FilePtr);
+  std::fwrite(std::data(Buffer), 1, Curr - std::begin(Buffer), FilePtr);
   Curr = std::begin(Buffer);
 }
 
