@@ -29,18 +29,20 @@ class OutputFile {
 public:
   OutputFile(std::string Pathname);
   OutputFile(FILE *FilePtr);
-  void put(char C);
-  void put(std::string S);
-  void flush();
+  OutputFile &put(char C);
+  OutputFile &put(std::string S);
+  OutputFile &flush();
   void close();
-  template <typename... Args> void printf(const char *Format, Args &&...A) {
+  template <typename... Args>
+  OutputFile &printf(const char *Format, Args &&...A) {
     if constexpr (sizeof...(A) == 0)
       std::fprintf(FilePtr, "%s", Format);
     else
       std::fprintf(FilePtr, Format, std::forward<Args>(A)...);
+    return *this;
   }
   template <typename T, typename... Args>
-  void print(T &&First, Args &&...Rest) {
+  OutputFile &print(T &&First, Args &&...Rest) {
     put(std::forward<T>(First));
     (put(std::forward<Args>(Rest)), ...);
   }

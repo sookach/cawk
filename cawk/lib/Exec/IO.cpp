@@ -35,20 +35,23 @@ OutputFile::OutputFile(std::string Pathname) {
 
 OutputFile::OutputFile(FILE *FilePtr) : FilePtr(FilePtr) {}
 
-void OutputFile::put(char C) {
+OutputFile &OutputFile::put(char C) {
   if (Curr == End)
     flush();
   *Curr++ = C;
+  return *this;
 }
 
-void OutputFile::put(std::string S) {
+OutputFile &OutputFile::put(std::string S) {
   for (char C : S)
     put(C);
+  return *this;
 }
 
-void OutputFile::flush() {
+OutputFile &OutputFile::flush() {
   std::fwrite(std::data(Buffer), 1, Curr - std::begin(Buffer), FilePtr);
   Curr = std::begin(Buffer);
+  return *this;
 }
 
 void OutputFile::close() {
