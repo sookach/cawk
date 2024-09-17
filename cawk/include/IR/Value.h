@@ -17,6 +17,10 @@ struct Value {
   Value() : Type(NullVal) {}
   Value(double Number) : Type(NumberVal) { As.Number = Number; }
   Value(Object *Obj) : Type(ObjectVal) { As.Obj = Obj; }
+  ~Value() {
+    if (Type == ObjectVal)
+      delete As.Obj;
+  }
 
   bool is(ValueTy Ty) const { return Type == Ty; }
 
