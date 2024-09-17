@@ -9,6 +9,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <string_view>
 #include <type_traits>
 #include <unordered_map>
 #include <utility>
@@ -31,14 +32,15 @@ class CodeGen {
   std::vector<std::uint8_t> Code;
   std::array<Value, std::numeric_limits<std::uint8_t>::max()> ConstantPool;
   std::uint8_t ConstantIndex = 0;
-  std::unordered_map<Value, std::uint8_t, decltype(detail::HashValue)>
-      ConstantMap;
+  std::unordered_map<double, std::uint8_t> NumberMap;
+  std::unordered_map<std::string, std::uint8_t> StringMap;
 
   std::pair<decltype(Code), decltype(ConstantPool)>
   emitByteCode(TranslationUnitDecl *T) {
     Code.clear();
     ConstantIndex = 0;
-    ConstantMap.clear();
+    NumberMap.clear();
+    StringMap.clear();
 
     for (Decl *D : T->getDecls()) {
       switch (D->getKind()) {
@@ -150,11 +152,11 @@ class CodeGen {
   }
 
   void emitFloatingLiteral(FloatingLiteral *F) {
-    emitConstant(Value(std::stod(std::string(F->getLiteralData()))));
+    emitNumberConstant(std::stod(std::string(F->getLiteralData())));
   }
 
   void emitStringLiteral(StringLiteral *S) {
-    emitConstant(Value(StringObject::Create(std::string(S->getLiteralData()))));
+    emitStringConstant(std::string(S->getLiteralData()));
   }
 
   void emitUnaryOperator(UnaryOperator *U) {
@@ -178,13 +180,20 @@ class CodeGen {
     (Code.push_back(Args), ...);
   }
 
-  void emitConstant(Value V) {
-    if (!ConstantMap.contains(V)) {
-      ConstantPool[ConstantIndex] = V;
-      ConstantMap[V] = ConstantIndex;
-      ++ConstantIndex;
+  void emitNumberConstant(double D) {
+    if (!NumberMap.contains(D)) {
+      ConstantPool[ConstantIndex] = Value(D);
+      NumberMap[D] = ConstantIndex++;
     }
-    emitInstruction(inst::Push, ConstantMap[V]);
+    emitInstruction(inst::Push, NumberMap[D]);
+  }
+
+  void emitStringConstant(std::string S) {
+    if (!StringMap.contains(S)) {
+      ConstantPool[ConstantIndex] = StringObject::Create(S);
+      StringMap[S] = ConstantIndex++;
+    }
+    emitInstruction(inst::Push, StringMap[S]);
   }
 };
 } // namespace cawk

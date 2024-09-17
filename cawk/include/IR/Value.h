@@ -1,11 +1,9 @@
 #pragma once
 
 namespace cawk {
+enum ValueTy { NullVal, NumberVal, ObjectVal };
 
 struct Object;
-struct StringObject;
-
-enum ValueTy { NullVal, NumberVal, ObjectVal };
 
 struct Value {
   ValueTy Type;
@@ -23,18 +21,5 @@ struct Value {
   }
 
   bool is(ValueTy Ty) const { return Type == Ty; }
-
-  bool operator==(const Value &RHS) const {
-    if (Type != RHS.Type)
-      return false;
-    switch (Type) {
-    default:
-      return false;
-    case NullVal:
-      return true;
-    case NumberVal:
-      return As.Number == RHS.As.Number;
-    }
-  }
 };
 } // namespace cawk

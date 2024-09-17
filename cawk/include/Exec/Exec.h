@@ -26,171 +26,127 @@ class ExecutionEngine {
       return V.is(NullVal) || V.is(NumberVal) || V.As.Obj->is(StringObj);
     };
 
-    auto IsNumber = [](Value V) { return V.is(NumberVal); };
-
-    auto IsString = [](Value V) { return V.As.Obj->is(StringObj); };
+    auto IsString = [](Value V) {
+      return V.is(ObjectVal) && V.As.Obj->is(StringObj);
+    };
 
     auto ToNumber = [](Value V) {
-      return V.is(NumberVal) ? V.As.Number
-                             : obj::cast<StringObj>(V.As.Obj)->strtod();
+      if (V.is(NumberVal))
+        return V.As.Number;
+      if (V.is(NullVal))
+        return 0.0;
+      if (V.is(ObjectVal) && V.As.Obj->is(StringObj))
+        return obj::cast<StringObj>(V.As.Obj)->strtod();
+      errs().printf("Invalid conversion to number\n").flush();
+      std::exit(1);
     };
 
     auto ToString = [](Value V) {
-      return V.is(NumberVal) ? std::to_string(V.As.Number)
-                             : obj::cast<StringObj>(V.As.Obj)->String;
+      if (V.is(NumberVal))
+        return std::to_string(V.As.Number);
+      if (V.is(ObjectVal) && V.As.Obj->is(StringObj))
+        return obj::cast<StringObj>(V.As.Obj)->String;
+      errs().printf("Invalid conversion to string\n").flush();
+      std::exit(1);
     };
 
     auto ToBool = [](Value V) -> bool {
-      return V.is(NumberVal)
-                 ? V.As.Number
-                 : !std::empty(obj::cast<StringObj>(V.As.Obj)->String);
+      if (V.is(NumberVal))
+        return V.As.Number;
+      if (V.is(NullVal))
+        return false;
+      if (V.is(ObjectVal) && V.As.Obj->is(StringObj))
+        return !std::empty(obj::cast<StringObj>(V.As.Obj)->String);
+      errs().printf("Invalid conversion to boolean\n").flush();
+      std::exit(1);
+    };
+
+    auto Pop = [this] {
+      assert(!std::empty(Stack));
+      Value V = Stack.back();
+      Stack.pop_back();
+      return V;
+    };
+
+    auto Push = [this](Value V) { Stack.push_back(V); };
+
+    auto ExecOp = [this](auto Op) {
+      assert(std::size(Stack) >= 2);
+      Value RHS = Stack.back();
+      Stack.pop_back();
+      Value LHS = Stack.back();
+      Stack.pop_back();
+      Stack.push_back(Op(LHS, RHS));
+    };
+
+    auto ExecBinaryArithmetic = [&, this](auto Op) {
+      assert(std::size(Stack) >= 2);
+      double RHS = ToNumber(Pop()), LHS = ToNumber(Pop());
+      Push(Op(LHS, RHS));
+    };
+
+    auto ExecUnaryArithmetic = [&, this](auto Op) {
+      assert(!std::empty(Stack));
+      Push(Op(ToNumber(Pop())));
+    };
+
+    auto ExecBinaryString = [&, this](auto Op) {
+      assert(std::size(Stack) >= 2);
+      std::string RHS = ToString(Pop()), LHS = ToString(Pop());
+      Push(StringObject::Create(Op(LHS, RHS)));
+    };
+
+    auto ExecBinaryLogical = [&, this](auto Op) {
+      assert(std::size(Stack) >= 2);
+      double RHS = ToBool(Pop());
+      double LHS = ToBool(Pop());
+      Push(Op(LHS, RHS));
+    };
+
+    auto ExecCompare = [&, this](auto Op) {
+      assert(std::size(Stack) >= 2);
+      if (IsString(Stack.back()) || IsString(Stack[std::size(Stack) - 2])) {
+        std::string RHS = ToString(Pop()), LHS = ToString(Pop());
+        Push(Op(LHS, RHS));
+      } else {
+        ExecBinaryArithmetic(Op);
+      }
     };
 
     for (auto End = std::cend(Code); PC != End;) {
       switch (NextInst()) {
-      case inst::Add: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(ToNumber(LHS) + ToNumber(RHS));
+      case inst::Add:
+        ExecBinaryArithmetic(std::plus());
         break;
-      }
-      case inst::And: {
-        assert(std::size(Stack) >= 2);
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number = Stack.back().As.Number && RHS.As.Number;
+      case inst::And:
+        ExecBinaryLogical(std::logical_and());
         break;
-      }
-      case inst::Con: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(StringObject::Create(ToString(LHS) + ToString(RHS)));
+      case inst::Con:
+        ExecBinaryString(std::plus());
         break;
-      }
-      case inst::Div: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(ToNumber(LHS) / ToNumber(RHS));
+      case inst::Div:
+        ExecBinaryArithmetic(std::divides());
         break;
-      }
-      case inst::Eq: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        if (IsNumber(LHS) && IsNumber(RHS))
-          Stack.push_back(ToNumber(LHS) == ToNumber(RHS));
-        else
-          Stack.push_back(ToString(LHS) == ToString(RHS));
+      case inst::Eq:
+        ExecCompare(std::equal_to());
         break;
-      }
-      case inst::Ge: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        if (IsNumber(LHS) && IsNumber(RHS))
-          Stack.push_back(ToNumber(LHS) >= ToNumber(RHS));
-        else
-          Stack.push_back(ToString(LHS) >= ToString(RHS));
+      case inst::Ge:
+        ExecCompare(std::greater_equal());
         break;
-      }
-      case inst::Gt: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        if (IsNumber(LHS) && IsNumber(RHS))
-          Stack.push_back(ToNumber(LHS) > ToNumber(RHS));
-        else
-          Stack.push_back(ToString(LHS) > ToString(RHS));
+      case inst::Gt:
+        ExecCompare(std::greater());
         break;
-      }
-      case inst::Le: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        if (IsNumber(LHS) && IsNumber(RHS))
-          Stack.push_back(ToNumber(LHS) <= ToNumber(RHS));
-        else
-          Stack.push_back(ToString(LHS) <= ToString(RHS));
+      case inst::Le:
+        ExecCompare(std::less_equal());
         break;
-      }
-      case inst::Lt: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        if (IsNumber(LHS) && IsNumber(RHS))
-          Stack.push_back(ToNumber(LHS) < ToNumber(RHS));
-        else
-          Stack.push_back(ToString(LHS) < ToString(RHS));
+      case inst::Lt:
+        ExecCompare(std::less());
         break;
-      }
-      case inst::Mul: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(ToNumber(LHS) * ToNumber(RHS));
-        break;
-      }
-      case inst::Ne: {
-        assert(std::size(Stack) >= 2);
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        if (IsNumber(LHS) && IsNumber(RHS))
-          Stack.push_back(ToNumber(LHS) != ToNumber(RHS));
-        else
-          Stack.push_back(ToString(LHS) != ToString(RHS));
-        break;
-      }
-      case inst::Neg: {
-        assert(!std::empty(Stack));
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(-ToNumber(RHS));
-        break;
-      }
+      case inst::Mul:
+        ExecBinaryArithmetic(std::multiplies());
+      case inst::Ne:
+        ExecCompare(std::not_equal_to());
+      case inst::Neg:
       case inst::Not: {
         assert(!std::empty(Stack));
         assert(IsScalar(Stack.back()));
