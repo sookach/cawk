@@ -2,23 +2,27 @@
 
 #include "AST/AST.h"
 #include "IR/Instruction.h"
+#include "IR/Object.h"
 #include "IR/Value.h"
 #include "Support/Support.h"
 
 #include <array>
 #include <cstdint>
 #include <string>
-#include <unordered_map>
-#include <vector>
-#include <utility>
 #include <type_traits>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace cawk {
 
 namespace detail {
 auto HashValue = [](const Value &V) {
   if (V.is(NumberVal))
-    return std::hash<double>{}(V.As.Number);
+    return std::hash<double>()(V.As.Number);
+  if (V.is(ObjectVal) && V.As.Obj->is(StringObj))
+    return std::hash<std::string>()(
+        reinterpret_cast<StringObject *>(V.As.Obj)->String);
   cawk_fatal("Invalid value type");
 };
 } // namespace detail
@@ -29,6 +33,25 @@ class CodeGen {
   std::uint8_t ConstantIndex = 0;
   std::unordered_map<Value, std::uint8_t, decltype(detail::HashValue)>
       ConstantMap;
+
+  std::pair<decltype(Code), decltype(ConstantPool)>
+  emitByteCode(TranslationUnitDecl *T) {
+    Code.clear();
+    ConstantIndex = 0;
+    ConstantMap.clear();
+
+    for (Decl *D : T->getDecls()) {
+      switch (D->getKind()) {
+      default:
+        cawk_fatal("Invalid declaration type");
+      case Decl::DK_Function:
+        // emitFunctionDecl(ptr_cast<FunctionDecl>(D));
+        break;
+      }
+    }
+
+    return {Code, ConstantPool};
+  }
 
   void emitCompoundStatement(CompoundStmt *C) {
     for (Stmt *S : C->getBody()) {
@@ -128,6 +151,10 @@ class CodeGen {
 
   void emitFloatingLiteral(FloatingLiteral *F) {
     emitConstant(Value(std::stod(std::string(F->getLiteralData()))));
+  }
+
+  void emitStringLiteral(StringLiteral *S) {
+    emitConstant(Value(StringObject::Create(std::string(S->getLiteralData()))));
   }
 
   void emitUnaryOperator(UnaryOperator *U) {

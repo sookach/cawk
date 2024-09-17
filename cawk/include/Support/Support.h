@@ -8,8 +8,10 @@ namespace cawk {
 
 class Value;
 
-template <typename T> constexpr bool isa(const auto *X) {
-  return T::classof(X);
+template <typename T1, typename T2>
+  requires requires(T1 X) { static_cast<T2 *>(&X); }
+constexpr bool isa(const T2 *X) {
+  return T1::classof(X);
 }
 
 template <typename T> constexpr T *ptr_cast(auto *X) {

@@ -19,15 +19,32 @@ class ExecutionEngine {
     auto NextInst = [this](int Incr = 1) {
       return static_cast<inst::InstKind>(*std::exchange(PC, PC + Incr));
     };
+
+    auto IsScalar = [](Value V) {
+      return V.is(NullVal) || V.is(NumberVal) || V.As.Obj->is(StringObj);
+    };
+
+    auto ToNumber = [](Value V) {
+      return V.is(NumberVal) ? V.As.Number
+                             : obj::cast<StringObj>(V.As.Obj)->strtod();
+    };
+
+    auto ToString = [](Value V) {
+      return V.is(NumberVal) ? std::to_string(V.As.Number)
+                             : obj::cast<StringObj>(V.As.Obj)->String;
+    };
+
     for (auto End = std::cend(Code); PC != End;) {
       switch (NextInst()) {
       case inst::Add: {
         assert(std::size(Stack) >= 2);
+        assert(IsScalar(Stack.back()));
         Value RHS = Stack.back();
         Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number += RHS.As.Number;
+        assert(IsScalar(Stack.back()));
+        Value LHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(ToNumber(LHS) + ToNumber(RHS));
         break;
       }
       case inst::And: {
@@ -40,15 +57,25 @@ class ExecutionEngine {
         break;
       }
       case inst::Con: {
+        assert(std::size(Stack) >= 2);
+        assert(IsScalar(Stack.back()));
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(IsScalar(Stack.back()));
+        Value LHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(ToString(LHS) + ToString(RHS));
         break;
       }
       case inst::Div: {
         assert(std::size(Stack) >= 2);
+        assert(IsScalar(Stack.back()));
         Value RHS = Stack.back();
         Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number /= RHS.As.Number;
+        assert(IsScalar(Stack.back()));
+        Value LHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(ToNumber(LHS) / ToNumber(RHS));
         break;
       }
       case inst::Eq: {
@@ -98,11 +125,13 @@ class ExecutionEngine {
       }
       case inst::Mul: {
         assert(std::size(Stack) >= 2);
+        assert(IsScalar(Stack.back()));
         Value RHS = Stack.back();
         Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number *= RHS.As.Number;
+        assert(IsScalar(Stack.back()));
+        Value LHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(ToNumber(LHS) * ToNumber(RHS));
         break;
       }
       case inst::Ne: {
@@ -116,8 +145,10 @@ class ExecutionEngine {
       }
       case inst::Neg: {
         assert(!std::empty(Stack));
-        assert(Stack.back().is(ValueTy::NumberVal));
-        Stack.back().As.Number = -Stack.back().As.Number;
+        assert(IsScalar(Stack.back()));
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(-ToNumber(RHS));
         break;
       }
       case inst::Not: {
@@ -142,12 +173,13 @@ class ExecutionEngine {
       }
       case inst::Pow: {
         assert(std::size(Stack) >= 2);
+        assert(IsScalar(Stack.back()));
         Value RHS = Stack.back();
         Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number =
-            std::pow(Stack.back().As.Number, RHS.As.Number);
+        assert(IsScalar(Stack.back()));
+        Value LHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(std::pow(ToNumber(LHS), ToNumber(RHS)));
         break;
       }
       case inst::Push: {
@@ -157,12 +189,13 @@ class ExecutionEngine {
       }
       case inst::Rem: {
         assert(std::size(Stack) >= 2);
+        assert(IsScalar(Stack.back()));
         Value RHS = Stack.back();
         Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number =
-            std::fmod(Stack.back().As.Number, RHS.As.Number);
+        assert(IsScalar(Stack.back()));
+        Value LHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(std::fmod(ToNumber(LHS), ToNumber(RHS)));
         break;
       }
       case inst::Ret: {
@@ -173,11 +206,13 @@ class ExecutionEngine {
       }
       case inst::Sub: {
         assert(std::size(Stack) >= 2);
+        assert(IsScalar(Stack.back()));
         Value RHS = Stack.back();
         Stack.pop_back();
-        assert(Stack.back().is(ValueTy::NumberVal));
-        assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number -= RHS.As.Number;
+        assert(IsScalar(Stack.back()));
+        Value LHS = Stack.back();
+        Stack.pop_back();
+        Stack.push_back(ToNumber(LHS) - ToNumber(RHS));
         break;
       }
       }

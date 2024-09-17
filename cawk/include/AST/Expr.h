@@ -245,6 +245,8 @@ public:
 
   Token getLiteral() { return Literal; }
 
+  std::string_view getLiteralData() { return Literal.getLiteralData(); }
+
   static StringLiteral *Create(Token Value, SourceRange SrcRange) {
     return new StringLiteral(Value, SrcRange);
   }
