@@ -30,13 +30,16 @@ class ExecutionEngine {
         Stack.back().As.Number += RHS.As.Number;
         break;
       }
-      case inst::Cmp: {
+      case inst::And: {
         assert(std::size(Stack) >= 2);
         Value RHS = Stack.back();
         Stack.pop_back();
         assert(Stack.back().is(ValueTy::NumberVal));
         assert(RHS.is(ValueTy::NumberVal));
-        Stack.back().As.Number = Stack.back().As.Number - RHS.As.Number;
+        Stack.back().As.Number = Stack.back().As.Number && RHS.As.Number;
+        break;
+      }
+      case inst::Con: {
         break;
       }
       case inst::Div: {
@@ -48,6 +51,51 @@ class ExecutionEngine {
         Stack.back().As.Number /= RHS.As.Number;
         break;
       }
+      case inst::Eq: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number == RHS.As.Number;
+        break;
+      }
+      case inst::Ge: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number >= RHS.As.Number;
+        break;
+      }
+      case inst::Gt: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number > RHS.As.Number;
+        break;
+      }
+      case inst::Le: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number <= RHS.As.Number;
+        break;
+      }
+      case inst::Lt: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number < RHS.As.Number;
+        break;
+      }
       case inst::Mul: {
         assert(std::size(Stack) >= 2);
         Value RHS = Stack.back();
@@ -55,6 +103,15 @@ class ExecutionEngine {
         assert(Stack.back().is(ValueTy::NumberVal));
         assert(RHS.is(ValueTy::NumberVal));
         Stack.back().As.Number *= RHS.As.Number;
+        break;
+      }
+      case inst::Ne: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number != RHS.As.Number;
         break;
       }
       case inst::Neg: {
@@ -69,14 +126,43 @@ class ExecutionEngine {
         Stack.back().As.Number = !Stack.back().As.Number;
         break;
       }
+      case inst::Or: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number = Stack.back().As.Number || RHS.As.Number;
+        break;
+      }
       case inst::Pop: {
         assert(!std::empty(Stack));
         Stack.pop_back();
         break;
       }
+      case inst::Pow: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number =
+            std::pow(Stack.back().As.Number, RHS.As.Number);
+        break;
+      }
       case inst::Push: {
         assert(PC != std::end(Code));
         Stack.push_back(NextInst());
+        break;
+      }
+      case inst::Rem: {
+        assert(std::size(Stack) >= 2);
+        Value RHS = Stack.back();
+        Stack.pop_back();
+        assert(Stack.back().is(ValueTy::NumberVal));
+        assert(RHS.is(ValueTy::NumberVal));
+        Stack.back().As.Number =
+            std::fmod(Stack.back().As.Number, RHS.As.Number);
         break;
       }
       case inst::Ret: {

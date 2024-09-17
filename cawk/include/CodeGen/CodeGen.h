@@ -10,6 +10,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <utility>
+#include <type_traits>
 
 namespace cawk {
 
@@ -72,8 +74,74 @@ class CodeGen {
     }
   }
 
+  void emitBinaryOperator(BinaryOperator *B) {
+    emitExpr(B->getLHS());
+    emitExpr(B->getRHS());
+    switch (B->getOpcode().getKind()) {
+    default:
+      cawk_fatal("Invalid binary operator");
+    case tok::plus:
+      emitInstruction(inst::Add);
+      break;
+    case tok::minus:
+      emitInstruction(inst::Sub);
+      break;
+    case tok::star:
+      emitInstruction(inst::Mul);
+      break;
+    case tok::slash:
+      emitInstruction(inst::Div);
+      break;
+    case tok::percent:
+      emitInstruction(inst::Rem);
+      break;
+    case tok::starstar:
+    case tok::caret:
+      emitInstruction(inst::Pow);
+      break;
+    case tok::ampamp:
+      emitInstruction(inst::And);
+      break;
+    case tok::pipepipe:
+      emitInstruction(inst::Or);
+      break;
+    case tok::equalequal:
+      emitInstruction(inst::Eq);
+      break;
+    case tok::exclaimequal:
+      emitInstruction(inst::Ne);
+      break;
+    case tok::greater:
+      emitInstruction(inst::Gt);
+      break;
+    case tok::greaterequal:
+      emitInstruction(inst::Ge);
+      break;
+    case tok::less:
+      emitInstruction(inst::Lt);
+      break;
+    case tok::lessequal:
+      emitInstruction(inst::Le);
+      break;
+    }
+  }
+
   void emitFloatingLiteral(FloatingLiteral *F) {
     emitConstant(Value(std::stod(std::string(F->getLiteralData()))));
+  }
+
+  void emitUnaryOperator(UnaryOperator *U) {
+    emitExpr(U->getSubExpr());
+    switch (U->getOpcode().getKind()) {
+    default:
+      cawk_fatal("Invalid unary operator");
+    case tok::minus:
+      emitInstruction(inst::Neg);
+      break;
+    case tok::exclaim:
+      emitInstruction(inst::Not);
+      break;
+    }
   }
 
   template <typename... Ts>
