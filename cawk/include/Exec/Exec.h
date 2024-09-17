@@ -19,8 +19,8 @@ class ExecutionEngine {
     auto NextInst = [this](int Incr = 1) {
       return static_cast<inst::InstKind>(*std::exchange(PC, PC + Incr));
     };
-    for (inst::InstKind Inst;;) {
-      switch (Inst = NextInst()) {
+    for (auto End = std::cend(Code); PC != End;) {
+      switch (NextInst()) {
       case inst::Add: {
         assert(std::size(Stack) >= 2);
         Value RHS = Stack.back();
@@ -37,11 +37,6 @@ class ExecutionEngine {
         assert(Stack.back().is(ValueTy::NumberVal));
         assert(RHS.is(ValueTy::NumberVal));
         Stack.back().As.Number = Stack.back().As.Number - RHS.As.Number;
-        break;
-      }
-      case inst::Const: {
-        assert(PC != std::end(Code));
-        Stack.push_back(NextInst());
         break;
       }
       case inst::Div: {
@@ -74,6 +69,16 @@ class ExecutionEngine {
         Stack.back().As.Number = !Stack.back().As.Number;
         break;
       }
+      case inst::Pop: {
+        assert(!std::empty(Stack));
+        Stack.pop_back();
+        break;
+      }
+      case inst::Push: {
+        assert(PC != std::end(Code));
+        Stack.push_back(NextInst());
+        break;
+      }
       case inst::Ret: {
         assert(!std::empty(Stack));
         auto Result = Stack.back();
@@ -91,13 +96,14 @@ class ExecutionEngine {
       }
       }
     }
+    return 0;
   }
 
   void dumpCode() {
     for (auto I = std::cbegin(Code), E = std::cend(Code); I != E;) {
       auto Inst = static_cast<inst::InstKind>(*I++);
       outs().printf("%04d %s", inst::getInstructionName(Inst).data()).flush();
-      if (Inst == inst::Const)
+      if (Inst == inst::Push)
         outs().printf(" %f\n", Constants[*I++].As.Number).flush();
       else
         outs().printf("\n").flush();

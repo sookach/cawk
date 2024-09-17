@@ -1,5 +1,6 @@
 #include "Frontend/Instance.h"
 #include "AST/ASTPrinter.h"
+#include "CodeGen/CodeGen.h"
 #include "Exec/Exec.h"
 #include "Parse/Parser.h"
 #include "Transforms/DeadCodeElimination.h"

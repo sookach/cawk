@@ -4,11 +4,12 @@
 
 INST(Add,   add)
 INST(Cmp,   cmp)
-INST(Const, const)
 INST(Div,   div)
 INST(Mul,   mul)
 INST(Neg,   neg)
 INST(Not,   not)
+INST(Pop,   pop)
+INST(Push,  push)
 INST(Ret,   ret)
 INST(Sub,   sub)
 

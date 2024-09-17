@@ -185,6 +185,8 @@ public:
 
   Token getLiteral() { return Literal; }
 
+  std::string_view getLiteralData() { return Literal.getLiteralData(); }
+
   static FloatingLiteral *Create(Token Literal, SourceRange SrcRange) {
     return new FloatingLiteral(Literal, SrcRange);
   }
