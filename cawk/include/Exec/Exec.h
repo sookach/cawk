@@ -18,6 +18,15 @@ class ExecutionEngine {
   std::unordered_map<std::string, Value> Globals;
 
   int run() {
+    auto Push = [this](Value V) { Stack.push_back(V); };
+
+    auto Pop = [this] {
+      assert(!std::empty(Stack));
+      Value V = Stack.back();
+      Stack.pop_back();
+      return V;
+    };
+    
     auto NextInst = [this](int Incr = 1) {
       return static_cast<inst::InstKind>(*std::exchange(PC, PC + Incr));
     };
@@ -61,33 +70,10 @@ class ExecutionEngine {
       std::exit(1);
     };
 
-    auto Pop = [this] {
-      assert(!std::empty(Stack));
-      Value V = Stack.back();
-      Stack.pop_back();
-      return V;
-    };
-
-    auto Push = [this](Value V) { Stack.push_back(V); };
-
-    auto ExecOp = [this](auto Op) {
-      assert(std::size(Stack) >= 2);
-      Value RHS = Stack.back();
-      Stack.pop_back();
-      Value LHS = Stack.back();
-      Stack.pop_back();
-      Stack.push_back(Op(LHS, RHS));
-    };
-
     auto ExecBinaryArithmetic = [&, this](auto Op) {
       assert(std::size(Stack) >= 2);
       double RHS = ToNumber(Pop()), LHS = ToNumber(Pop());
       Push(Op(LHS, RHS));
-    };
-
-    auto ExecUnaryArithmetic = [&, this](auto Op) {
-      assert(!std::empty(Stack));
-      Push(Op(ToNumber(Pop())));
     };
 
     auto ExecBinaryString = [&, this](auto Op) {
@@ -144,77 +130,41 @@ class ExecutionEngine {
         break;
       case inst::Mul:
         ExecBinaryArithmetic(std::multiplies());
+        break;
       case inst::Ne:
         ExecCompare(std::not_equal_to());
+        break;
       case inst::Neg:
-      case inst::Not: {
         assert(!std::empty(Stack));
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(!ToBool(RHS));
+        Push(-ToNumber(Pop()));
         break;
-      }
-      case inst::Or: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(ToBool(LHS) || ToBool(RHS));
-        break;
-      }
-      case inst::Pop: {
+      case inst::Not:
         assert(!std::empty(Stack));
-        Stack.pop_back();
+        Push(!ToBool(Pop()));
         break;
-      }
-      case inst::Pow: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(std::pow(ToNumber(LHS), ToNumber(RHS)));
+      case inst::Or:
+        ExecBinaryLogical(std::logical_or());
         break;
-      }
-      case inst::Push: {
+      case inst::Pop:
+        Pop();
+        break;
+      case inst::Pow:
+        ExecBinaryArithmetic(
+            [](double LHS, double RHS) { return std::pow(LHS, RHS); });
+        break;
+      case inst::Push:
         assert(PC != std::end(Code));
-        Stack.push_back(NextInst());
+        Push(Constants[*PC++]);
         break;
-      }
-      case inst::Rem: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(std::fmod(ToNumber(LHS), ToNumber(RHS)));
+      case inst::Rem:
+        ExecBinaryArithmetic(
+            [](double LHS, double RHS) { return std::fmod(LHS, RHS); });
         break;
-      }
-      case inst::Ret: {
+      case inst::Ret:
         assert(!std::empty(Stack));
-        auto Result = Stack.back();
-        Stack.pop_back();
-        return Result.As.Number;
-      }
-      case inst::Sub: {
-        assert(std::size(Stack) >= 2);
-        assert(IsScalar(Stack.back()));
-        Value RHS = Stack.back();
-        Stack.pop_back();
-        assert(IsScalar(Stack.back()));
-        Value LHS = Stack.back();
-        Stack.pop_back();
-        Stack.push_back(ToNumber(LHS) - ToNumber(RHS));
-        break;
-      }
+        return ToNumber(Pop());
+      case inst::Sub:
+        ExecBinaryArithmetic(std::minus());
       }
     }
     return 0;
