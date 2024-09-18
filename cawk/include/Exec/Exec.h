@@ -3,6 +3,7 @@
 #include "IR/Instruction.h"
 #include "IR/Value.h"
 
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstdint>
@@ -26,7 +27,7 @@ class ExecutionEngine {
       Stack.pop_back();
       return V;
     };
-    
+
     auto NextInst = [this](int Incr = 1) {
       return static_cast<inst::InstKind>(*std::exchange(PC, PC + Incr));
     };
@@ -152,6 +153,32 @@ class ExecutionEngine {
         ExecBinaryArithmetic(
             [](double LHS, double RHS) { return std::pow(LHS, RHS); });
         break;
+      case inst::Print: {
+        std::uint8_t N = *PC++;
+        assert(N <= std::size(Stack));
+        std::reverse(std::end(Stack) - N, std::end(Stack));
+        for (std::uint8_t I = 0; I != N; ++I) {
+          if (I != 0)
+            outs().print(" ").flush();
+          outs().print(ToString(Pop())).flush();
+        }
+        outs().print("\n").flush();
+        break;
+      }
+      case inst::Printf: {
+        std::uint8_t N = *PC++;
+        assert(N <= std::size(Stack));
+        if (N == 0)
+          break;
+
+        std::vector<Value> Args;
+        for (; --N != 0;)
+          Args.push_back(Pop());
+        
+        std::string Format = ToString(Pop());
+        outs().printf(Format.data()).flush();
+        break;
+      }
       case inst::Push:
         assert(PC != std::end(Code));
         Push(Constants[*PC++]);
