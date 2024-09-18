@@ -155,6 +155,25 @@ class CodeGen {
     case tok::equal:
       emitInstruction(inst::Store);
       break;
+    case tok::plusequal:
+      emitInstruction(inst::Inc);
+      break;
+    case tok::minusequal:
+      emitInstruction(inst::Dec);
+      break;
+    case tok::starequal:
+      emitInstruction(inst::Scale);
+      break;
+    case tok::slashequal:
+      emitInstruction(inst::Frac);
+      break;
+    case tok::starstarequal:
+    case tok::caretequal:
+      emitInstruction(inst::Exp);
+      break;
+    case tok::percentequal:
+      emitInstruction(inst::Mod);
+      break;
     }
   }
 

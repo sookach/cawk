@@ -100,6 +100,14 @@ class ExecutionEngine {
       }
     };
 
+    auto ExecArithmeticStore = [&, this](auto Op) {
+      assert(std::size(Stack) >= 2);
+      Value *RHS = Pop(), *LHS = Pop();
+      assert(LHS->IsLValue);
+      LHS->As.Number = Op(ToNumber(LHS), ToNumber(RHS));
+      Push(LHS);
+    };
+
     for (auto End = std::cend(Code); PC != End;) {
       switch (NextInst()) {
       case inst::Add:
@@ -111,17 +119,30 @@ class ExecutionEngine {
       case inst::Con:
         ExecBinaryString(std::plus());
         break;
+      case inst::Dec:
+        ExecArithmeticStore(std::minus());
+        break;
       case inst::Div:
         ExecBinaryArithmetic(std::divides());
         break;
       case inst::Eq:
         ExecCompare(std::equal_to());
         break;
+      case inst::Exp:
+        ExecArithmeticStore(
+            [](double LHS, double RHS) { return std::pow(LHS, RHS); });
+        break;
+      case inst::Frac:
+        ExecArithmeticStore(std::divides());
+        break;
       case inst::Ge:
         ExecCompare(std::greater_equal());
         break;
       case inst::Gt:
         ExecCompare(std::greater());
+        break;
+      case inst::Inc:
+        ExecArithmeticStore(std::plus());
         break;
       case inst::Le:
         ExecCompare(std::less_equal());
@@ -137,6 +158,9 @@ class ExecutionEngine {
       case inst::Lt:
         ExecCompare(std::less());
         break;
+      case inst::Mod:
+        ExecArithmeticStore(
+            [](double LHS, double RHS) { return std::fmod(LHS, RHS); });
       case inst::Mul:
         ExecBinaryArithmetic(std::multiplies());
         break;
@@ -198,10 +222,15 @@ class ExecutionEngine {
       case inst::Ret:
         assert(!std::empty(Stack));
         return ToNumber(Pop());
+      case inst::Scale:
+        ExecArithmeticStore(std::multiplies());
+        break;
       case inst::Store: {
         assert(std::size(Stack) >= 2);
         Value *RHS = Pop(), *LHS = Pop();
         assert(LHS->IsLValue);
+        *LHS = *RHS;
+        Push(LHS);
         break;
       }
       case inst::Sub:
