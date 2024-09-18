@@ -11,6 +11,7 @@ struct Value {
     double Number;
     Object *Obj;
   } As;
+  bool IsLValue = false;
 
   Value() : Type(NullVal) {}
   Value(double Number) : Type(NumberVal) { As.Number = Number; }

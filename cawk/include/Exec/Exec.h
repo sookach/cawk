@@ -14,16 +14,16 @@ namespace cawk {
 class ExecutionEngine {
   std::vector<std::uint8_t> Code;
   decltype(Code)::iterator PC;
-  std::vector<Value> Stack;
+  std::vector<Value *> Stack;
   std::array<Value, std::numeric_limits<std::uint8_t>::max()> Constants;
-  std::unordered_map<std::string, Value> Globals;
+  std::unordered_map<std::string, Value *> Globals;
 
   int run() {
-    auto Push = [this](Value V) { Stack.push_back(V); };
+    auto Push = [this](Value *V) { Stack.push_back(V); };
 
     auto Pop = [this] {
       assert(!std::empty(Stack));
-      Value V = Stack.back();
+      Value *V = Stack.back();
       Stack.pop_back();
       return V;
     };
@@ -32,41 +32,41 @@ class ExecutionEngine {
       return static_cast<inst::InstKind>(*std::exchange(PC, PC + Incr));
     };
 
-    auto IsScalar = [](Value V) {
-      return V.is(NullVal) || V.is(NumberVal) || V.As.Obj->is(StringObj);
+    auto IsScalar = [](Value *V) {
+      return V->is(NullVal) || V->is(NumberVal) || V->As.Obj->is(StringObj);
     };
 
-    auto IsString = [](Value V) {
-      return V.is(ObjectVal) && V.As.Obj->is(StringObj);
+    auto IsString = [](Value *V) {
+      return V->is(ObjectVal) && V->As.Obj->is(StringObj);
     };
 
-    auto ToNumber = [](Value V) {
-      if (V.is(NumberVal))
-        return V.As.Number;
-      if (V.is(NullVal))
+    auto ToNumber = [](Value *V) {
+      if (V->is(NumberVal))
+        return V->As.Number;
+      if (V->is(NullVal))
         return 0.0;
-      if (V.is(ObjectVal) && V.As.Obj->is(StringObj))
-        return obj::cast<StringObj>(V.As.Obj)->strtod();
+      if (V->is(ObjectVal) && V->As.Obj->is(StringObj))
+        return obj::cast<StringObj>(V->As.Obj)->strtod();
       errs().printf("Invalid conversion to number\n").flush();
       std::exit(1);
     };
 
-    auto ToString = [](Value V) {
-      if (V.is(NumberVal))
-        return std::to_string(V.As.Number);
-      if (V.is(ObjectVal) && V.As.Obj->is(StringObj))
-        return obj::cast<StringObj>(V.As.Obj)->String;
+    auto ToString = [](Value *V) {
+      if (V->is(NumberVal))
+        return std::to_string(V->As.Number);
+      if (V->is(ObjectVal) && V->As.Obj->is(StringObj))
+        return obj::cast<StringObj>(V->As.Obj)->String;
       errs().printf("Invalid conversion to string\n").flush();
       std::exit(1);
     };
 
-    auto ToBool = [](Value V) -> bool {
-      if (V.is(NumberVal))
-        return V.As.Number;
-      if (V.is(NullVal))
+    auto ToBool = [](Value *V) -> bool {
+      if (V->is(NumberVal))
+        return V->As.Number;
+      if (V->is(NullVal))
         return false;
-      if (V.is(ObjectVal) && V.As.Obj->is(StringObj))
-        return !std::empty(obj::cast<StringObj>(V.As.Obj)->String);
+      if (V->is(ObjectVal) && V->As.Obj->is(StringObj))
+        return !std::empty(obj::cast<StringObj>(V->As.Obj)->String);
       errs().printf("Invalid conversion to boolean\n").flush();
       std::exit(1);
     };
@@ -74,27 +74,27 @@ class ExecutionEngine {
     auto ExecBinaryArithmetic = [&, this](auto Op) {
       assert(std::size(Stack) >= 2);
       double RHS = ToNumber(Pop()), LHS = ToNumber(Pop());
-      Push(Op(LHS, RHS));
+      Push(new Value(Op(LHS, RHS)));
     };
 
     auto ExecBinaryString = [&, this](auto Op) {
       assert(std::size(Stack) >= 2);
       std::string RHS = ToString(Pop()), LHS = ToString(Pop());
-      Push(StringObject::Create(Op(LHS, RHS)));
+      Push(new Value(StringObject::Create(Op(LHS, RHS))));
     };
 
     auto ExecBinaryLogical = [&, this](auto Op) {
       assert(std::size(Stack) >= 2);
       double RHS = ToBool(Pop());
       double LHS = ToBool(Pop());
-      Push(Op(LHS, RHS));
+      Push(new Value(Op(LHS, RHS)));
     };
 
     auto ExecCompare = [&, this](auto Op) {
       assert(std::size(Stack) >= 2);
       if (IsString(Stack.back()) || IsString(Stack[std::size(Stack) - 2])) {
         std::string RHS = ToString(Pop()), LHS = ToString(Pop());
-        Push(Op(LHS, RHS));
+        Push(new Value(Op(LHS, RHS)));
       } else {
         ExecBinaryArithmetic(Op);
       }
@@ -126,6 +126,14 @@ class ExecutionEngine {
       case inst::Le:
         ExecCompare(std::less_equal());
         break;
+      case inst::Load: {
+        assert(PC != std::end(Code));
+        assert(IsString(&Constants[*PC]));
+        Value *V = Globals[ToString(&Constants[*PC++])];
+        V->IsLValue = true;
+        Push(V);
+        break;
+      }
       case inst::Lt:
         ExecCompare(std::less());
         break;
@@ -137,11 +145,11 @@ class ExecutionEngine {
         break;
       case inst::Neg:
         assert(!std::empty(Stack));
-        Push(-ToNumber(Pop()));
+        Push(new Value(-ToNumber(Pop())));
         break;
       case inst::Not:
         assert(!std::empty(Stack));
-        Push(!ToBool(Pop()));
+        Push(new Value(!ToBool(Pop())));
         break;
       case inst::Or:
         ExecBinaryLogical(std::logical_or());
@@ -171,17 +179,17 @@ class ExecutionEngine {
         if (N == 0)
           break;
 
-        std::vector<Value> Args;
+        std::vector<Value *> Args;
         for (; --N != 0;)
           Args.push_back(Pop());
-        
+
         std::string Format = ToString(Pop());
         outs().printf(Format.data()).flush();
         break;
       }
       case inst::Push:
         assert(PC != std::end(Code));
-        Push(Constants[*PC++]);
+        Push(&Constants[*PC++]);
         break;
       case inst::Rem:
         ExecBinaryArithmetic(
@@ -190,6 +198,12 @@ class ExecutionEngine {
       case inst::Ret:
         assert(!std::empty(Stack));
         return ToNumber(Pop());
+      case inst::Store: {
+        assert(std::size(Stack) >= 2);
+        Value *RHS = Pop(), *LHS = Pop();
+        assert(LHS->IsLValue);
+        break;
+      }
       case inst::Sub:
         ExecBinaryArithmetic(std::minus());
       }

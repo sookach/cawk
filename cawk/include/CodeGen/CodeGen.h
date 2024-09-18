@@ -32,15 +32,11 @@ class CodeGen {
   std::vector<std::uint8_t> Code;
   std::array<Value, std::numeric_limits<std::uint8_t>::max()> ConstantPool;
   std::uint8_t ConstantIndex = 0;
-  std::unordered_map<double, std::uint8_t> NumberMap;
-  std::unordered_map<std::string, std::uint8_t> StringMap;
 
   std::pair<decltype(Code), decltype(ConstantPool)>
   emitByteCode(TranslationUnitDecl *T) {
     Code.clear();
     ConstantIndex = 0;
-    NumberMap.clear();
-    StringMap.clear();
 
     for (Decl *D : T->getDecls()) {
       switch (D->getKind()) {
@@ -94,8 +90,16 @@ class CodeGen {
     switch (E->getKind()) {
     default:
       cawk_fatal("Invalid expression type");
+    case Expr::EK_BinaryOperator:
+      return emitBinaryOperator(ptr_cast<BinaryOperator>(E));
+    case Expr::EK_DeclRef:
+      // return emitDeclRef(ptr_cast<DeclRefExpr>(E));
     case Expr::EK_FloatingLiteral:
-      emitFloatingLiteral(ptr_cast<FloatingLiteral>(E));
+      return emitFloatingLiteral(ptr_cast<FloatingLiteral>(E));
+    case Expr::EK_StringLiteral:
+      return emitStringLiteral(ptr_cast<StringLiteral>(E));
+    case Expr::EK_UnaryOperator:
+      return emitUnaryOperator(ptr_cast<UnaryOperator>(E));
     }
   }
 
@@ -148,7 +152,16 @@ class CodeGen {
     case tok::lessequal:
       emitInstruction(inst::Le);
       break;
+    case tok::equal:
+      emitInstruction(inst::Store);
+      break;
     }
+  }
+
+  void emitDeclRefExpr(DeclRefExpr *D) {
+    auto Name = std::string(D->getName());
+    ConstantPool[ConstantIndex] = StringObject::Create(Name);
+    emitInstruction(inst::Load, ConstantIndex++);
   }
 
   void emitFloatingLiteral(FloatingLiteral *F) {
@@ -181,19 +194,13 @@ class CodeGen {
   }
 
   void emitNumberConstant(double D) {
-    if (!NumberMap.contains(D)) {
-      ConstantPool[ConstantIndex] = Value(D);
-      NumberMap[D] = ConstantIndex++;
-    }
-    emitInstruction(inst::Push, NumberMap[D]);
+    ConstantPool[ConstantIndex] = Value(D);
+    emitInstruction(inst::Push, ConstantIndex++);
   }
 
   void emitStringConstant(std::string S) {
-    if (!StringMap.contains(S)) {
-      ConstantPool[ConstantIndex] = StringObject::Create(S);
-      StringMap[S] = ConstantIndex++;
-    }
-    emitInstruction(inst::Push, StringMap[S]);
+    ConstantPool[ConstantIndex] = StringObject::Create(S);
+    emitInstruction(inst::Push, ConstantIndex++);
   }
 };
 } // namespace cawk
