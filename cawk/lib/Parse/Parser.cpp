@@ -12,8 +12,8 @@ using namespace cawk;
 bool isTerminatedStatement(Stmt *S) {
   if (isa<CompoundStmt>(S))
     return true;
-  return *std::prev(std::cend(S->getSourceRange())) == ';' ||
-         *std::prev(std::cend(S->getSourceRange())) == '\n';
+  return *std::prev(S->getSourceRange().second) == ';' ||
+         *std::prev(S->getSourceRange().second) == '\n';
 }
 
 /// \brief Consumes the current lookahead token and advances to the next one.
@@ -489,7 +489,7 @@ StmtResult Parser::parsePrintStatement() {
       return EndLoc;
     }
     return std::empty(Args) ? std::cend(Iden.getIdentifier())
-                            : std::cend(Args.back()->getSourceRange());
+                            : Args.back()->getSourceRange().second;
   }();
 
   return PrintStmt::Create(Iden, Args, OpCode, Output.get(),
@@ -512,7 +512,7 @@ StmtResult Parser::parseReturnStatement() {
     return false;
 
   if (E.get() != nullptr)
-    EndLoc = std::cend(E.get()->getSourceRange());
+    EndLoc = E.get()->getSourceRange().second;
 
   if (Tok.is(tok::newline, tok::semi)) {
     EndLoc = std::cend(Tok.getRawData());
@@ -551,14 +551,13 @@ StmtResult Parser::parseValueStatement() {
   ExprResult Value = parseExpression();
   if (!Value.isValid())
     return false;
-  auto EndLoc = std::cend(Value.get()->getSourceRange());
+  auto EndLoc = Value.get()->getSourceRange().second;
   if (Tok.is(tok::newline, tok::semi)) {
     EndLoc = std::cend(Tok.getRawData());
     advance();
   }
   return ValueStmt::Create(
-      Value.get(),
-      SourceRange(std::cbegin(Value.get()->getSourceRange()), EndLoc));
+      Value.get(), SourceRange(Value.get()->getSourceRange().first, EndLoc));
 }
 
 /// parseWhileStatement
@@ -591,7 +590,7 @@ StmtResult Parser::parseWhileStatement() {
     return false;
 
   if (Body.get() != nullptr)
-    EndLoc = std::cend(Body.get()->getSourceRange());
+    EndLoc = Body.get()->getSourceRange().second;
 
   Actions.actOnFinishOfWhileStatement();
   return WhileStmt::Create(Cond.get(), Body.get(),
@@ -643,7 +642,7 @@ StmtResult Parser::parseWhileStatement() {
 ///
 ///     comparison-expression:
 ///       string-concatenation-expression
-///       comparison-expression 
+///       comparison-expression
 ///           ('<' | '<=' | '==' | '!=' | '>' | '>=' | '>>')
 ///           string-concatenation-expression
 ///
@@ -665,8 +664,8 @@ StmtResult Parser::parseWhileStatement() {
 ///
 ///     assignment-expression:
 ///       logical-or-expression
-///       unary-expression 
-///           ('=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '**=' ) 
+///       unary-expression
+///           ('=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '**=' )
 ///           assignment-expression
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto BeginLoc = std::cbegin(Tok.getRawData());
@@ -701,12 +700,12 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
     case tok::numeric_constant: {
       auto Literal = advance();
       return FloatingLiteral::Create(
-          Literal, SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
+          Literal, SourceRange(BeginLoc, std::cend(Literal.getRawData())));
     }
     case tok::string_literal: {
       auto Literal = advance();
       return StringLiteral::Create(
-          Literal, SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
+          Literal, SourceRange(BeginLoc, std::cend(Literal.getRawData())));
     }
     case tok::plusplus:
     case tok::minusminus:
@@ -734,7 +733,7 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
         return false;
       return LambdaExpr::Create(
           Params, Body.getAs<CompoundStmt>(),
-          SourceRange(BeginLoc, std::cend(Body.get()->getSourceRange())));
+          SourceRange(BeginLoc, Body.get()->getSourceRange().second));
     }
     }
   };
@@ -750,15 +749,14 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       case tok::plusplus:
       case tok::minusminus: {
         auto OpCode = advance();
-        return UnaryOperator::Create(
-            OpCode, LHS.get(), UnaryOperator::Prefix,
-            SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
+        LHS =
+            UnaryOperator::Create(OpCode, LHS.get(), UnaryOperator::Postfix,
+                                  SourceRange(LHS.get()->getSourceRange().first,
+                                              std::cend(OpCode.getRawData())));
       }
       case tok::l_paren: {
-        if (std::end(LHS.get()->getSourceRange()) !=
-            std::cbegin(Tok.getRawData())) {
+        if (LHS.get()->getSourceRange().second != std::cbegin(Tok.getRawData()))
           return LHS;
-        }
 
         advance();
         ++ParenCount;
@@ -779,17 +777,16 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
           Args.push_back(Arg.get());
         }
 
+        auto EndLoc = std::cend(Tok.getRawData());
         if (!expect(tok::r_paren))
           return false;
 
-        LHS = CallExpr::Create(
-            LHS.get(), Args,
-            SourceRange(BeginLoc, std::cbegin(Tok.getRawData())));
+        LHS = CallExpr::Create(LHS.get(), Args, SourceRange(BeginLoc, EndLoc));
         break;
       }
       case tok::l_square: {
-        auto BeginLoc = Lex.getBufferPtr();
-        expect(tok::l_square);
+        auto BeginLoc = std::cbegin(Tok.getRawData());
+        advance();
 
         ExprResult Arg = parseExpression();
         if (!Arg.isValid())
@@ -803,11 +800,12 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
           Args.push_back(Arg.get());
         }
 
-        if (!consume(tok::r_square))
+        auto EndLoc = std::cend(Tok.getRawData());
+        if (!expect(tok::r_square))
           return false;
 
-        LHS = ArraySubscriptExpr::Create(
-            LHS.get(), Args, SourceRange(BeginLoc, Lex.getBufferPtr()));
+        LHS = ArraySubscriptExpr::Create(LHS.get(), Args,
+                                         SourceRange(BeginLoc, EndLoc));
       }
       }
     }
