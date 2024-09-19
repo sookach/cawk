@@ -32,11 +32,12 @@ class CodeGen {
   std::vector<std::uint8_t> Code;
   std::array<Value, std::numeric_limits<std::uint8_t>::max()> ConstantPool;
   std::uint8_t ConstantIndex = 0;
+  std::vector<std::unordered_map<std::string, std::uint8_t>> SymbolTable;
+  std::uint8_t SymbolCount = 0;
 
   std::pair<decltype(Code), decltype(ConstantPool)>
   emitByteCode(TranslationUnitDecl *T) {
-    Code.clear();
-    ConstantIndex = 0;
+    SymbolTable.resize(1);
 
     for (Decl *D : T->getDecls()) {
       switch (D->getKind()) {
@@ -178,13 +179,24 @@ class CodeGen {
   }
 
   void emitDeclRefExpr(DeclRefExpr *D) {
-    auto Name = std::string(D->getName());
-    ConstantPool[ConstantIndex] = StringObject::Create(Name);
-    emitInstruction(inst::Load, ConstantIndex++);
+    if (SymbolTable.back().contains(std::string(D->getName())))
+      return emitInstruction(inst::Load,
+                             SymbolTable.back().at(std::string(D->getName())));
+
+    if (SymbolTable.front().contains(std::string(D->getName())))
+      return emitInstruction(inst::Load,
+                             SymbolTable.front().at(std::string(D->getName())));
+
+    SymbolTable.front()[std::string(D->getName())] = SymbolCount;
+    emitInstruction(inst::Load, SymbolCount++);
   }
 
   void emitFloatingLiteral(FloatingLiteral *F) {
     emitNumberConstant(std::stod(std::string(F->getLiteralData())));
+  }
+
+  void emitLambdaExpr(LambdaExpr *L) {
+    // emitFunctionDecl(L->getFunctionDecl());
   }
 
   void emitStringLiteral(StringLiteral *S) {

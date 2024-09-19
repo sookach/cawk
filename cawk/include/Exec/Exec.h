@@ -16,7 +16,6 @@ class ExecutionEngine {
   decltype(Code)::iterator PC;
   std::vector<Value *> Stack;
   std::array<Value, std::numeric_limits<std::uint8_t>::max()> Constants;
-  std::unordered_map<std::string, Value *> Globals;
 
   int run() {
     auto Push = [this](Value *V) { Stack.push_back(V); };
@@ -26,6 +25,11 @@ class ExecutionEngine {
       Value *V = Stack.back();
       Stack.pop_back();
       return V;
+    };
+
+    auto Top = [this](std::uint8_t N = 1) {
+      assert(N <= std::size(Stack));
+      return Stack[std::size(Stack) - N];
     };
 
     auto NextInst = [this](int Incr = 1) {
@@ -149,8 +153,7 @@ class ExecutionEngine {
         break;
       case inst::Load: {
         assert(PC != std::end(Code));
-        assert(IsString(&Constants[*PC]));
-        Value *V = Globals[ToString(&Constants[*PC++])];
+        Value *V = Top(*PC++);
         V->IsLValue = true;
         Push(V);
         break;
