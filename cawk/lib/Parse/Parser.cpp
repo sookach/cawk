@@ -435,24 +435,34 @@ StmtResult Parser::parsePrintStatement() {
   std::vector<Expr *> Args;
 
   if (!Tok.is(tok::newline, tok::semi)) {
-    bool Paren = Tok.is(tok::l_paren) &&
-                 std::cend(Iden.getRawData()) == std::cbegin(Tok.getRawData());
-    if (Paren) {
-      advance();
-      ++ParenCount;
-      auto OnExit = make_scope_exit([this] { --ParenCount; });
+    auto OnExit = make_scope_exit([this] { --ParenCount; });
+    ++ParenCount;
+
+    bool ParsedParen = consume(tok::l_paren);
+    if (!ParsedParen) {
+      OnExit.deactivate();
+      --ParenCount;
     }
+
     ExprResult Arg = parseExpression();
     if (!Arg.isValid())
       return false;
     Args.push_back(Arg.get());
+
+    if (consume(tok::r_paren)) {
+      OnExit.deactivate();
+      --ParenCount;
+      ParsedParen = false;
+    }
+
     for (; consume(tok::comma);) {
       Arg = parseExpression();
       if (!Arg.isValid())
         return false;
       Args.push_back(Arg.get());
     }
-    if (Paren && !expect(tok::r_paren))
+    
+    if (ParsedParen && !expect(tok::r_paren))
       return false;
   }
 
