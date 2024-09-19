@@ -52,17 +52,6 @@ class CodeGen {
     return {Code, ConstantPool};
   }
 
-  void emitCompoundStatement(CompoundStmt *C) {
-    for (Stmt *S : C->getBody()) {
-      switch (S->getKind()) {
-      default:
-        cawk_fatal("Invalid statement type");
-      case Stmt::SK_Value:
-        emitValueStatement(ptr_cast<ValueStmt>(S));
-      }
-    }
-  }
-
   void emitStatement(Stmt *S) {
     switch (S->getKind()) {
     default:
@@ -70,9 +59,40 @@ class CodeGen {
     case Stmt::SK_Compound:
       emitCompoundStatement(ptr_cast<CompoundStmt>(S));
       break;
+    case Stmt::SK_If:
+      // emitIfStatement(ptr_cast<IfStmt>(S));
+      break;
     case Stmt::SK_Return:
       emitReturnStatement(ptr_cast<ReturnStmt>(S));
       break;
+    case Stmt::SK_Value:
+      emitValueStatement(ptr_cast<ValueStmt>(S));
+    }
+  }
+
+  void emitCompoundStatement(CompoundStmt *C) {
+    for (Stmt *S : C->getBody())
+      emitStatement(S);
+  }
+
+  void emitIfStatement(IfStmt *I) {
+    emitExpr(I->getCond());
+    auto BranchAddr = std::size(Code);
+    emitInstruction(inst::Br, std::uint8_t(), std::uint8_t());
+    emitStatement(I->getThen());
+    auto Offset = std::size(Code) - BranchAddr;
+    int JumpAddr = 0;
+    if (I->getElse() != nullptr) {
+      JumpAddr = std::size(Code);
+      emitInstruction(inst::Jmp, std::uint8_t(), std::uint8_t());
+    }
+    Code[BranchAddr + 1] = Offset & 0xff;
+    Code[BranchAddr + 2] = (Offset >> 8) & 0xff;
+    if (I->getElse() != nullptr) {
+      emitStatement(I->getElse());
+      auto Offset = std::size(Code) - JumpAddr;
+      Code[JumpAddr + 1] = Offset & 0xff;
+      Code[JumpAddr + 2] = (Offset >> 8) & 0xff;
     }
   }
 

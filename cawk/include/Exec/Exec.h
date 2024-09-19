@@ -120,6 +120,10 @@ class ExecutionEngine {
       case inst::And:
         ExecBinaryLogical(std::logical_and());
         break;
+      case inst::Br:
+        assert(PC != std::end(Code) && PC != std::end(Code) - 1);
+        if (ToBool(Pop()))
+          PC += *reinterpret_cast<const std::int16_t *>(PC.base());
       case inst::Con:
         ExecBinaryString(std::plus());
         break;
@@ -147,6 +151,10 @@ class ExecutionEngine {
         break;
       case inst::Inc:
         ExecArithmeticStore(std::plus());
+        break;
+      case inst::Jmp:
+        assert(PC != std::end(Code) && PC != std::end(Code) - 1);
+        PC += *reinterpret_cast<const std::int16_t *>(PC.base());
         break;
       case inst::Le:
         ExecCompare(std::less_equal());
