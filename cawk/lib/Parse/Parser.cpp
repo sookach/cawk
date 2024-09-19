@@ -461,7 +461,7 @@ StmtResult Parser::parsePrintStatement() {
         return false;
       Args.push_back(Arg.get());
     }
-    
+
     if (ParsedParen && !expect(tok::r_paren))
       return false;
   }
@@ -598,6 +598,76 @@ StmtResult Parser::parseWhileStatement() {
                            SourceRange(BeginLoc, EndLoc));
 }
 
+/// parseExpression
+///
+///     primary-expression:
+///       identifier
+///       literal
+///       lambda-expression
+///       '(' expression ')'
+///
+///     postfix-expression:
+///       primary-expression
+///       postfix-expression '[' expression-list ']'
+///       postfix-expression '(' expression-list? ')'
+///       // No space between postfix-expression and '('
+///
+///     field-reference-expression:
+///       primary-expression
+///       '$' field-reference-expression
+///
+///     unary-expression:
+///       field-reference-expression
+///       ('++' | '--') unary-expression
+///       unary-expression ('++' | '--')
+///
+///     exponential-expression:
+///       unary-expression
+///       exponential-expression ('**' | '^') unary-expression
+///
+///     negative-expression:
+///       exponential-expression
+///       ('!' | '-') unary-expression
+///
+///     multiplicative-expression:
+///       unary-expression
+///       multiplicative-expression  ('*' | '/' | '%') unary-expression
+///
+///     additive-expression:
+///       multiplicative-expression
+///       additive-expression ('+' | '-') multiplicative-expression
+///
+///     string-concatenation-expression:
+///       additive-expression
+///       string-concatenation-expression additive-expression
+///
+///     comparison-expression:
+///       string-concatenation-expression
+///       comparison-expression 
+///           ('<' | '<=' | '==' | '!=' | '>' | '>=' | '>>')
+///           string-concatenation-expression
+///
+///     matching-expression:
+///       comparison-expression
+///       matching-expression ('~' | '!~') comparison-expression
+///
+///     membership-expression:
+///       matching-expression
+///       membership-expression 'in' matching-expression
+///
+///     logical-and-expression:
+///       membership-expression
+///       logical-and-expression '&&' membership-expression
+///
+///     logical-or-expression:
+///       logical-and-expression
+///       logical-or-expression '||' logical-and-expression
+///
+///     assignment-expression:
+///       logical-or-expression
+///       unary-expression 
+///           ('=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '**=' ) 
+///           assignment-expression
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto BeginLoc = std::cbegin(Tok.getRawData());
   auto ParseAtom = [&, this] -> ExprResult {
