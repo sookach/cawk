@@ -48,7 +48,7 @@ public:
 public:
   Parser(Lexer &Lex, Diagnostic &Diags)
       : Lex(Lex), Actions(Diags), Diags(Diags) {
-    Lex.next<false, false>(Tok);
+    Lex.next(Tok);
   }
 
   DeclResult parse() { return parseTranslationUnit(); }
@@ -56,53 +56,48 @@ public:
   auto getFunctions() { return Actions.getFunctions(); }
 
 private:
-  template <bool NL = true, bool RE = false> Token advance();
-  template <bool NL = true, bool RE = false> Token peek(std::size_t) const;
+  Token advance();
+  Token peek(std::size_t) const;
 
-  template <bool NL = true, bool RE = false, typename... Ts>
-  bool consume(tok::TokenKind K, Ts... Ks) {
+  template <typename... Ts> bool consume(tok::TokenKind K, Ts... Ks) {
     if (!Tok.is(K))
       return false;
 
-    advance<NL, RE>();
+    advance();
 
     if constexpr (sizeof...(Ks) != 0)
-      return consume<NL, RE>(Ks...);
+      return consume(Ks...);
 
     return true;
   }
 
-  template <bool NL = true, bool RE = false, typename... Ts>
-  bool consumeOneOf(tok::TokenKind K, Ts... Ks) {
-    if (consume<NL, RE>(K))
+  template <typename... Ts> bool consumeOneOf(tok::TokenKind K, Ts... Ks) {
+    if (consume(K))
       return true;
 
     if constexpr (sizeof...(Ks) != 0)
-      return consume<NL, RE>(Ks...);
+      return consume(Ks...);
 
     return false;
   }
 
-  template <bool NL = true, bool RE = false, typename... Ts>
-  bool expect(tok::TokenKind K, Ts... Ks) {
-    if (!consume<NL, RE>(K)) {
+  template <typename... Ts> bool expect(tok::TokenKind K, Ts... Ks) {
+    if (!consume(K)) {
       if (!std::exchange(PanicMode, true))
-        Diags.addError(SourceRange(std::cbegin(Tok.getRawData()),
-                                   std::cend(Tok.getRawData())),
+        Diags.addError(SourceRange(Tok.getRawData()),
                        diag::parse_unexpected_token, tok::getTokenName(K),
                        tok::getTokenName(Tok.getKind()));
       return false;
     }
 
     if constexpr (sizeof...(Ks) != 0)
-      return expect<NL, RE>(Ks...);
+      return expect(Ks...);
 
     return true;
   }
 
-  template <bool NL = true, bool RE = false, typename... Ts>
-  bool expectOneOf(tok::TokenKind K, Ts... Ks) {
-    if (consume<NL, RE>(K)) {
+  template <typename... Ts> bool expectOneOf(tok::TokenKind K, Ts... Ks) {
+    if (consume(K)) {
       ExpectedTypes = "one of";
       return true;
     }
@@ -113,14 +108,13 @@ private:
 
     if constexpr (sizeof...(Ks) == 0) {
       if (!std::exchange(PanicMode, true))
-        Diags.addError(SourceRange(std::cbegin(Tok.getRawData()),
-                                   std::cend(Tok.getRawData())),
+        Diags.addError(SourceRange(Tok.getRawData()),
                        diag::parse_unexpected_token, ExpectedTypes.c_str(),
                        tok::getTokenName(Tok.getKind()));
       ExpectedTypes = "one of";
       return false;
     } else {
-      return expectOneOf<NL, RE>(Ks...);
+      return expectOneOf(Ks...);
     }
   }
 
@@ -129,7 +123,7 @@ private:
         (std::bitset<tok::NUM_TOKENS>() | ... |
          std::bitset<tok::NUM_TOKENS>().set(Kinds)));
 
-    for (; Filter.test(Tok.getKind()); advance<false, false>())
+    for (; Filter.test(Tok.getKind()); advance())
       ;
   }
 
@@ -138,7 +132,7 @@ private:
         (std::bitset<tok::NUM_TOKENS>() | ... |
          std::bitset<tok::NUM_TOKENS>().set(Kinds)));
 
-    for (; !Filter.test(Tok.getKind()); advance<false, false>())
+    for (; !Filter.test(Tok.getKind()); advance())
       ;
   }
 

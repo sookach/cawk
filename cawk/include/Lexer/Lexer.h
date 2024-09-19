@@ -10,11 +10,13 @@
 
 namespace cawk {
 class Lexer {
+  using Pointer = std::string_view::const_iterator;
+
   Diagnostic &Diags;
-  std::string_view::const_iterator BufferStart;
-  std::string_view::const_iterator BufferEnd;
-  std::string_view::const_iterator BufferPtr;
-  std::string_view::const_iterator BufferPrev;
+  Pointer BufferStart;
+  Pointer BufferEnd;
+  Pointer BufferPtr;
+  Pointer BufferPrev;
 
   std::unordered_map<std::string_view, tok::TokenKind> Keywords;
 
@@ -29,24 +31,19 @@ public:
 #undef KEYWORD
   }
 
-  std::string_view::const_iterator getBufferPtr() const;
-  void setBufferPtr(std::string_view::const_iterator Ptr);
-  template <bool NL, bool RE> void next(Token &T);
+  Pointer getBufferPtr() const;
+  void setBufferPtr(Pointer Ptr);
+  void next(Token &Result);
   void undo();
 
-  void formSpaceToken(Token &T, std::string_view::const_iterator It) {
-    T.Kind = tok::space;
-    T.Ptr = It;
-    T.Length = 1;
-  }
+  void formSpaceToken(Token &Result, Pointer It);
 
 private:
-  void formToken(Token &T, std::string_view::const_iterator End,
-                 tok::TokenKind Kind);
-  void lexIdentifier(Token &T);
-  void lexNumericConstant(Token &T);
-  void lexStringLiteral(Token &T);
-  void lexRegexLiteral(Token &T);
+  void formTokenWithChars(Token &Result, Pointer TokEnd, tok::TokenKind Kind);
+  void lexIdentifier(Token &Result);
+  void lexNumericConstant(Token &Result);
+  void lexStringLiteral(Token &Result);
+  void lexRegexLiteral(Token &Result);
 
   std::size_t getLine() const { return Line; }
 };

@@ -17,40 +17,26 @@ bool isTerminatedStatement(Stmt *S) {
 }
 
 /// \brief Consumes the current lookahead token and advances to the next one.
-/// \tparam NL - should the lexer lex newlines?
-/// \tparam RE - are we attempting to lex a regex?
 /// \return The current lookahead token.
-template <bool NL, bool RE> Token Parser::advance() {
-  auto Prev = Tok;
-  Lex.next<NL, RE>(Tok);
+Token Parser::advance() {
+  Token Prev = Tok;
+  Lex.next(Tok);
   return Prev;
 }
 
-template Token Parser::advance<false, false>();
-template Token Parser::advance<false, true>();
-template Token Parser::advance<true, false>();
-template Token Parser::advance<true, true>();
-
 /// \brief Peeks N tokens ahead.
-/// \tparam NL - should the lexer lex newlines?
-/// \tparam RE - are we attempting to lex a regex?
 /// \param N - the number of tokens to peek.
 /// \return The Nth token ahead.
-template <bool NL, bool RE> Token Parser::peek(std::size_t N) const {
+Token Parser::peek(std::size_t N) const {
   Token T;
   auto BufferPtr = Lex.getBufferPtr();
 
   for (; N != 0; --N)
-    Lex.next<NL, RE>(T);
+    Lex.next(T);
 
   Lex.setBufferPtr(BufferPtr);
   return T;
 }
-
-template Token Parser::peek<false, false>(std::size_t N) const;
-template Token Parser::peek<false, true>(std::size_t N) const;
-template Token Parser::peek<true, false>(std::size_t N) const;
-template Token Parser::peek<true, true>(std::size_t N) const;
 
 /// parseTranslationUnit
 ///     translation-unit:
@@ -429,7 +415,7 @@ StmtResult Parser::parseNullStatement() {
 StmtResult Parser::parsePrintStatement() {
   auto BeginLoc = std::cbegin(Tok.getRawData());
   Token Iden = Tok;
-  if (!consumeOneOf<true>(tok::kw_print, tok::kw_printf))
+  if (!consumeOneOf(tok::kw_print, tok::kw_printf))
     return false;
 
   std::vector<Expr *> Args;
