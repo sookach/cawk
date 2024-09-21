@@ -39,17 +39,25 @@ class CodeGen {
   emitByteCode(TranslationUnitDecl *T) {
     SymbolTable.resize(1);
 
-    for (Decl *D : T->getDecls()) {
-      switch (D->getKind()) {
-      default:
-        cawk_fatal("Invalid declaration type");
-      case Decl::DK_Function:
-        // emitFunctionDecl(ptr_cast<FunctionDecl>(D));
-        break;
-      }
-    }
+    for (Decl *D : T->getDecls())
+      if (FunctionDecl *F = dyn_cast<FunctionDecl>(D))
+        ; // emitFunctionDecl(ptr_cast<FunctionDecl>(D));
+
+    for (Decl *D : T->getDecls())
+      if (VarDecl *R = dyn_cast<RuleDecl>(D))
+        ; // emitRuleDecl(R);
 
     return {Code, ConstantPool};
+  }
+
+  void emitRuleDecl(RuleDecl *R) {
+    emitExpr(R->getPattern());
+    auto BranchAddr = std::size(Code);
+    emitInstruction(inst::Br, std::uint8_t(), std::uint8_t());
+    emitCompoundStatement(R->getAction());
+    auto Offset = std::size(Code) - BranchAddr;
+    Code[BranchAddr + 1] = (Offset >> 8) & 0xff;
+    Code[BranchAddr + 2] = Offset & 0xff;
   }
 
   void emitStatement(Stmt *S) {
