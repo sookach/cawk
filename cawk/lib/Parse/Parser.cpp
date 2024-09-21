@@ -27,16 +27,7 @@ Token Parser::advance() {
 /// \brief Peeks N tokens ahead.
 /// \param N - the number of tokens to peek.
 /// \return The Nth token ahead.
-Token Parser::peek(std::size_t N) const {
-  Token T;
-  auto BufferPtr = Lex.getBufferPtr();
-
-  for (; N != 0; --N)
-    Lex.next(T);
-
-  Lex.setBufferPtr(BufferPtr);
-  return T;
-}
+Token Parser::peek(std::size_t N) const { return Lex.peek(N); }
 
 /// parseTranslationUnit
 ///     translation-unit:
@@ -116,13 +107,11 @@ DeclResult Parser::parseRuleDeclaration() {
     case tok::l_brace:
       return nullptr;
     case tok::kw_BEGIN: {
-      advance();
-      auto EndLoc = Lex.getBufferPtr();
+      auto EndLoc = std::cend(advance().getRawData());
       return BeginKeyword::Create(SourceRange(BeginLoc, EndLoc));
     }
     case tok::kw_END: {
-      advance();
-      auto EndLoc = Lex.getBufferPtr();
+      auto EndLoc = std::cend(advance().getRawData());
       return EndKeyword::Create(SourceRange(BeginLoc, EndLoc));
     }
     }
@@ -629,8 +618,8 @@ StmtResult Parser::parseWhileStatement() {
 ///     comparison-expression:
 ///       string-concatenation-expression
 ///       comparison-expression
-///           ('<' | '<=' | '==' | '!=' | '>' | '>=' | '>>')
-///           string-concatenation-expression
+///         ('<' | '<=' | '==' | '!=' | '>' | '>=' | '>>')
+///         string-concatenation-expression
 ///
 ///     matching-expression:
 ///       comparison-expression
@@ -651,8 +640,8 @@ StmtResult Parser::parseWhileStatement() {
 ///     assignment-expression:
 ///       logical-or-expression
 ///       unary-expression
-///           ('=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '**=' )
-///           assignment-expression
+///         ('=' | '+=' | '-=' | '*=' | '/=' | '%=' | '^=' | '**=' )
+///         assignment-expression
 ExprResult Parser::parseExpression(prec::Level MinPrec) {
   auto BeginLoc = std::cbegin(Tok.getRawData());
   auto ParseAtom = [&, this] -> ExprResult {

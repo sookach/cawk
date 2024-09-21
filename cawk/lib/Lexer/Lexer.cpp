@@ -46,6 +46,15 @@ void Lexer::setBufferPtr(Pointer Ptr) { BufferPtr = Ptr; }
 
 void Lexer::undo() { BufferPtr = BufferPrev; }
 
+Token Lexer::peek(std::size_t N) {
+  Token T;
+  auto Ptr = BufferPtr;
+  for (; N != 0; --N)
+    next(T);
+  BufferPtr = Ptr;
+  return T;
+}
+
 void Lexer::formSpaceToken(Token &Result, Pointer Ptr) {
   Result.Kind = tok::space;
   Result.Ptr = Ptr;

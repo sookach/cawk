@@ -34,6 +34,8 @@ public:
   Pointer getBufferPtr() const;
   void setBufferPtr(Pointer Ptr);
   void next(Token &Result);
+  void lexRegexLiteral(Token &Result);
+  Token peek(std::size_t N = 1);
   void undo();
 
   void formSpaceToken(Token &Result, Pointer It);
@@ -43,7 +45,6 @@ private:
   void lexIdentifier(Token &Result);
   void lexNumericConstant(Token &Result);
   void lexStringLiteral(Token &Result);
-  void lexRegexLiteral(Token &Result);
 
   std::size_t getLine() const { return Line; }
 };
