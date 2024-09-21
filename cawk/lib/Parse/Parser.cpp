@@ -682,6 +682,13 @@ ExprResult Parser::parseExpression(prec::Level MinPrec) {
       return StringLiteral::Create(
           Literal, SourceRange(BeginLoc, std::cend(Literal.getRawData())));
     }
+    case tok::slash: {
+      Lex.setBufferPtr(std::cbegin(Tok.getRawData()));
+      Lex.lexRegexLiteral(Tok);
+      auto Literal = advance();
+      return RegexLiteral::Create(
+          Literal, SourceRange(BeginLoc, std::cend(Literal.getRawData())));
+    }
     case tok::plusplus:
     case tok::minusminus:
     case tok::exclaim:
