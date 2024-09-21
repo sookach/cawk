@@ -233,7 +233,7 @@ void Lexer::next(Token &Result) {
     switch (Peek()) {
     case '*':
       return Peek(2) == '='
-                 ? formTokenWithChars(Result, BufferPtr + 2, tok::starstarequal)
+                 ? formTokenWithChars(Result, BufferPtr + 3, tok::starstarequal)
                  : formTokenWithChars(Result, BufferPtr + 2, tok::starstar);
     case '=':
       return formTokenWithChars(Result, BufferPtr + 2, tok::starequal);
