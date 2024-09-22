@@ -1,3 +1,9 @@
+//===- Lexer.h - CAWK Language Lexer ----------------------------*- C++ -*-===//
+//
+//  This file defines the Lexer interface.
+//
+//===----------------------------------------------------------------------===//
+
 #pragma once
 
 #include "Basic/Diagnostic.h"
@@ -12,14 +18,25 @@ namespace cawk {
 class Lexer {
   using Pointer = std::string_view::const_iterator;
 
+  /// Diags - The diagnostic engine.
   Diagnostic &Diags;
+
+  /// BufferStart - The start of the input buffer.
   Pointer BufferStart;
+
+  /// BufferEnd - The end of the input buffer.
   Pointer BufferEnd;
+
+  /// BufferPtr - The current position in the input buffer.
   Pointer BufferPtr;
+
+  /// BufferPrev - The previous position in the input buffer.
   Pointer BufferPrev;
 
+  /// Keywords - The set of keywords.
   std::unordered_map<std::string_view, tok::TokenKind> Keywords;
 
+  /// Line - The current line number.
   std::size_t Line = 1;
 
 public:

@@ -3,6 +3,7 @@
 //  This file implements the Parser interface.
 //
 //===----------------------------------------------------------------------===//
+
 #include "Parse/Parser.h"
 #include "Support/ScopeExit.h"
 #include "Support/Support.h"

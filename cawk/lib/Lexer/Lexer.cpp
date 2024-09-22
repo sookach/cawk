@@ -1,3 +1,9 @@
+//===- Lexer.cpp - CAWK Language Lexer --------------------------*- C++ -*-===//
+//
+//  This file implements the Lexer interface.
+//
+//===----------------------------------------------------------------------===//
+
 #include "Lexer/Lexer.h"
 #include "Basic/TokenKinds.h"
 
@@ -40,12 +46,16 @@ inline bool isLetter(char c) {
 using namespace cawk;
 using Pointer = std::string_view::const_iterator;
 
+/// getBufferPtr - Returns the current position in the input buffer.
 Pointer Lexer::getBufferPtr() const { return BufferPtr; }
 
+/// setBufferPtr - Sets the current position in the input buffer.
 void Lexer::setBufferPtr(Pointer Ptr) { BufferPtr = Ptr; }
 
+/// undo - Restores the previous position in the input buffer.
 void Lexer::undo() { BufferPtr = BufferPrev; }
 
+/// peek - Returns the Nth token ahead.
 Token Lexer::peek(std::size_t N) {
   Token T;
   auto Ptr = BufferPtr;
@@ -55,12 +65,16 @@ Token Lexer::peek(std::size_t N) {
   return T;
 }
 
+/// formSpaceToken - Marks Result as a space token, with a source range spanning
+/// [Ptr, Ptr + 1).
 void Lexer::formSpaceToken(Token &Result, Pointer Ptr) {
   Result.Kind = tok::space;
   Result.Ptr = Ptr;
   Result.Length = 1;
 }
 
+/// formTokenWithChars - Marks Result as a token of type Kind, with a source
+/// range spanning [BufferPtr, TokEnd), and updates BufferPtr to TokEnd.
 void Lexer::formTokenWithChars(Token &Result, Pointer TokEnd,
                                tok::TokenKind Kind) {
   Result.Kind = Kind;
@@ -70,6 +84,7 @@ void Lexer::formTokenWithChars(Token &Result, Pointer TokEnd,
   BufferPtr = TokEnd;
 }
 
+/// lexIdentifier - [_a-zA-Z]([_a-zA-Z0-9])*
 void Lexer::lexIdentifier(Token &Result) {
   assert(charinfo::isLetter(*BufferPtr));
   auto End = BufferPtr + 1;
@@ -81,6 +96,7 @@ void Lexer::lexIdentifier(Token &Result) {
   formTokenWithChars(Result, End, Kind);
 }
 
+/// lexNumericConstant - [0-9]+(\.[0-9]+)?
 void Lexer::lexNumericConstant(Token &Result) {
   assert(charinfo::isDigit(*BufferPtr));
   auto End = BufferPtr + 1;
@@ -93,6 +109,7 @@ void Lexer::lexNumericConstant(Token &Result) {
   return;
 }
 
+/// lexStringLiteral - "([^"]|\\")*"
 void Lexer::lexStringLiteral(Token &Result) {
   auto BeginLoc = BufferPtr;
   auto End = BufferPtr + 1;
@@ -107,6 +124,7 @@ void Lexer::lexStringLiteral(Token &Result) {
   formTokenWithChars(Result, End + 1, tok::string_literal);
 }
 
+/// lexRegexLiteral - /([^/|\\]|\\.)*/
 void Lexer::lexRegexLiteral(Token &Result) {
   auto BeginLoc = BufferPtr;
   auto End = BufferPtr + 1;
@@ -121,6 +139,7 @@ void Lexer::lexRegexLiteral(Token &Result) {
   formTokenWithChars(Result, End + 1, tok::regex_literal);
 }
 
+/// next - Reads the next token from the input buffer and assigns it to Result.
 void Lexer::next(Token &Result) {
   /// Peek N characters ahead. For now we treat the end of input as 0, but it
   /// might be worth changing it to EOF(-1) in the future.
