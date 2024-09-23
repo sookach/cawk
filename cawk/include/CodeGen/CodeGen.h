@@ -44,7 +44,7 @@ class CodeGen {
         ; // emitFunctionDecl(ptr_cast<FunctionDecl>(D));
 
     for (Decl *D : T->getDecls())
-      if (VarDecl *R = dyn_cast<RuleDecl>(D))
+      if (RuleDecl *R = dyn_cast<RuleDecl>(D))
         ; // emitRuleDecl(R);
 
     return {Code, ConstantPool};
