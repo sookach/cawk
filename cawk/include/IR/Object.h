@@ -1,3 +1,9 @@
+//===- Object.h - The object interface ------------------------------------===//
+//
+// This file defines the Object class.
+//
+//===----------------------------------------------------------------------===//
+
 #pragma once
 
 #include "Support/Support.h"

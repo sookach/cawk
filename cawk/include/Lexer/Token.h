@@ -1,4 +1,4 @@
-//===--- Token.h - Token interface ------------------------------*- C++ -*-===//
+//===- Token.h - Token interface --------------------------------*- C++ -*-===//
 //
 //  This file defines the Token interface.
 //

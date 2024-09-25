@@ -87,6 +87,7 @@ class CodeGen {
     emitExpr(I->getCond());
     auto BranchAddr = std::size(Code);
     emitInstruction(inst::Br, std::uint8_t(), std::uint8_t());
+    emitInstruction(inst::Pop);
     emitStatement(I->getThen());
     auto Offset = std::size(Code) - BranchAddr;
     int JumpAddr = 0;
