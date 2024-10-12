@@ -35,6 +35,7 @@ class CodeGen {
   std::vector<std::unordered_map<std::string, std::uint8_t>> SymbolTable;
   std::uint8_t SymbolCount = 0;
 
+public:
   std::pair<decltype(Code), decltype(ConstantPool)>
   emitByteCode(TranslationUnitDecl *T) {
     SymbolTable.resize(1);
@@ -50,6 +51,7 @@ class CodeGen {
     return {Code, ConstantPool};
   }
 
+private:
   void emitRuleDecl(RuleDecl *R) {
     emitExpr(R->getPattern());
     auto BranchAddr = std::size(Code);

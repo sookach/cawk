@@ -44,6 +44,12 @@ public:
         continue;
       }
 
+      if (std::strcmp(Argv[I], "-emit-ir") == 0) {
+        ++I;
+        Assignments["ir"] = "true";
+        continue;
+      }
+
       switch (Argv[I][1]) {
       case 's':
         if (std::strcmp(Argv[I], "-safe") == 0)
@@ -102,7 +108,10 @@ public:
   char **getArgv() const { return Argv; }
   std::vector<std::string> getARGV() const { return ARGV; }
   int getSourceArg() const { return SourceArg; }
-  std::vector<std::string> getProfFiles() const { return Progfiles; }
+  std::vector<std::string> getProgFiles() const { return Progfiles; }
+  std::unordered_map<std::string, std::string> getAssignments() {
+    return Assignments;
+  }
 };
 
 } // namespace cawk

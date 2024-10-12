@@ -17,6 +17,13 @@ class ExecutionEngine {
   std::vector<Value *> Stack;
   std::array<Value, std::numeric_limits<std::uint8_t>::max()> Constants;
 
+public:
+  ExecutionEngine(
+      std::vector<std::uint8_t> Code,
+      std::array<Value, std::numeric_limits<std::uint8_t>::max()> Constants)
+      : Code(std::move(Code)), PC(std::begin(this->Code)),
+        Constants(std::move(Constants)) {}
+
   int run() {
     auto Push = [this](Value *V) { Stack.push_back(V); };
 

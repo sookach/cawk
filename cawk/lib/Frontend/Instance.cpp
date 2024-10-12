@@ -13,7 +13,7 @@ int Instance::execute() {
   auto Source = [this] {
     if (CmdLine.getSourceArg() == -1) {
       std::string Source;
-      for (std::string Progfile : CmdLine.getProfFiles()) {
+      for (std::string Progfile : CmdLine.getProgFiles()) {
         InputFile File(Progfile);
         Source += File.toString();
       }
@@ -23,18 +23,21 @@ int Instance::execute() {
   }();
   Lexer Lex(Source, Diags);
   Parser Parse(Lex, Diags);
-  ASTPrinter Printer;
   auto ParseResult = Parse.parse();
   if (!ParseResult.isValid()) {
     Diags.printErrors(Source);
     return EXIT_FAILURE;
   }
-  //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
-  DCEPass DCE;
-  DCE.traverse(ParseResult.getAs<TranslationUnitDecl>());
-  //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
-  Diags.printErrors(Source);
-  //   Printer.traverse(ParseResult.getAs<TranslationUnitDecl>());
+  CodeGen Gen;
+  auto [Code, Constants] =
+      Gen.emitByteCode(static_cast<TranslationUnitDecl *>(ParseResult.get()));
+  ExecutionEngine Exec(Code, Constants);
+  if (CmdLine.getAssignments().contains("ir")) {
+    Exec.dumpCode();
+  }
+  auto Result = Exec.run();
+  outs().printf("Result: %f\n", Result).flush();
+
   auto Functions = Parse.getFunctions();
   return EXIT_SUCCESS;
 }
