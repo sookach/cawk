@@ -1,0 +1,34 @@
+#ifndef TOK
+#define TOK(ID)
+#endif
+#ifndef PUNCTUATOR
+#define PUNCTUATOR(ID, SP) TOK(ID)
+#endif
+#ifndef KEYWORD
+#define KEYWORD(ID, SP) TOK(kw_ ## ID)
+#endif
+#ifndef INST
+#define INST(ID, SP) TOK(ID)
+#endif
+
+TOK(unknown)
+TOK(eof)
+TOK(global)
+TOK(local)
+TOK(constant)
+
+PUNCTUATOR(l_paren,             "(")
+PUNCTUATOR(r_paren,             ")")
+PUNCTUATOR(l_brace,             "{")
+PUNCTUATOR(r_brace,             "}")
+PUNCTUATOR(equal,               "=")
+PUNCTUATOR(comma,               ",")
+PUNCTUATOR(semicolon,           ";")
+
+KEYWORD(define,                 "define")
+KEYWORD(constants,              "constants")
+
+#undef INST
+#undef KEYWORD
+#undef PUNCTUATOR
+#undef TOK
