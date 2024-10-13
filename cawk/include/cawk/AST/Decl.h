@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Basic/SourceLocation.h"
-#include "Lexer/Token.h"
+#include "cawk/Basic/SourceLocation.h"
+#include "cawk/Lexer/Token.h"
 
 #include <vector>
 

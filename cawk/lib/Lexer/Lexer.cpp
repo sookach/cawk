@@ -4,8 +4,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Lexer/Lexer.h"
-#include "Basic/TokenKinds.h"
+#include "cawk/Lexer/Lexer.h"
+#include "cawk/Basic/TokenKinds.h"
 
 #include <algorithm>
 

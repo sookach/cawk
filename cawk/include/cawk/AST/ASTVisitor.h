@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AST/AST.h"
+#include "cawk/AST/AST.h"
 #include <type_traits>
 
 namespace cawk {

@@ -4,9 +4,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Parse/Parser.h"
-#include "Support/ScopeExit.h"
-#include "Support/Support.h"
+#include "cawk/Parse/Parser.h"
+#include "cawk/Support/ScopeExit.h"
+#include "cawk/Support/Support.h"
 
 using namespace cawk;
 

@@ -1,8 +1,8 @@
 #pragma once
 
-#include "AST/Decl.h"
-#include "AST/Expr.h"
-#include "AST/Stmt.h"
+#include "cawk/AST/Decl.h"
+#include "cawk/AST/Expr.h"
+#include "cawk/AST/Stmt.h"
 
 #include <utility>
 

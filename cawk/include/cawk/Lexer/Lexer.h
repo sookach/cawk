@@ -6,10 +6,10 @@
 
 #pragma once
 
-#include "Basic/Diagnostic.h"
-#include "Basic/TokenKinds.h"
-#include "Exec/IO.h"
-#include "Token.h"
+#include "cawk/Basic/Diagnostic.h"
+#include "cawk/Basic/TokenKinds.h"
+#include "cawk/Exec/IO.h"
+#include "cawk/Token.h"
 
 #include <string_view>
 #include <unordered_map>

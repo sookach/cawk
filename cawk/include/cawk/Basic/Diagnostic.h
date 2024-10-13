@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Basic/SourceLocation.h"
-#include "Exec/IO.h"
+#include "cawk/Basic/SourceLocation.h"
+#include "cawk/Exec/IO.h"
 
 #include <algorithm>
 #include <array>

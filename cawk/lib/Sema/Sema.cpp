@@ -1,6 +1,6 @@
-#include "Sema/Sema.h"
-#include "AST/ASTPrinter.h"
-#include "Support/Support.h"
+#include "cawk/Sema/Sema.h"
+#include "cawk/AST/ASTPrinter.h"
+#include "cawk/Support/Support.h"
 
 #include <cstdio>
 

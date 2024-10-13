@@ -1,5 +1,5 @@
-#include "AST/Decl.h"
-#include "AST/Expr.h"
+#include "cawk/AST/Decl.h"
+#include "cawk/AST/Expr.h"
 
 using namespace cawk;
 

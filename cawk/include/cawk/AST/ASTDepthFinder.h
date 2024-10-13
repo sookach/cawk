@@ -1,6 +1,6 @@
 #pragma once
 
-#include "AST/ASTVisitor.h"
+#include "cawk/AST/ASTVisitor.h"
 
 #include <cstdio>
 #include <string>

@@ -1,10 +1,10 @@
 #pragma once
 
-#include "AST/AST.h"
-#include "IR/Instruction.h"
-#include "IR/Object.h"
-#include "IR/Value.h"
-#include "Support/Support.h"
+#include "cawk/AST/AST.h"
+#include "cawk/IR/Instruction.h"
+#include "cawk/IR/Object.h"
+#include "cawk/IR/Value.h"
+#include "cawk/Support/Support.h"
 
 #include <array>
 #include <cstdint>

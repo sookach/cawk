@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Basic/Diagnostic.h"
+#include "cawk/Basic/Diagnostic.h"
 
 #include <algorithm>
 #include <cassert>

@@ -1,5 +1,5 @@
-#include "Basic/OperatorPrecedence.h"
-#include "Basic/TokenKinds.h"
+#include "cawk/Basic/OperatorPrecedence.h"
+#include "cawk/Basic/TokenKinds.h"
 
 using namespace cawk;
 

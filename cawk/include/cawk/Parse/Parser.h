@@ -6,12 +6,12 @@
 
 #pragma once
 
-#include "AST/AST.h"
-#include "Basic/Diagnostic.h"
-#include "Basic/OperatorPrecedence.h"
-#include "Basic/TokenKinds.h"
-#include "Lexer/Lexer.h"
-#include <Sema/Sema.h>
+#include "cawk/AST/AST.h"
+#include "cawk/Basic/Diagnostic.h"
+#include "cawk/Basic/OperatorPrecedence.h"
+#include "cawk/Basic/TokenKinds.h"
+#include "cawk/Lexer/Lexer.h"
+#include "cawk/Sema/Sema.h"
 
 #include <bitset>
 #include <cstdlib>

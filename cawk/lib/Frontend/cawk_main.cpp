@@ -1,5 +1,5 @@
-#include "Exec/IO.h"
-#include "Frontend/Instance.h"
+#include "cawk/Exec/IO.h"
+#include "cawk/Frontend/Instance.h"
 
 #include <cassert>
 #include <filesystem>

@@ -1,9 +1,9 @@
-#include "Frontend/Instance.h"
-#include "AST/ASTPrinter.h"
-#include "CodeGen/CodeGen.h"
-#include "Exec/Exec.h"
-#include "Parse/Parser.h"
-#include "Transforms/DeadCodeElimination.h"
+#include "cawk/Frontend/Instance.h"
+#include "cawk/AST/ASTPrinter.h"
+#include "cawk/CodeGen/CodeGen.h"
+#include "cawk/Exec/Exec.h"
+#include "cawk/Parse/Parser.h"
+#include "cawk/Transforms/DeadCodeElimination.h"
 
 using namespace cawk;
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "IR/Instruction.h"
-#include "IR/Value.h"
+#include "cawk/IR/Instruction.h"
+#include "cawk/IR/Value.h"
 
 #include <algorithm>
 #include <array>

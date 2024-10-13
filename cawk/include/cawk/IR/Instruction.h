@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <vector>
 
-#include "Exec/IO.h"
+#include "cawk/Exec/IO.h"
 
 namespace cawk {
 namespace inst {

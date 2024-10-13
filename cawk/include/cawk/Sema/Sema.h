@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AST/AST.h"
-#include "Basic/Diagnostic.h"
+#include "cawk/AST/AST.h"
+#include "cawk/Basic/Diagnostic.h"
 
 #include <unordered_set>
 #include <unordered_map>

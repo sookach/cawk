@@ -1,7 +1,7 @@
 #pragma once
 
-#include "AST/ASTDepthFinder.h"
-#include "AST/ASTVisitor.h"
+#include "cawk/AST/ASTDepthFinder.h"
+#include "cawk/AST/ASTVisitor.h"
 
 #include <cstdio>
 #include <string>

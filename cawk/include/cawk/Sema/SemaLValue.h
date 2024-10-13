@@ -1,9 +1,9 @@
 #pragma once
 
-#include "AST/ASTVisitor.h"
-#include "Basic/Diagnostic.h"
-#include "Sema/FunctionSymbol.h"
-#include "Support/StringMap.h"
+#include "cawk/AST/ASTVisitor.h"
+#include "cawk/Basic/Diagnostic.h"
+#include "cawk/Sema/FunctionSymbol.h"
+#include "cawk/Support/StringMap.h"
 
 #include <vector>
 

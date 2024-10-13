@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Exec/IO.h"
-#include "IR/Instruction.h"
+#include "cawk/Exec/IO.h"
+#include "cawk/IR/Instruction.h"
 
 #include <algorithm>
 #include <cassert>

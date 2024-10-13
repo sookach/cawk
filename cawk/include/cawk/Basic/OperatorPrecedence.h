@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Basic/TokenKinds.h"
+#include "cawk/Basic/TokenKinds.h"
 
 namespace cawk {
 namespace prec {
